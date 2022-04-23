@@ -1,6 +1,7 @@
 [package]
 name = "scte35"
 authors = ["Rafael Caricio <rafael@caricio.com>"]
+description = "SCTE-35 2022 parser and library"
 version = "0.1.0"
 edition = "2021"
 license = "MIT"
