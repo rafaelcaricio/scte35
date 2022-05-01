@@ -5,9 +5,6 @@ use bitstream_io::{BigEndian, BitWrite, BitWriter};
 use crc::{Crc, CRC_32_MPEG_2};
 use std::fmt::{Display, Formatter};
 
-#[cfg(feature = "serde")]
-use serde::Serialize;
-
 pub const MPEG_2: Crc<u32> = Crc::<u32>::new(&CRC_32_MPEG_2);
 
 pub struct SpliceInfoSection<C, S>
@@ -125,7 +122,7 @@ impl<C> SpliceInfoSection<C, NotEncoded>
 where
     C: SpliceCommand,
 {
-    fn into_encoded(self) -> Result<SpliceInfoSection<C, EncodedData>, CueError> {
+    pub fn into_encoded(self) -> Result<SpliceInfoSection<C, EncodedData>, CueError> {
         // Write splice command to a temporary buffer
         let mut splice_data = Vec::new();
         self.state.splice_command.write_to(&mut splice_data)?;
@@ -204,6 +201,13 @@ where
 {
     pub fn as_base64(&self) -> Result<String, CueError> {
         Ok(base64::encode(self.encoded.final_data.as_slice()))
+    }
+
+    pub fn as_hex(&self) -> Result<String, CueError> {
+        Ok(format!(
+            "0x{}",
+            hex::encode(self.encoded.final_data.as_slice())
+        ))
     }
 }
 
@@ -334,6 +338,18 @@ mod tests {
         assert_eq!(
             splice.into_encoded()?.as_base64()?,
             "/DARAAAAAAAAAP/wAAAAAHpPv/8=".to_string()
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn write_splice_null_as_hex() -> Result<()> {
+        let splice = SpliceInfoSection::new(SpliceNull::new());
+
+        assert_eq!(
+            splice.into_encoded()?.as_hex()?,
+            "0xfc301100000000000000fff0000000007a4fbfff".to_string()
         );
 
         Ok(())

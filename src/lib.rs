@@ -5,6 +5,9 @@ mod commands;
 mod descriptors;
 mod info;
 
+pub use commands::SpliceNull;
+pub use info::{EncryptionAlgorithm, SAPType, SpliceInfoSection};
+
 pub trait TransportPacketWrite {
     fn write_to<W>(&self, buffer: &mut W) -> Result<(), CueError>
     where

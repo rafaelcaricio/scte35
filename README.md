@@ -15,9 +15,9 @@ other purposes. More information can be found at
 
 Implemented parts of the standard are:
 
- - [ ] Splice Info section
- - Splice Command section:
-   - [ ] Splice Null
+ - [x] Splice Info section
+ - Splice Commands:
+   - [x] Splice Null
    - [ ] Splice Insert
    - [ ] Splice Schedule
    - [ ] Time Signal
