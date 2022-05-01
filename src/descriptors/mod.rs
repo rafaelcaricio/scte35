@@ -7,7 +7,7 @@ use std::io;
 #[cfg(feature = "serde")]
 use serde::Serialize;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize))]
 pub enum SpliceDescriptor {
     Avail,
