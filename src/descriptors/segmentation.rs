@@ -1,6 +1,11 @@
 use crate::{CueError, TransportPacketWrite};
 use std::io;
 
+#[cfg(feature = "serde")]
+use serde::Serialize;
+
+#[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize))]
 pub struct SegmentationDescriptor {
     identifier: u32,
     segmentation_event_id: u32,
@@ -20,6 +25,8 @@ impl TransportPacketWrite for SegmentationDescriptor {
     }
 }
 
+#[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize))]
 struct DeliveryRestriction {
     web_delivery_allowed_flag: bool,
     no_regional_blackout_flag: bool,
@@ -27,6 +34,8 @@ struct DeliveryRestriction {
     device_restrictions: DeviceRestrictions,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize))]
 enum DeviceRestrictions {
     RestrictGroup0 = 0x00,
     RestrictGroup1 = 0x01,
@@ -56,6 +65,8 @@ enum SegmentationUpidType {
     Reserved,
 }
 
+#[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize))]
 enum SegmentationUpid {
     NotUsed,
     UserDefinedDeprecated,
@@ -78,6 +89,8 @@ enum SegmentationUpid {
     Reserved,
 }
 
+#[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize))]
 struct Component {
     component_tag: u8,
     pts_offset: u64,

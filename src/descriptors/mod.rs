@@ -1,10 +1,14 @@
 mod segmentation;
 
 use crate::{CueError, TransportPacketWrite};
+pub use segmentation::*;
 use std::io;
 
-pub use segmentation::*;
+#[cfg(feature = "serde")]
+use serde::Serialize;
 
+#[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(Serialize))]
 pub enum SpliceDescriptor {
     Avail,
     DTMF,

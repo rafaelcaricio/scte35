@@ -1,10 +1,14 @@
 use crate::{CueError, TransportPacketWrite};
 use std::io;
 
+#[cfg(feature = "serde")]
+use serde::Serialize;
+
 pub trait SpliceCommand: TransportPacketWrite {
-    fn splice_command_type(&self) -> u8;
+    fn splice_command_type(&self) -> SpliceCommandType;
 }
 
+#[cfg_attr(feature = "serde", derive(Serialize))]
 pub struct SpliceNull {}
 
 impl SpliceNull {
@@ -23,8 +27,8 @@ impl TransportPacketWrite for SpliceNull {
 }
 
 impl SpliceCommand for SpliceNull {
-    fn splice_command_type(&self) -> u8 {
-        SpliceCommandType::SpliceNull.into()
+    fn splice_command_type(&self) -> SpliceCommandType {
+        SpliceCommandType::SpliceNull
     }
 }
 
