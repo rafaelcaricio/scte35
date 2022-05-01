@@ -3,6 +3,9 @@ use crate::descriptors::SpliceDescriptor;
 use crate::{CueError, TransportPacketWrite};
 use bitstream_io::{BigEndian, BitWrite, BitWriter};
 use std::io;
+use crc::{Crc, Algorithm, CRC_32_MPEG_2};
+
+pub const MPEG_2: Crc<u32> = Crc::<u32>::new(&CRC_32_MPEG_2);
 
 pub struct SpliceInfoSection<C>
 where
@@ -33,7 +36,7 @@ where
 
     splice_command: C,
 
-    descriptors: Vec<Box<dyn SpliceDescriptor>>,
+    descriptors: Vec<SpliceDescriptor>,
 }
 
 impl<C> SpliceInfoSection<C>
@@ -51,7 +54,7 @@ where
             encryption_algorithm: EncryptionAlgorithm::NotEncrypted,
             pts_adjustment: 0,
             cw_index: 0,
-            tier: 0,
+            tier: 0xFFF,
             splice_command,
             descriptors: Vec::new(),
         }
@@ -91,7 +94,7 @@ impl From<u8> for EncryptionAlgorithm {
             0x02 => EncryptionAlgorithm::DESCBCMode,
             0x03 => EncryptionAlgorithm::TripleDESEDE3ECBMode,
             0x04..=0x1F => EncryptionAlgorithm::Reserved(value),
-            0x20..=0xFF => EncryptionAlgorithm::Private(value),
+            _ => EncryptionAlgorithm::Private(value),
         }
     }
 }
@@ -123,9 +126,9 @@ where
 
         // Write the descriptors to a temporary buffer
         let mut descriptor_data = Vec::new();
-        // for descriptor in &self.descriptors {
-        //     descriptor.write_to(&mut descriptor_data)?;
-        // }
+        for descriptor in &self.descriptors {
+            descriptor.write_to(&mut descriptor_data)?;
+        }
 
         // Start writing the final output to a temporary buffer
         let mut data = Vec::new();
@@ -168,7 +171,7 @@ where
         }
         // TODO: Calculate CRC32. Use the data information
         // crc32:
-        buffer.write(32, 0)?;
+        buffer.write(32, MPEG_2.checksum(data.as_slice()))?;
         buffer.flush()?;
 
         Ok(())
@@ -184,6 +187,6 @@ mod tests {
     fn write_null_splice() {
         let splice = SpliceInfoSection::new(SpliceNull::new());
 
-        assert_eq!(splice.as_base64().unwrap(), "".to_string());
+        assert_eq!(splice.as_base64().unwrap(), "/DARAAAAAAAAAP/wAAAAAHpPv/8=".to_string());
     }
 }
