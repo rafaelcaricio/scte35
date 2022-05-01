@@ -199,15 +199,16 @@ impl<C> SpliceInfoSection<C, EncodedData>
 where
     C: SpliceCommand,
 {
-    pub fn as_base64(&self) -> Result<String, CueError> {
-        Ok(base64::encode(self.encoded.final_data.as_slice()))
+    pub fn as_base64(&self) -> String {
+        base64::encode(self.as_bytes())
     }
 
-    pub fn as_hex(&self) -> Result<String, CueError> {
-        Ok(format!(
-            "0x{}",
-            hex::encode(self.encoded.final_data.as_slice())
-        ))
+    pub fn as_hex(&self) -> String {
+        format!("0x{}", hex::encode(self.as_bytes()))
+    }
+
+    pub fn as_bytes(&self) -> &[u8] {
+        self.encoded.final_data.as_slice()
     }
 }
 
@@ -270,6 +271,7 @@ impl From<EncryptionAlgorithm> for u8 {
 #[cfg(feature = "serde")]
 mod serde_serialization {
     use super::*;
+    use crate::ticks_to_secs;
     use serde::ser::{Serialize, SerializeStruct, Serializer};
     use std::fmt::LowerHex;
 
@@ -289,7 +291,7 @@ mod serde_serialization {
                 format!("0x{:x}", value)
             }
 
-            let mut state = serializer.serialize_struct("SpliceInfoSection", 17)?;
+            let mut state = serializer.serialize_struct("SpliceInfoSection", 18)?;
             state.serialize_field("table_id", &as_hex(self.state.table_id))?;
             state.serialize_field(
                 "section_syntax_indicator",
@@ -304,7 +306,7 @@ mod serde_serialization {
                 "encryption_algorithm",
                 &u8::from(self.state.encryption_algorithm),
             )?;
-            state.serialize_field("pts_adjustment", &self.state.pts_adjustment)?;
+            state.serialize_field("pts_adjustment", &ticks_to_secs(self.state.pts_adjustment))?;
             state.serialize_field("cw_index", &as_hex(self.state.cw_index))?;
             state.serialize_field("tier", &as_hex(self.state.tier))?;
             state.serialize_field("splice_command_length", &self.encoded.splice_command_length)?;
@@ -312,6 +314,7 @@ mod serde_serialization {
                 "splice_command_type",
                 &u8::from(self.encoded.splice_command_type),
             )?;
+            state.serialize_field("splice_command_name", &self.encoded.splice_command_type)?;
             state.serialize_field("splice_command", &self.state.splice_command)?;
             state.serialize_field(
                 "descriptor_loop_length",
@@ -327,16 +330,19 @@ mod serde_serialization {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::commands::SpliceNull;
+    use crate::commands::*;
+    use crate::descriptors::SegmentationDescriptor;
+    use crate::ClockTimeExt;
     use anyhow::Result;
     use assert_json_diff::assert_json_eq;
+    use std::time::Duration;
 
     #[test]
     fn write_splice_null_as_base64() -> Result<()> {
         let splice = SpliceInfoSection::new(SpliceNull::new());
 
         assert_eq!(
-            splice.into_encoded()?.as_base64()?,
+            splice.into_encoded()?.as_base64(),
             "/DARAAAAAAAAAP/wAAAAAHpPv/8=".to_string()
         );
 
@@ -348,8 +354,70 @@ mod tests {
         let splice = SpliceInfoSection::new(SpliceNull::new());
 
         assert_eq!(
-            splice.into_encoded()?.as_hex()?,
+            splice.into_encoded()?.as_hex(),
             "0xfc301100000000000000fff0000000007a4fbfff".to_string()
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn compliance_spec_14_1_example_time_signal_as_base64() -> Result<()> {
+        let mut splice = SpliceInfoSection::new(TimeSignal::from_ticks(0x072bd0050));
+        // splice.add_descriptor(SegmentationDescriptor::new().into());
+
+        assert_eq!(
+            splice.into_encoded()?.as_base64(),
+            "/DA0AAAAAAAA///wBQb+cr0AUAAeAhxDVUVJSAAAjn/PAAGlmbAICAAAAAAsoKGKNAIAmsnRfg=="
+                .to_string()
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn compliance_spec_14_1_example_time_signal_as_hex() -> Result<()> {
+        let mut splice = SpliceInfoSection::new(TimeSignal::from_ticks(0x072bd0050));
+        // splice.add_descriptor(SegmentationDescriptor::new().into());
+
+        // 0xFC3034000000000000FFFFF00506FE72BD0050001E021C435545494800008E7FCF0001A599B00808000000002CA0A18A3402009AC9D17E
+        assert_eq!(
+            splice.into_encoded()?.as_hex(),
+            "0xfc301600000000000000fff005068072bd00500000e9dfc26c".to_string()
+        );
+        Ok(())
+    }
+
+    #[cfg(feature = "serde")]
+    #[test]
+    fn compliance_spec_14_1_example_time_signal_as_json() -> Result<()> {
+        let mut splice = SpliceInfoSection::new(TimeSignal::from_ticks(0x072bd0050));
+        // splice.add_descriptor(SegmentationDescriptor::new().into());
+
+        assert_json_eq!(
+            serde_json::to_value(&splice.into_encoded()?)?,
+            serde_json::json!({
+                "table_id": "0xfc",
+                "section_syntax_indicator": false,
+                "private_indicator": false,
+                "sap_type": "0x3",
+                "section_length": 22,
+                "protocol_version": 0,
+                "encrypted_packet": false,
+                "encryption_algorithm": 0,
+                "pts_adjustment": 0.0,
+                "cw_index": "0x0",
+                "tier": "0xfff",
+                "splice_command_length": 5,
+                "splice_command_type": 6,
+                "splice_command_name": "TimeSignal",
+                "splice_command": {
+                    "time_specified_flag": true,
+                    "pts_time": 21388.766756,
+                },
+                "descriptor_loop_length": 0,
+                "descriptors": [],
+                "crc_32": "0xe9dfc26c"
+            })
         );
 
         Ok(())
@@ -371,11 +439,12 @@ mod tests {
                 "protocol_version": 0,
                 "encrypted_packet": false,
                 "encryption_algorithm": 0,
-                "pts_adjustment": 0,
+                "pts_adjustment": 0.0,
                 "cw_index": "0x0",
                 "tier": "0xfff",
                 "splice_command_length": 0,
                 "splice_command_type": 0,
+                "splice_command_name": "SpliceNull",
                 "splice_command": {},
                 "descriptor_loop_length": 0,
                 "descriptors": [],
