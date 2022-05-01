@@ -91,6 +91,34 @@ where
             encoded: NotEncoded,
         }
     }
+
+    pub fn set_sap_type(&mut self, sap_type: SAPType) {
+        self.state.sap_type = sap_type;
+    }
+
+    pub fn set_pts_adjustment(&mut self, pts_adjustment: u64) {
+        self.state.pts_adjustment = pts_adjustment;
+    }
+
+    pub fn set_tier(&mut self, tier: u16) {
+        self.state.tier = tier;
+    }
+
+    pub fn add_descriptor(&mut self, descriptor: SpliceDescriptor) {
+        self.state.descriptors.push(descriptor);
+    }
+
+    pub fn remove_descriptor(&mut self, index: usize) {
+        self.state.descriptors.remove(index);
+    }
+
+    pub fn descriptor_index(&self, descriptor: &SpliceDescriptor) -> Option<usize> {
+        self.state.descriptors.iter().position(|d| d == descriptor)
+    }
+
+    pub fn get_descriptor_mut(&mut self, index: usize) -> Option<&mut SpliceDescriptor> {
+        self.state.descriptors.get_mut(index)
+    }
 }
 
 impl<C> SpliceInfoSection<C, NotEncoded>
@@ -285,7 +313,7 @@ mod serde_serialization {
                 "descriptor_loop_length",
                 &self.encoded.descriptor_loop_length,
             )?;
-            state.serialize_field("descriptor_loop", &self.state.descriptors)?;
+            state.serialize_field("descriptors", &self.state.descriptors)?;
             state.serialize_field("crc_32", &as_hex(self.encoded.crc32))?;
             state.end()
         }
@@ -300,7 +328,7 @@ mod tests {
     use assert_json_diff::assert_json_eq;
 
     #[test]
-    fn write_null_splice() -> Result<()> {
+    fn write_splice_null_as_base64() -> Result<()> {
         let splice = SpliceInfoSection::new(SpliceNull::new());
 
         assert_eq!(
@@ -334,7 +362,7 @@ mod tests {
                 "splice_command_type": 0,
                 "splice_command": {},
                 "descriptor_loop_length": 0,
-                "descriptor_loop": [],
+                "descriptors": [],
                 "crc_32": "0x7a4fbfff"
             })
         );
