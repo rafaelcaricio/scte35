@@ -1,5 +1,10 @@
+use crate::time::SpliceTime;
 use crate::{CueError, TransportPacketWrite};
+use bitstream_io::{BigEndian, BitWrite, BitWriter};
 use std::io;
+use std::io::Write;
+use std::ops::{Deref, DerefMut};
+use std::time::Duration;
 
 #[cfg(feature = "serde")]
 use serde::Serialize;
@@ -32,6 +37,37 @@ impl SpliceCommand for SpliceNull {
     }
 }
 
+#[cfg_attr(feature = "serde", derive(Serialize), serde(transparent))]
+#[repr(transparent)]
+pub struct TimeSignal(SpliceTime);
+
+impl TimeSignal {
+    pub fn new() -> Self {
+        TimeSignal(SpliceTime::new())
+    }
+
+    pub fn from_ticks(pts_time: u64) -> Self {
+        TimeSignal(SpliceTime::from_ticks(pts_time))
+    }
+}
+
+impl TransportPacketWrite for TimeSignal {
+    #[inline]
+    fn write_to<W>(&self, buffer: &mut W) -> Result<(), CueError>
+    where
+        W: Write,
+    {
+        self.0.write_to(buffer)
+    }
+}
+
+impl SpliceCommand for TimeSignal {
+    fn splice_command_type(&self) -> SpliceCommandType {
+        SpliceCommandType::TimeSignal
+    }
+}
+
+#[cfg_attr(feature = "serde", derive(Serialize))]
 #[derive(Debug, Clone, Copy)]
 pub enum SpliceCommandType {
     SpliceNull,
@@ -68,5 +104,34 @@ impl From<SpliceCommandType> for u8 {
             SpliceCommandType::PrivateCommand => 0xff,
             SpliceCommandType::Reserved(value) => value,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use anyhow::Result;
+    use assert_json_diff::assert_json_eq;
+
+    #[cfg(feature = "serde")]
+    #[test]
+    fn serialize_splice_null() -> Result<()> {
+        let splice_null = SpliceNull::new();
+        assert_json_eq!(serde_json::to_value(&splice_null)?, serde_json::json!({}));
+        Ok(())
+    }
+
+    #[cfg(feature = "serde")]
+    #[test]
+    fn serialize_time_signal() -> Result<()> {
+        let time_signal = TimeSignal::new();
+        assert_json_eq!(
+            serde_json::to_value(&time_signal)?,
+            serde_json::json!({
+                "time_specified_flag": false,
+                "pts_time": 0.0
+            })
+        );
+        Ok(())
     }
 }
