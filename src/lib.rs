@@ -1,4 +1,5 @@
 use std::io;
+use thiserror::Error;
 
 mod commands;
 mod descriptors;
@@ -10,13 +11,8 @@ pub trait TransportPacketWrite {
         W: io::Write;
 }
 
-#[derive(Debug)]
+#[derive(Error, Debug)]
+#[error("Could not execute operation due to {0}")]
 pub enum CueError {
-    Io(io::Error),
-}
-
-impl From<io::Error> for CueError {
-    fn from(err: io::Error) -> CueError {
-        CueError::Io(err)
-    }
+    Io(#[from] io::Error),
 }
