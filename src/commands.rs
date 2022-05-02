@@ -14,6 +14,7 @@ pub trait SpliceCommand: TransportPacketWrite {
 }
 
 #[cfg_attr(feature = "serde", derive(Serialize))]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct SpliceNull {}
 
 impl SpliceNull {
@@ -23,7 +24,7 @@ impl SpliceNull {
 }
 
 impl TransportPacketWrite for SpliceNull {
-    fn write_to<W>(&self, _: &mut W) -> Result<(), CueError>
+    fn write_to<W>(&self, _: &mut W) -> anyhow::Result<()>
     where
         W: io::Write,
     {
@@ -53,7 +54,7 @@ impl TimeSignal {
 
 impl TransportPacketWrite for TimeSignal {
     #[inline]
-    fn write_to<W>(&self, buffer: &mut W) -> Result<(), CueError>
+    fn write_to<W>(&self, buffer: &mut W) -> anyhow::Result<()>
     where
         W: Write,
     {
@@ -67,8 +68,14 @@ impl SpliceCommand for TimeSignal {
     }
 }
 
+impl From<Duration> for TimeSignal {
+    fn from(duration: Duration) -> Self {
+        Self(duration.into())
+    }
+}
+
 #[cfg_attr(feature = "serde", derive(Serialize))]
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum SpliceCommandType {
     SpliceNull,
     SpliceSchedule,

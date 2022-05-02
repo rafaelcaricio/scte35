@@ -18,22 +18,16 @@ pub enum SpliceDescriptor {
     Unknown(u8, u32, Vec<u8>),
 }
 
-impl SpliceDescriptor {
-    fn splice_descriptor_tag(&self) -> u8 {
-        use SpliceDescriptor::*;
-        match self {
-            Segmentation(_) => SpliceDescriptorTag::Segmentation.into(),
-            Avail => SpliceDescriptorTag::Avail.into(),
-            DTMF => SpliceDescriptorTag::DTMF.into(),
-            Time => SpliceDescriptorTag::Time.into(),
-            Audio => SpliceDescriptorTag::Audio.into(),
-            Unknown(tag, _, _) => *tag,
-        }
+pub(crate) trait SpliceDescriptorExt {
+    fn splice_descriptor_tag(&self) -> u8;
+
+    fn identifier(&self) -> u32 {
+        0x43554549 // ASCII "CUEI"
     }
 }
 
 impl TransportPacketWrite for SpliceDescriptor {
-    fn write_to<W>(&self, buffer: &mut W) -> Result<(), CueError>
+    fn write_to<W>(&self, buffer: &mut W) -> anyhow::Result<()>
     where
         W: io::Write,
     {

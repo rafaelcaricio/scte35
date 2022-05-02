@@ -42,18 +42,24 @@ impl SpliceTime {
 }
 
 impl TransportPacketWrite for SpliceTime {
-    fn write_to<W>(&self, buffer: &mut W) -> Result<(), CueError>
+    fn write_to<W>(&self, buffer: &mut W) -> anyhow::Result<()>
     where
         W: io::Write,
     {
         let mut buffer = BitWriter::endian(buffer, BigEndian);
         buffer.write_bit(self.time_specified_flag)?;
         if self.time_specified_flag {
-            buffer.write(6, 0x00)?;
+            buffer.write(6, 0x3f)?;
             buffer.write(33, self.pts_time)?;
         } else {
-            buffer.write(7, 0x00)?;
+            buffer.write(7, 0x7f)?;
         }
         Ok(())
+    }
+}
+
+impl From<Duration> for SpliceTime {
+    fn from(duration: Duration) -> Self {
+        Self::from_ticks(duration.to_90k())
     }
 }
