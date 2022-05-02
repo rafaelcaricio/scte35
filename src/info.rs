@@ -1,3 +1,4 @@
+use std::fmt;
 use crate::commands::{SpliceCommand, SpliceCommandType};
 use crate::descriptors::SpliceDescriptor;
 use crate::{CueError, TransportPacketWrite};
@@ -7,6 +8,7 @@ use std::fmt::{Display, Formatter};
 
 pub const MPEG_2: Crc<u32> = Crc::<u32>::new(&CRC_32_MPEG_2);
 
+#[derive(Debug, Clone, PartialEq)]
 pub struct SpliceInfoSection<C, S>
 where
     C: SpliceCommand,
@@ -16,6 +18,7 @@ where
     encoded: S,
 }
 
+#[derive(Debug, Clone, PartialEq)]
 struct SpliceInfoState<C>
 where
     C: SpliceCommand,
@@ -50,10 +53,12 @@ where
 
 pub trait EncodingState {}
 
+#[derive(Debug, Clone, Copy, PartialEq)]
 struct NotEncoded;
 
 impl EncodingState for NotEncoded {}
 
+#[derive(Debug, Clone, PartialEq)]
 struct EncodedData {
     section_length: u16,
     splice_command_length: u16,
@@ -199,11 +204,11 @@ impl<C> SpliceInfoSection<C, EncodedData>
 where
     C: SpliceCommand,
 {
-    pub fn as_base64(&self) -> String {
+    pub fn to_base64(&self) -> String {
         base64::encode(self.as_bytes())
     }
 
-    pub fn as_hex(&self) -> String {
+    pub fn to_hex(&self) -> String {
         format!("0x{}", hex::encode(self.as_bytes()))
     }
 
@@ -342,7 +347,7 @@ mod tests {
         let splice = SpliceInfoSection::new(SpliceNull::new());
 
         assert_eq!(
-            splice.into_encoded()?.as_base64(),
+            splice.into_encoded()?.to_base64(),
             "/DARAAAAAAAAAP/wAAAAAHpPv/8=".to_string()
         );
 
@@ -354,7 +359,7 @@ mod tests {
         let splice = SpliceInfoSection::new(SpliceNull::new());
 
         assert_eq!(
-            splice.into_encoded()?.as_hex(),
+            splice.into_encoded()?.to_hex(),
             "0xfc301100000000000000fff0000000007a4fbfff".to_string()
         );
 
@@ -367,7 +372,7 @@ mod tests {
         // splice.add_descriptor(SegmentationDescriptor::new().into());
 
         assert_eq!(
-            splice.into_encoded()?.as_base64(),
+            splice.into_encoded()?.to_base64(),
             "/DA0AAAAAAAA///wBQb+cr0AUAAeAhxDVUVJSAAAjn/PAAGlmbAICAAAAAAsoKGKNAIAmsnRfg=="
                 .to_string()
         );
@@ -381,7 +386,7 @@ mod tests {
 
         // 0xFC3034000000000000FFFFF00506FE72BD0050001E021C435545494800008E7FCF0001A599B00808000000002CA0A18A3402009AC9D17E
         assert_eq!(
-            splice.into_encoded()?.as_hex(),
+            splice.into_encoded()?.to_hex(),
             "0xfc301600000000000000fff005068072bd00500000e9dfc26c".to_string()
         );
         Ok(())
