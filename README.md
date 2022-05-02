@@ -5,7 +5,7 @@
 This library provide access to parse and encoding of data using the SCTE-35 standard. This standard is used by
 cable providers and broadcasters to insert signaling information into the video stream for advertising and
 other purposes. More information can be found at
-[Digital Program Insertion Cueing Message for Cable](https://www.scte.org/documents/standards/scte-35/).
+[Digital Program Insertion Cueing Message for Cable](https://www.scte.org/standards/library/catalog/scte-35-digital-program-insertion-cueing-message/).
 
 ## Main Features
 
