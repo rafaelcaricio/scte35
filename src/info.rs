@@ -1,9 +1,9 @@
-use std::fmt;
 use crate::commands::{SpliceCommand, SpliceCommandType};
 use crate::descriptors::SpliceDescriptor;
 use crate::{CueError, TransportPacketWrite};
 use bitstream_io::{BigEndian, BitWrite, BitWriter};
 use crc::{Crc, CRC_32_MPEG_2};
+use std::fmt;
 use std::fmt::{Display, Formatter};
 
 pub const MPEG_2: Crc<u32> = Crc::<u32>::new(&CRC_32_MPEG_2);
@@ -106,6 +106,10 @@ where
         self.state.tier = tier;
     }
 
+    pub fn set_cw_index(&mut self, cw_index: u8) {
+        self.state.cw_index = cw_index;
+    }
+
     pub fn add_descriptor(&mut self, descriptor: SpliceDescriptor) {
         self.state.descriptors.push(descriptor);
     }
@@ -127,7 +131,7 @@ impl<C> SpliceInfoSection<C, NotEncoded>
 where
     C: SpliceCommand,
 {
-    pub fn into_encoded(self) -> Result<SpliceInfoSection<C, EncodedData>, CueError> {
+    pub fn into_encoded(self) -> anyhow::Result<SpliceInfoSection<C, EncodedData>> {
         // Write splice command to a temporary buffer
         let mut splice_data = Vec::new();
         self.state.splice_command.write_to(&mut splice_data)?;
@@ -180,7 +184,7 @@ where
         if self.state.encrypted_packet {
             // TODO: alignment stuffing here, in case of DES encryption this needs to be 8 bytes aligned
             // encrypted_packet_crc32:
-            buffer.write(32, 0)?;
+            buffer.write(32, u32::MAX)?;
         }
         let crc32 = MPEG_2.checksum(data.as_slice());
         buffer.write(32, crc32)?;
@@ -369,6 +373,7 @@ mod tests {
     #[test]
     fn compliance_spec_14_1_example_time_signal_as_base64() -> Result<()> {
         let mut splice = SpliceInfoSection::new(TimeSignal::from_ticks(0x072bd0050));
+        splice.set_cw_index(0xff);
         // splice.add_descriptor(SegmentationDescriptor::new().into());
 
         assert_eq!(
@@ -382,12 +387,12 @@ mod tests {
     #[test]
     fn compliance_spec_14_1_example_time_signal_as_hex() -> Result<()> {
         let mut splice = SpliceInfoSection::new(TimeSignal::from_ticks(0x072bd0050));
+        splice.set_cw_index(0xff);
         // splice.add_descriptor(SegmentationDescriptor::new().into());
 
-        // 0xFC3034000000000000FFFFF00506FE72BD0050001E021C435545494800008E7FCF0001A599B00808000000002CA0A18A3402009AC9D17E
         assert_eq!(
             splice.into_encoded()?.to_hex(),
-            "0xfc301600000000000000fff005068072bd00500000e9dfc26c".to_string()
+            "0xfc3034000000000000fffff00506fe72bd0050001e021c435545494800008e7fcf0001a599b00808000000002ca0a18a3402009ac9d17e".to_string()
         );
         Ok(())
     }
@@ -396,6 +401,7 @@ mod tests {
     #[test]
     fn compliance_spec_14_1_example_time_signal_as_json() -> Result<()> {
         let mut splice = SpliceInfoSection::new(TimeSignal::from_ticks(0x072bd0050));
+        splice.set_cw_index(0xff);
         // splice.add_descriptor(SegmentationDescriptor::new().into());
 
         assert_json_eq!(
@@ -410,7 +416,7 @@ mod tests {
                 "encrypted_packet": false,
                 "encryption_algorithm": 0,
                 "pts_adjustment": 0.0,
-                "cw_index": "0x0",
+                "cw_index": "0xff",
                 "tier": "0xfff",
                 "splice_command_length": 5,
                 "splice_command_type": 6,
@@ -421,7 +427,7 @@ mod tests {
                 },
                 "descriptor_loop_length": 0,
                 "descriptors": [],
-                "crc_32": "0xe9dfc26c"
+                "crc_32": "0x2184b03d"
             })
         );
 
