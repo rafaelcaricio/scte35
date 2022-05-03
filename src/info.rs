@@ -131,15 +131,17 @@ impl<C> SpliceInfoSection<C, NotEncoded>
 where
     C: SpliceCommand,
 {
-    pub fn into_encoded(self) -> anyhow::Result<SpliceInfoSection<C, EncodedData>> {
+    pub fn into_encoded(mut self) -> anyhow::Result<SpliceInfoSection<C, EncodedData>> {
         // Write splice command to a temporary buffer
         let mut splice_data = Vec::new();
         self.state.splice_command.write_to(&mut splice_data)?;
 
         // Write the descriptors to a temporary buffer
         let mut descriptor_data = Vec::new();
-        for descriptor in &self.state.descriptors {
+        let mut descriptor_loop_length = 0;
+        for descriptor in &mut self.state.descriptors {
             descriptor.write_to(&mut descriptor_data)?;
+            descriptor_loop_length += descriptor.len() as u16;
         }
 
         // Start writing the final output to a temporary buffer
@@ -154,7 +156,7 @@ where
         // splice command length and descriptors which are also known by now
         const FIXED_INFO_SIZE_BYTES: usize = (8 + 1 + 6 + 33 + 8 + 12 + 12 + 8 + 16 + 32) / 8;
         let mut section_length =
-            (FIXED_INFO_SIZE_BYTES + splice_data.len() + descriptor_data.len()) as u16;
+            (FIXED_INFO_SIZE_BYTES + splice_data.len() + descriptor_loop_length as usize) as u16;
         if self.state.encrypted_packet {
             section_length += 4;
         }
@@ -171,7 +173,6 @@ where
         let splice_command_type = self.state.splice_command.splice_command_type();
         buffer.write(8, u8::from(splice_command_type))?;
         buffer.write_bytes(splice_data.as_slice())?;
-        let descriptor_loop_length = descriptor_data.len() as u16;
         buffer.write(16, descriptor_loop_length)?;
         buffer.write_bytes(descriptor_data.as_slice())?;
         buffer.flush()?;
@@ -300,7 +301,7 @@ mod serde_serialization {
                 format!("0x{:x}", value)
             }
 
-            let mut state = serializer.serialize_struct("SpliceInfoSection", 18)?;
+            let mut state = serializer.serialize_struct("SpliceInfoSection", 19)?;
             state.serialize_field("table_id", &as_hex(self.state.table_id))?;
             state.serialize_field(
                 "section_syntax_indicator",
@@ -316,6 +317,7 @@ mod serde_serialization {
                 &u8::from(self.state.encryption_algorithm),
             )?;
             state.serialize_field("pts_adjustment", &ticks_to_secs(self.state.pts_adjustment))?;
+            state.serialize_field("pts_adjustment_ticks", &self.state.pts_adjustment)?;
             state.serialize_field("cw_index", &as_hex(self.state.cw_index))?;
             state.serialize_field("tier", &as_hex(self.state.tier))?;
             state.serialize_field("splice_command_length", &self.encoded.splice_command_length)?;
@@ -372,7 +374,7 @@ mod tests {
 
     #[test]
     fn compliance_spec_14_1_example_time_signal_as_base64() -> Result<()> {
-        let mut splice = SpliceInfoSection::new(TimeSignal::from_ticks(0x072bd0050));
+        let mut splice = SpliceInfoSection::new(TimeSignal::from(0x072bd0050u64));
         splice.set_cw_index(0xff);
 
         let mut descriptor = SegmentationDescriptor::default();
@@ -400,7 +402,7 @@ mod tests {
 
     #[test]
     fn compliance_spec_14_1_example_time_signal_as_hex() -> Result<()> {
-        let mut splice = SpliceInfoSection::new(TimeSignal::from_ticks(0x072bd0050));
+        let mut splice = SpliceInfoSection::new(TimeSignal::from(0x072bd0050u64));
         splice.set_cw_index(0xff);
 
         let mut descriptor = SegmentationDescriptor::default();
@@ -428,7 +430,7 @@ mod tests {
     #[cfg(feature = "serde")]
     #[test]
     fn compliance_spec_14_1_example_time_signal_as_json() -> Result<()> {
-        let mut splice = SpliceInfoSection::new(TimeSignal::from_ticks(0x072bd0050));
+        let mut splice = SpliceInfoSection::new(TimeSignal::from(0x072bd0050u64));
         splice.set_cw_index(0xff);
 
         let mut descriptor = SegmentationDescriptor::default();
@@ -446,31 +448,69 @@ mod tests {
 
         splice.add_descriptor(descriptor.into());
 
+        let expected_json: serde_json::Value = serde_json::from_str(
+            r#"{
+            "table_id": "0xfc",
+            "section_syntax_indicator": false,
+            "private_indicator": false,
+            "sap_type": "0x3",
+            "section_length": 52,
+            "protocol_version": 0,
+            "encrypted_packet": false,
+            "encryption_algorithm": 0,
+            "pts_adjustment": 0.0,
+            "pts_adjustment_ticks": 0,
+            "cw_index": "0xff",
+            "tier": "0xfff",
+            "splice_command_length": 5,
+            "splice_command_type": 6,
+            "splice_command_name": "TimeSignal",
+            "splice_command": {
+                "name": "Time Signal",
+                "command_type": 6,
+                "command_length": 5,
+                "time_specified_flag": true,
+                "pts_time": 21388.766756,
+                "pts_time_ticks": 1924989008
+            },
+            "descriptor_loop_length": 30,
+            "descriptors": [
+                {
+                    "name": "Segmentation Descriptor",
+                    "splice_descriptor_tag": "0x02",
+                    "descriptor_length": 30,
+                    "identifier": "CUEI",
+                    "segmentation_event_id": "0x4800008e",
+                    "segmentation_event_cancel_indicator": false,
+                    "program_segmentation_flag": true,
+                    "segmentation_duration_flag": true,
+                    "delivery_not_restricted_flag": false,
+                    "web_delivery_allowed_flag": false,
+                    "no_regional_blackout_flag": true,
+                    "archive_allowed_flag": true,
+                    "device_restrictions": "None",
+                    "components": [],
+                    "segmentation_duration": 307.0,
+                    "segmentation_duration_ticks": 27630000,
+                    "segmentation_upid_type": "0x08",
+                    "segmentation_upid_type_name": "AiringID",
+                    "segmentation_upid_length": 8,
+                    "segmentation_upid": "0x2ca0a18a",
+                    "segmentation_message": "Provider Placement Opportunity Start",
+                    "segmentation_type_id": 52,
+                    "segment_num": 2,
+                    "segments_expected": 0,
+                    "sub_segment_num": 154,
+                    "sub_segments_expected": 201
+                }
+            ],
+            "crc_32": "0x926218f0"
+        }"#,
+        )?;
+
         assert_json_eq!(
             serde_json::to_value(&splice.into_encoded()?)?,
-            serde_json::json!({
-                "table_id": "0xfc",
-                "section_syntax_indicator": false,
-                "private_indicator": false,
-                "sap_type": "0x3",
-                "section_length": 22,
-                "protocol_version": 0,
-                "encrypted_packet": false,
-                "encryption_algorithm": 0,
-                "pts_adjustment": 0.0,
-                "cw_index": "0xff",
-                "tier": "0xfff",
-                "splice_command_length": 5,
-                "splice_command_type": 6,
-                "splice_command_name": "TimeSignal",
-                "splice_command": {
-                    "time_specified_flag": true,
-                    "pts_time": 21388.766756,
-                },
-                "descriptor_loop_length": 0,
-                "descriptors": [],
-                "crc_32": "0x2184b03d"
-            })
+            expected_json
         );
 
         Ok(())
@@ -493,6 +533,7 @@ mod tests {
                 "encrypted_packet": false,
                 "encryption_algorithm": 0,
                 "pts_adjustment": 0.0,
+                "pts_adjustment_ticks": 0,
                 "cw_index": "0x0",
                 "tier": "0xfff",
                 "splice_command_length": 0,
