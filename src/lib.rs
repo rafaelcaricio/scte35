@@ -30,7 +30,15 @@ pub trait ClockTimeExt {
     fn to_90k(&self) -> u64;
 }
 
+impl ClockTimeExt for u64 {
+    #[inline]
+    fn to_90k(&self) -> u64 {
+        *self
+    }
+}
+
 impl ClockTimeExt for Duration {
+    #[inline]
     fn to_90k(&self) -> u64 {
         (self.as_secs_f64() * 90_000.0).floor() as u64
     }

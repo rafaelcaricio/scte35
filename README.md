@@ -10,7 +10,7 @@ other purposes. More information can be found at
 ## Main Features
 
 - Parsing of SCTE-35 data
-- Encoding of SCTE-35 data
+- Encoding of SCTE-35 data (not yet implemented)
 - Serde integration for serialization into JSON or any other [serde supported formats](https://docs.rs/serde/1.0.137/serde/#data-formats).
 
 ## Implementation Overview
@@ -24,11 +24,11 @@ Implemented parts of the standard are:
    - [ ] Splice Schedule
    - [x] Time Signal
    - [ ] Bandwidth Reservation
-   - [ ] Splice Time
+   - [x] Splice Time
  - Splice Descriptors:
    - [ ] Avail
    - [ ] DTMF
-   - [ ] Segmentation Descriptor
+   - [x] Segmentation Descriptor
      - [ ] MPU
      - [ ] MID
  - Encryption Information section
@@ -38,4 +38,4 @@ Implemented parts of the standard are:
        - [ ] Triple DES EDE3 – ECB mode
        - [ ] Customized encryption algorithm
      - [ ] CRC encryption calculation
- - [ ] CRC calculation
+ - [x] CRC calculation

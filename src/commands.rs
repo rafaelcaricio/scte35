@@ -1,5 +1,5 @@
 use crate::time::SpliceTime;
-use crate::{CueError, TransportPacketWrite};
+use crate::{ClockTimeExt, CueError, TransportPacketWrite};
 use bitstream_io::{BigEndian, BitWrite, BitWriter};
 use std::io;
 use std::io::Write;
@@ -47,8 +47,11 @@ impl TimeSignal {
         TimeSignal(SpliceTime::new())
     }
 
-    pub fn from_ticks(pts_time: u64) -> Self {
-        TimeSignal(SpliceTime::from_ticks(pts_time))
+    pub fn set_pts<T>(&mut self, pts: Option<T>)
+    where
+        T: ClockTimeExt,
+    {
+        self.0.set_pts_time(pts);
     }
 }
 
@@ -68,9 +71,14 @@ impl SpliceCommand for TimeSignal {
     }
 }
 
-impl From<Duration> for TimeSignal {
-    fn from(duration: Duration) -> Self {
-        Self(duration.into())
+impl<T> From<T> for TimeSignal
+where
+    T: ClockTimeExt,
+{
+    fn from(pts: T) -> Self {
+        let mut t = Self::new();
+        t.set_pts(Some(pts));
+        t
     }
 }
 

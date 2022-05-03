@@ -27,16 +27,31 @@ impl SpliceTime {
     }
 
     #[inline]
-    pub fn set_pts_time(&mut self, pts_time: Option<u64>) {
+    pub fn set_pts_time<T>(&mut self, pts_time: Option<T>)
+    where
+        T: ClockTimeExt,
+    {
         match pts_time {
             None => {
                 self.time_specified_flag = false;
                 self.pts_time = 0;
             }
-            Some(ticks) => {
+            Some(duration) => {
                 self.time_specified_flag = true;
-                self.pts_time = ticks;
+                self.pts_time = duration.to_90k();
             }
+        }
+    }
+
+    pub fn time_specified_flag(&self) -> bool {
+        self.time_specified_flag
+    }
+
+    pub fn pts_time(&self) -> Option<u64> {
+        if self.time_specified_flag {
+            Some(self.pts_time)
+        } else {
+            None
         }
     }
 }

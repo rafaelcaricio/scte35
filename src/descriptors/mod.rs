@@ -8,7 +8,6 @@ use std::io;
 use serde::Serialize;
 
 #[derive(Debug, Clone, PartialEq)]
-#[cfg_attr(feature = "serde", derive(Serialize))]
 pub enum SpliceDescriptor {
     Avail,
     DTMF,
@@ -16,6 +15,32 @@ pub enum SpliceDescriptor {
     Time,
     Audio,
     Unknown(u8, u32, Vec<u8>),
+}
+#[cfg(feature = "serde")]
+mod serde_serialization {
+    use super::*;
+    use serde::ser::{Error, Serialize, SerializeStruct, Serializer};
+
+    impl Serialize for SpliceDescriptor {
+        fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+        where
+            S: Serializer,
+        {
+            use SpliceDescriptor::*;
+            match self {
+                Segmentation(seg) => seg.serialize(serializer),
+                Unknown(tag, len, data) => {
+                    let mut struc = serializer.serialize_struct("SpliceDescriptor", 3)?;
+                    struc.serialize_field("tag", &format!("0x{:x}", tag))?;
+                    struc.serialize_field("length", &len)?;
+                    struc.serialize_field("data", &format!("0x{}", hex::encode(data).as_str()))?;
+                    struc.end()
+                }
+                // TODO: add other descriptors
+                _ => serializer.serialize_str(&format!("{:?}", self)),
+            }
+        }
+    }
 }
 
 pub(crate) trait SpliceDescriptorExt {
@@ -26,8 +51,8 @@ pub(crate) trait SpliceDescriptorExt {
     }
 }
 
-impl TransportPacketWrite for SpliceDescriptor {
-    fn write_to<W>(&self, buffer: &mut W) -> anyhow::Result<()>
+impl SpliceDescriptor {
+    pub(crate) fn write_to<W>(&mut self, buffer: &mut W) -> anyhow::Result<()>
     where
         W: io::Write,
     {
@@ -38,6 +63,17 @@ impl TransportPacketWrite for SpliceDescriptor {
             SpliceDescriptor::Time => unimplemented!(),
             SpliceDescriptor::Audio => unimplemented!(),
             SpliceDescriptor::Unknown(_, _, _) => unimplemented!(),
+        }
+    }
+
+    pub(crate) fn len(&self) -> u8 {
+        match self {
+            SpliceDescriptor::Avail => 0,
+            SpliceDescriptor::DTMF => 0,
+            SpliceDescriptor::Segmentation(segmentation) => segmentation.len(),
+            SpliceDescriptor::Time => 0,
+            SpliceDescriptor::Audio => 0,
+            SpliceDescriptor::Unknown(_, _, _) => 0,
         }
     }
 }
