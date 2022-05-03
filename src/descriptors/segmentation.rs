@@ -1,6 +1,7 @@
-use crate::{CueError, TransportPacketWrite};
+use crate::{BytesWritten, CueError, TransportPacketWrite};
 use anyhow::Context;
-use bitstream_io::{BigEndian, BitWrite, BitWriter};
+use ascii::AsciiString;
+use bitstream_io::{BigEndian, BitRecorder, BitWrite, BitWriter};
 use std::ffi::CStr;
 use std::fmt::{Display, Formatter};
 use std::io;
@@ -10,7 +11,7 @@ use crate::descriptors::{SpliceDescriptorExt, SpliceDescriptorTag};
 #[cfg(feature = "serde")]
 use serde::Serialize;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Default)]
 #[cfg_attr(feature = "serde", derive(Serialize))]
 pub struct SegmentationDescriptor {
     segmentation_event_id: u32,
@@ -32,6 +33,76 @@ pub struct SegmentationDescriptor {
     sub_segments_expected: u8,
 }
 
+impl SegmentationDescriptor {
+    pub fn set_segmentation_event_id(&mut self, segmentation_event_id: u32) {
+        self.segmentation_event_id = segmentation_event_id;
+    }
+
+    pub fn set_segmentation_event_cancel_indicator(
+        &mut self,
+        segmentation_event_cancel_indicator: bool,
+    ) {
+        self.segmentation_event_cancel_indicator = segmentation_event_cancel_indicator;
+    }
+
+    pub fn set_program_segmentation_flag(&mut self, program_segmentation_flag: bool) {
+        self.program_segmentation_flag = program_segmentation_flag;
+    }
+
+    pub fn set_segmentation_duration_flag(&mut self, segmentation_duration_flag: bool) {
+        self.segmentation_duration_flag = segmentation_duration_flag;
+    }
+
+    pub fn set_delivery_not_restricted_flag(&mut self, delivery_not_restricted_flag: bool) {
+        self.delivery_not_restricted_flag = delivery_not_restricted_flag;
+    }
+
+    pub fn set_web_delivery_allowed_flag(&mut self, web_delivery_allowed_flag: bool) {
+        self.web_delivery_allowed_flag = web_delivery_allowed_flag;
+    }
+
+    pub fn set_no_regional_blackout_flag(&mut self, no_regional_blackout_flag: bool) {
+        self.no_regional_blackout_flag = no_regional_blackout_flag;
+    }
+
+    pub fn set_archive_allowed_flag(&mut self, archive_allowed_flag: bool) {
+        self.archive_allowed_flag = archive_allowed_flag;
+    }
+
+    pub fn set_device_restrictions(&mut self, device_restrictions: DeviceRestrictions) {
+        self.device_restrictions = device_restrictions;
+    }
+
+    pub fn set_segmentation_duration(&mut self, segmentation_duration: u64) {
+        self.set_segmentation_duration_flag(true);
+        self.segmentation_duration = segmentation_duration;
+    }
+
+    pub fn set_segmentation_upid(&mut self, segmentation_upid: SegmentationUpid) {
+        self.segmentation_upid = segmentation_upid;
+    }
+
+    pub fn set_segmentation_type(&mut self, segmentation_type: SegmentationType) {
+        self.segmentation_type = segmentation_type;
+    }
+
+    pub fn set_segment_num(&mut self, segment_num: u8) {
+        self.segment_num = segment_num;
+    }
+
+    pub fn set_segments_expected(&mut self, segments_expected: u8) {
+        self.segments_expected = segments_expected;
+    }
+
+    pub fn set_sub_segment_num(&mut self, sub_segment_num: u8) {
+        self.sub_segment_num = sub_segment_num;
+    }
+
+    pub fn set_sub_segments_expected(&mut self, sub_segments_expected: u8) {
+        self.sub_segments_expected = sub_segments_expected;
+    }
+}
+
 impl TransportPacketWrite for SegmentationDescriptor {
     fn write_to<W>(&self, buffer: &mut W) -> anyhow::Result<()>
     where
@@ -39,66 +110,63 @@ impl TransportPacketWrite for SegmentationDescriptor {
     {
         use SegmentationFieldSyntax::*;
 
-        let mut data = Vec::new();
-        let mut internal_buffer = BitWriter::endian(&mut data, BigEndian);
-        internal_buffer.write(32, self.identifier())?;
-        internal_buffer.write(32, self.segmentation_event_id)?;
-        internal_buffer.write_bit(self.segmentation_event_cancel_indicator)?;
-        internal_buffer.write(7, 0x7f)?;
+        let mut recorder: BitRecorder<u32, BigEndian> = BitRecorder::new();
+        recorder.write(32, self.identifier())?;
+        recorder.write(32, self.segmentation_event_id)?;
+        recorder.write_bit(self.segmentation_event_cancel_indicator)?;
+        recorder.write(7, 0x7f)?;
         if !self.segmentation_event_cancel_indicator {
-            internal_buffer.write_bit(self.program_segmentation_flag)?;
-            internal_buffer.write_bit(self.segmentation_duration_flag)?;
-            internal_buffer.write_bit(self.delivery_not_restricted_flag)?;
+            recorder.write_bit(self.program_segmentation_flag)?;
+            recorder.write_bit(self.segmentation_duration_flag)?;
+            recorder.write_bit(self.delivery_not_restricted_flag)?;
             if !self.delivery_not_restricted_flag {
-                internal_buffer.write_bit(self.web_delivery_allowed_flag)?;
-                internal_buffer.write_bit(self.no_regional_blackout_flag)?;
-                internal_buffer.write_bit(self.archive_allowed_flag)?;
-                internal_buffer.write(2, self.device_restrictions as u8)?;
+                recorder.write_bit(self.web_delivery_allowed_flag)?;
+                recorder.write_bit(self.no_regional_blackout_flag)?;
+                recorder.write_bit(self.archive_allowed_flag)?;
+                recorder.write(2, self.device_restrictions as u8)?;
             } else {
-                internal_buffer.write(5, 0x1f)?;
+                recorder.write(5, 0x1f)?;
             }
             if !self.program_segmentation_flag {
-                internal_buffer.write(8, self.components.len() as u8)?;
+                recorder.write(8, self.components.len() as u8)?;
                 for component in &self.components {
-                    component.write_to(&mut internal_buffer)?;
+                    component.write_to(&mut recorder)?;
                 }
             }
             if self.segmentation_duration_flag {
-                internal_buffer.write(40, self.segmentation_duration)?;
+                recorder.write(40, self.segmentation_duration)?;
             }
-            internal_buffer.write(8, u8::from(self.segmentation_upid.segmentation_upid_type()))?;
-            self.segmentation_upid.write_to(&mut internal_buffer)?;
-            internal_buffer.write(8, self.segmentation_type.id())?;
+            recorder.write(8, u8::from(self.segmentation_upid.segmentation_upid_type()))?;
+            self.segmentation_upid.write_to(&mut recorder)?;
+            recorder.write(8, self.segmentation_type.id())?;
 
             let s = self.segmentation_type.syntax();
             match s.segment_num {
-                Fixed(n) => internal_buffer.write(8, n)?,
-                NonZero | ZeroOrNonZero => internal_buffer.write(8, self.segment_num)?, // needs to check for non-zero
-                NotUsed => internal_buffer.write(8, 0u8)?,
+                Fixed(n) => recorder.write(8, n)?,
+                NonZero | ZeroOrNonZero => recorder.write(8, self.segment_num)?, // needs to check for non-zero
+                NotUsed => recorder.write(8, 0u8)?,
             }
             match s.segments_expected {
-                Fixed(n) => internal_buffer.write(8, n)?,
-                NonZero | ZeroOrNonZero => internal_buffer.write(8, self.segments_expected)?, // needs to check for non-zero
-                NotUsed => internal_buffer.write(8, 0u8)?,
+                Fixed(n) => recorder.write(8, n)?,
+                NonZero | ZeroOrNonZero => recorder.write(8, self.segments_expected)?, // needs to check for non-zero
+                NotUsed => recorder.write(8, 0u8)?,
             }
             match s.sub_segment_num {
-                Fixed(n) => internal_buffer.write(8, n)?,
-                NonZero | ZeroOrNonZero => internal_buffer.write(8, self.sub_segment_num)?, // needs to check for non-zero
+                Fixed(n) => recorder.write(8, n)?,
+                NonZero | ZeroOrNonZero => recorder.write(8, self.sub_segment_num)?, // needs to check for non-zero
                 NotUsed => {}
             }
             match s.sub_segments_expected {
-                Fixed(n) => internal_buffer.write(8, n)?,
-                NonZero | ZeroOrNonZero => internal_buffer.write(8, self.sub_segments_expected)?, // needs to check for non-zero
+                Fixed(n) => recorder.write(8, n)?,
+                NonZero | ZeroOrNonZero => recorder.write(8, self.sub_segments_expected)?, // needs to check for non-zero
                 NotUsed => {}
             }
         }
 
-        internal_buffer.flush()?;
-
         let mut buffer = BitWriter::endian(buffer, BigEndian);
         buffer.write(8, self.splice_descriptor_tag())?;
-        buffer.write(8, data.len() as u8)?;
-        buffer.write_bytes(data.as_slice())?;
+        buffer.write(8, recorder.bytes_written() as u8)?;
+        recorder.playback(&mut buffer)?;
 
         Ok(())
     }
@@ -113,7 +181,7 @@ impl SpliceDescriptorExt for SegmentationDescriptor {
 #[derive(Debug, Clone, Copy, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize))]
 #[repr(u8)]
-enum DeviceRestrictions {
+pub enum DeviceRestrictions {
     /// This Segment is restricted for a class of devices defined by an out of band message that
     /// describes which devices are excluded.
     RestrictGroup0 = 0b00,
@@ -128,6 +196,12 @@ enum DeviceRestrictions {
 
     /// This Segment has no device restrictions.
     None = 0b11,
+}
+
+impl Default for DeviceRestrictions {
+    fn default() -> Self {
+        DeviceRestrictions::None
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -152,6 +226,12 @@ pub enum SegmentationUpidType {
     UUID,
     SCR,
     Reserved(u8),
+}
+
+impl Default for SegmentationUpidType {
+    fn default() -> Self {
+        SegmentationUpidType::NotUsed
+    }
 }
 
 impl From<SegmentationUpidType> for u8 {
@@ -213,24 +293,30 @@ impl Display for SegmentationUpidType {
 #[non_exhaustive]
 pub enum SegmentationUpid {
     NotUsed,
-    UserDefinedDeprecated,
-    ISCI,
-    AdID,
-    UMID,
-    ISANDeprecated,
-    ISAN,
-    TID,
+    UserDefinedDeprecated(AsciiString),
+    ISCI(AsciiString),
+    AdID(AsciiString),
+    UMID(AsciiString),
+    ISANDeprecated(u64),
+    ISAN(u128),
+    TID(AsciiString),
     AiringID(u64),
-    ADI,
-    EIDR,
-    ATSCContentIdentifier,
+    ADI(AsciiString),
+    EIDR(u128),
+    ATSCContentIdentifier(AsciiString),
     MPU,
     MID,
-    ADSInformation,
-    URI,
-    UUID,
-    SCR,
+    ADSInformation(AsciiString),
+    URI(AsciiString),
+    UUID(u128),
+    SCR(AsciiString),
     Reserved(u8),
+}
+
+impl Default for SegmentationUpid {
+    fn default() -> Self {
+        SegmentationUpid::NotUsed
+    }
 }
 
 impl SegmentationUpid {
@@ -238,58 +324,72 @@ impl SegmentationUpid {
         use SegmentationUpid::*;
         match self {
             NotUsed => SegmentationUpidType::NotUsed,
-            UserDefinedDeprecated => SegmentationUpidType::UserDefinedDeprecated,
-            ISCI => SegmentationUpidType::ISCI,
-            AdID => SegmentationUpidType::AdID,
-            UMID => SegmentationUpidType::UMID,
-            ISANDeprecated => SegmentationUpidType::ISANDeprecated,
-            ISAN => SegmentationUpidType::ISAN,
-            TID => SegmentationUpidType::TID,
+            UserDefinedDeprecated(_) => SegmentationUpidType::UserDefinedDeprecated,
+            ISCI(_) => SegmentationUpidType::ISCI,
+            AdID(_) => SegmentationUpidType::AdID,
+            UMID(_) => SegmentationUpidType::UMID,
+            ISANDeprecated(_) => SegmentationUpidType::ISANDeprecated,
+            ISAN(_) => SegmentationUpidType::ISAN,
+            TID(_) => SegmentationUpidType::TID,
             AiringID(_) => SegmentationUpidType::AiringID,
-            ADI => SegmentationUpidType::ADI,
-            EIDR => SegmentationUpidType::EIDR,
-            ATSCContentIdentifier => SegmentationUpidType::ATSCContentIdentifier,
+            ADI(_) => SegmentationUpidType::ADI,
+            EIDR(_) => SegmentationUpidType::EIDR,
+            ATSCContentIdentifier(_) => SegmentationUpidType::ATSCContentIdentifier,
             MPU => SegmentationUpidType::MPU,
             MID => SegmentationUpidType::MID,
-            ADSInformation => SegmentationUpidType::ADSInformation,
-            URI => SegmentationUpidType::URI,
-            UUID => SegmentationUpidType::UUID,
-            SCR => SegmentationUpidType::SCR,
+            ADSInformation(_) => SegmentationUpidType::ADSInformation,
+            URI(_) => SegmentationUpidType::URI,
+            UUID(_) => SegmentationUpidType::UUID,
+            SCR(_) => SegmentationUpidType::SCR,
             Reserved(r) => SegmentationUpidType::Reserved(*r),
         }
     }
 
-    fn write_to<W>(&self, out: &mut BitWriter<W, BigEndian>) -> io::Result<()>
-    where
-        W: io::Write,
-    {
+    fn write_to(&self, out: &mut BitRecorder<u32, BigEndian>) -> anyhow::Result<()> {
         use SegmentationUpid::*;
 
-        let mut data = Vec::new();
-        let mut buffer = BitWriter::endian(&mut data, BigEndian);
+        let mut recorder = BitRecorder::<u32, BigEndian>::new();
 
         match self {
-            // URI(uri) => {
-            //     let raw_value = CStr::from_bytes_with_nul("https://link.com".as_bytes()).unwrap();
-            //     buffer.write_bytes(raw_value.to_bytes())?;
-            // }
-            AiringID(aid) => {
-                // 8 bytes is 64 bits
-                buffer.write(64, *aid)?;
+            AiringID(v) | ISANDeprecated(v) => {
+                // 8 byes is 64 bits
+                recorder.write(64, *v)?
             }
-            _ => {}
+            ISAN(value) | EIDR(value) | UUID(value) => {
+                recorder.write_bytes(value.to_be_bytes().as_slice())?
+            }
+            UserDefinedDeprecated(value)
+            | ADI(value)
+            | ATSCContentIdentifier(value)
+            | ADSInformation(value)
+            | URI(value)
+            | SCR(value) => recorder.write_bytes(value.as_bytes())?,
+            ISCI(v) => {
+                let buf = v.as_bytes().iter().take(8).copied().collect::<Vec<_>>();
+                recorder.write_bytes(buf.as_slice())?;
+            }
+            AdID(v) | TID(v) => {
+                let buf = v.as_bytes().iter().take(12).copied().collect::<Vec<_>>();
+                recorder.write_bytes(buf.as_slice())?;
+            }
+            UMID(v) => {
+                let buf = v.as_bytes().iter().take(32).copied().collect::<Vec<_>>();
+                recorder.write_bytes(buf.as_slice())?;
+            }
+            MPU => todo!("Needs to implement MPU() record"),
+            MID => todo!("Needs to implement MID() record"),
+            NotUsed => {}
+            Reserved(_) => {}
         }
 
-        buffer.flush()?;
-
         match self {
-            // All variants with variable length use the same write logic
-            UserDefinedDeprecated | URI | AiringID(_) => {
-                out.write(8, data.len() as u8)?;
-                out.write_bytes(data.as_slice())?;
+            NotUsed | Reserved(_) => {
+                out.write(8, 0u8)?;
             }
+            // All variants with any contained value use the same logic
             _ => {
-                out.write(8, 0x0)?;
+                out.write(8, recorder.bytes_written() as u8)?;
+                recorder.playback(out)?;
             }
         }
 
@@ -305,13 +405,10 @@ struct Component {
 }
 
 impl Component {
-    fn write_to<W>(&self, buffer: &mut BitWriter<W, BigEndian>) -> io::Result<()>
-    where
-        W: io::Write,
-    {
-        buffer.write(8, self.component_tag)?;
-        buffer.write(7, 0x7f)?;
-        buffer.write(33, self.pts_offset)
+    fn write_to(&self, recorder: &mut BitRecorder<u32, BigEndian>) -> io::Result<()> {
+        recorder.write(8, self.component_tag)?;
+        recorder.write(7, 0x7f)?;
+        recorder.write(33, self.pts_offset)
     }
 }
 
@@ -365,6 +462,12 @@ pub enum SegmentationType {
     DistributorAdBlockEnd,
     NetworkStart,
     NetworkEnd,
+}
+
+impl Default for SegmentationType {
+    fn default() -> Self {
+        SegmentationType::NotIndicated
+    }
 }
 
 impl SegmentationType {
@@ -787,12 +890,15 @@ mod tests {
     fn write_segmentation_upid_airing_id() -> Result<()> {
         let mut data = Vec::new();
         let mut buffer = BitWriter::endian(&mut data, BigEndian);
+        let mut recorder = BitRecorder::<u32, BigEndian>::new();
 
         let segmentation_upid = SegmentationUpid::AiringID(0x2ca0a18a);
-        segmentation_upid.write_to(&mut buffer)?;
+        segmentation_upid.write_to(&mut recorder)?;
+
+        recorder.playback(&mut buffer)?;
 
         // length (1 byte) + data (8 bytes)
-        assert_eq!(data.len(), 9);
+        assert_eq!(recorder.bytes_written(), 9);
 
         let hex = hex::encode(data[1..].to_vec());
         assert_eq!(hex, "000000002ca0a18a".to_string());
@@ -803,26 +909,20 @@ mod tests {
     #[test]
     fn write_segmentation_descriptor() -> Result<()> {
         let mut data = Vec::new();
-        let segmentation_descriptor = SegmentationDescriptor {
-            segmentation_event_id: 0x4800008e,
-            segmentation_event_cancel_indicator: false,
-            program_segmentation_flag: true,
-            segmentation_duration_flag: true,
-            delivery_not_restricted_flag: false,
-            web_delivery_allowed_flag: false,
-            no_regional_blackout_flag: true,
-            archive_allowed_flag: true,
-            device_restrictions: DeviceRestrictions::None,
-            components: vec![],
-            segmentation_duration: 27630000,
-            segmentation_upid: SegmentationUpid::AiringID(0x2ca0a18a),
-            segmentation_type: SegmentationType::ProviderPlacementOpportunityStart,
-            segment_num: 2,
-            segments_expected: 0,
-            sub_segment_num: 154,
-            sub_segments_expected: 201,
-        };
-        segmentation_descriptor.write_to(&mut data)?;
+        let mut descriptor = SegmentationDescriptor::default();
+        descriptor.set_segmentation_event_id(0x4800008e);
+        descriptor.set_program_segmentation_flag(true);
+        descriptor.set_segmentation_duration_flag(true);
+        descriptor.set_no_regional_blackout_flag(true);
+        descriptor.set_archive_allowed_flag(true);
+        descriptor.set_segmentation_duration(27630000);
+        descriptor.set_segmentation_upid(SegmentationUpid::AiringID(0x2ca0a18a));
+        descriptor.set_segmentation_type(SegmentationType::ProviderPlacementOpportunityStart);
+        descriptor.set_segment_num(2);
+        descriptor.set_sub_segment_num(154);
+        descriptor.set_sub_segments_expected(201);
+
+        descriptor.write_to(&mut data)?;
 
         let hex = hex::encode(data.as_slice());
         assert_eq!(
