@@ -9,8 +9,8 @@ other purposes. More information can be found at
 
 ## Main Features
 
-- Parsing of SCTE-35 data
-- Encoding of SCTE-35 data (not yet implemented)
+- Parsing of SCTE-35 data (not yet implemented)
+- Encoding of SCTE-35 data
 - Serde integration for serialization into JSON or any other [serde supported formats](https://docs.rs/serde/1.0.137/serde/#data-formats).
 
 ## Implementation Overview
