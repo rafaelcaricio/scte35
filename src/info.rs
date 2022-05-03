@@ -340,7 +340,7 @@ mod serde_serialization {
 mod tests {
     use super::*;
     use crate::commands::*;
-    use crate::descriptors::SegmentationDescriptor;
+    use crate::descriptors::{SegmentationDescriptor, SegmentationType, SegmentationUpid};
     use crate::ClockTimeExt;
     use anyhow::Result;
     use assert_json_diff::assert_json_eq;
@@ -374,11 +374,25 @@ mod tests {
     fn compliance_spec_14_1_example_time_signal_as_base64() -> Result<()> {
         let mut splice = SpliceInfoSection::new(TimeSignal::from_ticks(0x072bd0050));
         splice.set_cw_index(0xff);
-        // splice.add_descriptor(SegmentationDescriptor::new().into());
+
+        let mut descriptor = SegmentationDescriptor::default();
+        descriptor.set_segmentation_event_id(0x4800008e);
+        descriptor.set_program_segmentation_flag(true);
+        descriptor.set_segmentation_duration_flag(true);
+        descriptor.set_no_regional_blackout_flag(true);
+        descriptor.set_archive_allowed_flag(true);
+        descriptor.set_segmentation_duration(27630000);
+        descriptor.set_segmentation_upid(SegmentationUpid::AiringID(0x2ca0a18a));
+        descriptor.set_segmentation_type(SegmentationType::ProviderPlacementOpportunityStart);
+        descriptor.set_segment_num(2);
+        descriptor.set_sub_segment_num(154);
+        descriptor.set_sub_segments_expected(201);
+
+        splice.add_descriptor(descriptor.into());
 
         assert_eq!(
             splice.into_encoded()?.to_base64(),
-            "/DA0AAAAAAAA///wBQb+cr0AUAAeAhxDVUVJSAAAjn/PAAGlmbAICAAAAAAsoKGKNAIAmsnRfg=="
+            "/DA2AAAAAAAA///wBQb+cr0AUAAgAh5DVUVJSAAAjn/PAAGlmbAICAAAAAAsoKGKNAIAmsm2waDx"
                 .to_string()
         );
         Ok(())
@@ -388,11 +402,25 @@ mod tests {
     fn compliance_spec_14_1_example_time_signal_as_hex() -> Result<()> {
         let mut splice = SpliceInfoSection::new(TimeSignal::from_ticks(0x072bd0050));
         splice.set_cw_index(0xff);
-        // splice.add_descriptor(SegmentationDescriptor::new().into());
+
+        let mut descriptor = SegmentationDescriptor::default();
+        descriptor.set_segmentation_event_id(0x4800008e);
+        descriptor.set_program_segmentation_flag(true);
+        descriptor.set_segmentation_duration_flag(true);
+        descriptor.set_no_regional_blackout_flag(true);
+        descriptor.set_archive_allowed_flag(true);
+        descriptor.set_segmentation_duration(27630000);
+        descriptor.set_segmentation_upid(SegmentationUpid::AiringID(0x2ca0a18a));
+        descriptor.set_segmentation_type(SegmentationType::ProviderPlacementOpportunityStart);
+        descriptor.set_segment_num(2);
+        descriptor.set_sub_segment_num(154);
+        descriptor.set_sub_segments_expected(201);
+
+        splice.add_descriptor(descriptor.into());
 
         assert_eq!(
             splice.into_encoded()?.to_hex(),
-            "0xfc3034000000000000fffff00506fe72bd0050001e021c435545494800008e7fcf0001a599b00808000000002ca0a18a3402009ac9d17e".to_string()
+            "0xfc3036000000000000fffff00506fe72bd00500020021e435545494800008e7fcf0001a599b00808000000002ca0a18a3402009ac9b6c1a0f1".to_string()
         );
         Ok(())
     }
@@ -402,7 +430,21 @@ mod tests {
     fn compliance_spec_14_1_example_time_signal_as_json() -> Result<()> {
         let mut splice = SpliceInfoSection::new(TimeSignal::from_ticks(0x072bd0050));
         splice.set_cw_index(0xff);
-        // splice.add_descriptor(SegmentationDescriptor::new().into());
+
+        let mut descriptor = SegmentationDescriptor::default();
+        descriptor.set_segmentation_event_id(0x4800008e);
+        descriptor.set_program_segmentation_flag(true);
+        descriptor.set_segmentation_duration_flag(true);
+        descriptor.set_no_regional_blackout_flag(true);
+        descriptor.set_archive_allowed_flag(true);
+        descriptor.set_segmentation_duration(27630000);
+        descriptor.set_segmentation_upid(SegmentationUpid::AiringID(0x2ca0a18a));
+        descriptor.set_segmentation_type(SegmentationType::ProviderPlacementOpportunityStart);
+        descriptor.set_segment_num(2);
+        descriptor.set_sub_segment_num(154);
+        descriptor.set_sub_segments_expected(201);
+
+        splice.add_descriptor(descriptor.into());
 
         assert_json_eq!(
             serde_json::to_value(&splice.into_encoded()?)?,

@@ -42,6 +42,12 @@ impl TransportPacketWrite for SpliceDescriptor {
     }
 }
 
+impl From<SegmentationDescriptor> for SpliceDescriptor {
+    fn from(segmentation: SegmentationDescriptor) -> Self {
+        SpliceDescriptor::Segmentation(segmentation)
+    }
+}
+
 #[derive(Copy, Clone, Debug, PartialEq)]
 enum SpliceDescriptorTag {
     Avail,

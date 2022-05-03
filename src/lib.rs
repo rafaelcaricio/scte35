@@ -1,3 +1,4 @@
+use bitstream_io::{BigEndian, BitRecorder};
 use std::io;
 use std::time::Duration;
 use thiserror::Error;
@@ -38,6 +39,17 @@ impl ClockTimeExt for Duration {
 /// Truncate to 6 decimal positions, as shown in the spec.
 fn ticks_to_secs(value: u64) -> f64 {
     (value as f64 / 90_000.0 * 1_000_000.0).ceil() as f64 / 1_000_000.0
+}
+
+trait BytesWritten {
+    fn bytes_written(&self) -> u32;
+}
+
+impl BytesWritten for BitRecorder<u32, BigEndian> {
+    #[inline]
+    fn bytes_written(&self) -> u32 {
+        self.written() / 8
+    }
 }
 
 #[cfg(feature = "serde")]

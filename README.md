@@ -22,18 +22,15 @@ Implemented parts of the standard are:
    - [x] Splice Null
    - [ ] Splice Insert
    - [ ] Splice Schedule
-   - [ ] Time Signal
+   - [x] Time Signal
    - [ ] Bandwidth Reservation
    - [ ] Splice Time
  - Splice Descriptors:
    - [ ] Avail
    - [ ] DTMF
    - [ ] Segmentation Descriptor
-     - [ ] Cablelabs
      - [ ] MPU
      - [ ] MID
-     - [ ] ADS
-     - [ ] SCR
  - Encryption Information section
      - Encryption Algorithms:
        - [ ] DES – ECB mode
