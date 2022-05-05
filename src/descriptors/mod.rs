@@ -52,7 +52,7 @@ pub(crate) trait SpliceDescriptorExt {
 }
 
 impl SpliceDescriptor {
-    pub(crate) fn write_to<W>(&mut self, buffer: &mut W) -> anyhow::Result<()>
+    pub(crate) fn write_to<W>(&mut self, buffer: &mut W) -> anyhow::Result<u32>
     where
         W: io::Write,
     {
@@ -63,17 +63,6 @@ impl SpliceDescriptor {
             SpliceDescriptor::Time => unimplemented!(),
             SpliceDescriptor::Audio => unimplemented!(),
             SpliceDescriptor::Unknown(_, _, _) => unimplemented!(),
-        }
-    }
-
-    pub(crate) fn len(&self) -> u8 {
-        match self {
-            SpliceDescriptor::Avail => 0,
-            SpliceDescriptor::DTMF => 0,
-            SpliceDescriptor::Segmentation(segmentation) => segmentation.len(),
-            SpliceDescriptor::Time => 0,
-            SpliceDescriptor::Audio => 0,
-            SpliceDescriptor::Unknown(_, _, _) => 0,
         }
     }
 }

@@ -14,21 +14,15 @@ pub trait SpliceCommand: TransportPacketWrite {
 }
 
 #[cfg_attr(feature = "serde", derive(Serialize))]
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Default, Clone, Copy, PartialEq)]
 pub struct SpliceNull {}
 
-impl SpliceNull {
-    pub fn new() -> SpliceNull {
-        SpliceNull {}
-    }
-}
-
 impl TransportPacketWrite for SpliceNull {
-    fn write_to<W>(&self, _: &mut W) -> anyhow::Result<()>
+    fn write_to<W>(&self, _: &mut W) -> anyhow::Result<u32>
     where
         W: io::Write,
     {
-        Ok(())
+        Ok(0)
     }
 }
 
@@ -57,7 +51,7 @@ impl TimeSignal {
 
 impl TransportPacketWrite for TimeSignal {
     #[inline]
-    fn write_to<W>(&self, buffer: &mut W) -> anyhow::Result<()>
+    fn write_to<W>(&self, buffer: &mut W) -> anyhow::Result<u32>
     where
         W: Write,
     {
@@ -131,7 +125,7 @@ mod tests {
     #[cfg(feature = "serde")]
     #[test]
     fn serialize_splice_null() -> Result<()> {
-        let splice_null = SpliceNull::new();
+        let splice_null = SpliceNull::default();
         assert_json_eq!(serde_json::to_value(&splice_null)?, serde_json::json!({}));
         Ok(())
     }
