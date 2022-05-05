@@ -15,7 +15,7 @@ pub use commands::SpliceNull;
 pub use info::{EncryptionAlgorithm, SAPType, SpliceInfoSection};
 
 pub trait TransportPacketWrite {
-    fn write_to<W>(&self, buffer: &mut W) -> anyhow::Result<()>
+    fn write_to<W>(&self, buffer: &mut W) -> anyhow::Result<u32>
     where
         W: io::Write;
 }

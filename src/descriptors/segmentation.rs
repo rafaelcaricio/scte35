@@ -30,16 +30,18 @@ pub struct SegmentationDescriptor {
     sub_segment_num: u8,
     sub_segments_expected: u8,
 
-    descriptor_length: u8,
+    descriptor_length: Option<u8>,
 }
 
 #[cfg(feature = "serde")]
 mod serde_serialization {
     use super::*;
     use crate::ticks_to_secs;
+    use crate::time::format_duration;
     use ascii::AsciiStr;
     use serde::ser::{Error, Serialize, SerializeStruct, Serializer};
     use std::fmt::{format, LowerHex};
+    use std::time::Duration;
 
     impl Serialize for SegmentationDescriptor {
         fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
@@ -129,13 +131,12 @@ mod serde_serialization {
                 }
                 state.serialize_field("components", &self.components)?;
                 if self.segmentation_duration_flag {
+                    let duration_secs = ticks_to_secs(self.segmentation_duration);
+                    state.serialize_field("segmentation_duration", &self.segmentation_duration)?;
+                    state.serialize_field("segmentation_duration_secs", &duration_secs)?;
                     state.serialize_field(
-                        "segmentation_duration",
-                        &ticks_to_secs(self.segmentation_duration),
-                    )?;
-                    state.serialize_field(
-                        "segmentation_duration_ticks",
-                        &self.segmentation_duration,
+                        "segmentation_duration_human",
+                        &format_duration(Duration::from_secs_f64(duration_secs)).to_string(),
                     )?;
                 }
                 state.serialize_field(
@@ -204,14 +205,14 @@ mod serde_serialization {
             // TODO: serialize as struct when variant is MPU and MID
             match self {
                 // if field is represented as a character, then show with textual representation
-                ISCI(v) | AdID(v) | TID(v) | AdID(v) | ADSInformation(v) | URI(v) | SCR(v) => {
+                ISCI(v) | AdID(v) | TID(v) | ADSInformation(v) | URI(v) | SCR(v) => {
                     serializer.serialize_str(v.as_str())
                 }
                 // if field is represented as a number, then show as hex
                 ISAN(v) | EIDR(v) | UUID(v) => serializer.serialize_str(&format!("0x{:x}", v)),
                 ISANDeprecated(v) | AiringID(v) => serializer.serialize_str(&format!("0x{:x}", v)),
-                // everything else show as hex
-                _ => serializer.serialize_str(&format!("0x{}", hex::encode(data[1..].to_vec()))),
+                // everything else show as hex, we skip the first byte (which is the length)
+                _ => serializer.serialize_str(&format!("0x{}", hex::encode(&data[1..]))),
             }
         }
     }
@@ -286,11 +287,7 @@ impl SegmentationDescriptor {
         self.sub_segments_expected = sub_segments_expected;
     }
 
-    pub(crate) fn len(&self) -> u8 {
-        self.descriptor_length
-    }
-
-    pub(crate) fn write_to<W>(&mut self, buffer: &mut W) -> anyhow::Result<()>
+    pub(crate) fn write_to<W>(&mut self, buffer: &mut W) -> anyhow::Result<u32>
     where
         W: io::Write,
     {
@@ -349,13 +346,19 @@ impl SegmentationDescriptor {
             }
         }
 
+        let descriptor_length = recorder.bytes_written() as u8;
+
+        // Actually write to the output buffer, now we know the total size we need to write out
         let mut buffer = BitWriter::endian(buffer, BigEndian);
         buffer.write(8, self.splice_descriptor_tag())?;
-        buffer.write(8, recorder.bytes_written() as u8)?;
-        self.descriptor_length = recorder.bytes_written() as u8;
+        buffer.write(8, descriptor_length)?;
         recorder.playback(&mut buffer)?;
 
-        Ok(())
+        // This field is used when serializing the Segmentation Descriptor with serde
+        self.descriptor_length = Some(descriptor_length);
+
+        // This is the full size of the descriptor, which includes the 2 bytes of the tag and the length
+        Ok(descriptor_length as u32 + 2)
     }
 }
 
@@ -1249,8 +1252,9 @@ mod tests {
             "archive_allowed_flag": true,
             "device_restrictions": "None",
             "components": [],
-            "segmentation_duration": 307.0,
-            "segmentation_duration_ticks": 27630000,
+            "segmentation_duration": 27630000,
+            "segmentation_duration_secs": 307.0,
+            "segmentation_duration_human": "5m 7s",
             "segmentation_upid_type": "0x08",
             "segmentation_upid_type_name": "AiringID",
             "segmentation_upid_length": 8,
