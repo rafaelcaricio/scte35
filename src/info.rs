@@ -1,9 +1,7 @@
 use crate::commands::{SpliceCommand, SpliceCommandType};
 use crate::descriptors::SpliceDescriptor;
-use crate::{CueError, TransportPacketWrite};
 use bitstream_io::{BigEndian, BitWrite, BitWriter};
 use crc::{Crc, CRC_32_MPEG_2};
-use std::fmt;
 use std::fmt::{Display, Formatter};
 
 pub const MPEG_2: Crc<u32> = Crc::<u32>::new(&CRC_32_MPEG_2);
@@ -14,58 +12,58 @@ where
     C: SpliceCommand,
     S: EncodingState,
 {
-    state: SpliceInfoState<C>,
-    encoded: S,
+    pub(crate) state: SpliceInfoState<C>,
+    pub(crate) encoded: S,
 }
 
 #[derive(Debug, Clone, PartialEq)]
-struct SpliceInfoState<C>
+pub(crate) struct SpliceInfoState<C>
 where
     C: SpliceCommand,
 {
     /// This is an 8-bit field. Its value shall be 0xFC.
-    table_id: u8,
+    pub(crate) table_id: u8,
 
     /// The section_syntax_indicator is a 1-bit field that should always be set to ‘0’, indicating
     /// that MPEG short sections are to be used.
-    section_syntax_indicator: bool,
+    pub(crate) section_syntax_indicator: bool,
 
     /// This is a 1-bit flag that shall be set to 0.
-    private_indicator: bool,
+    pub(crate) private_indicator: bool,
 
     /// A two-bit field that indicates if the content preparation system has created a Stream
     /// Access Point (SAP) at the signaled point in the stream. SAP types are defined in
     /// ISO 14496-12, Annex I. The semantics of SAP types are further informatively elaborated
     /// in ISO/IEC 23009-1 DASH, Section 4.5.2.
-    sap_type: SAPType, // 2 bits
+    pub(crate) sap_type: SAPType, // 2 bits
 
-    protocol_version: u8,
-    encrypted_packet: bool,
-    encryption_algorithm: EncryptionAlgorithm,
-    pts_adjustment: u64, // 33 bits
-    cw_index: u8,
-    tier: u16, // 12 bits
+    pub(crate) protocol_version: u8,
+    pub(crate) encrypted_packet: bool,
+    pub(crate) encryption_algorithm: EncryptionAlgorithm,
+    pub(crate) pts_adjustment: u64, // 33 bits
+    pub(crate) cw_index: u8,
+    pub(crate) tier: u16, // 12 bits
 
-    splice_command: C,
+    pub(crate) splice_command: C,
 
-    descriptors: Vec<SpliceDescriptor>,
+    pub(crate) descriptors: Vec<SpliceDescriptor>,
 }
 
 pub trait EncodingState {}
 
 #[derive(Debug, Clone, Copy, PartialEq)]
-struct NotEncoded;
+pub(crate) struct NotEncoded;
 
 impl EncodingState for NotEncoded {}
 
 #[derive(Debug, Clone, PartialEq)]
-struct EncodedData {
-    section_length: u16,
-    splice_command_length: u16,
-    splice_command_type: SpliceCommandType,
-    descriptor_loop_length: u16,
-    crc32: u32,
-    final_data: Vec<u8>,
+pub(crate) struct EncodedData {
+    pub section_length: u16,
+    pub splice_command_length: u16,
+    pub splice_command_type: SpliceCommandType,
+    pub descriptor_loop_length: u16,
+    pub crc32: u32,
+    pub final_data: Vec<u8>,
 }
 
 impl EncodingState for EncodedData {}
@@ -74,7 +72,7 @@ impl<C> SpliceInfoSection<C, NotEncoded>
 where
     C: SpliceCommand,
 {
-    fn new(splice_command: C) -> Self {
+    pub fn new(splice_command: C) -> Self {
         Self {
             state: SpliceInfoState {
                 table_id: 0xFC,
@@ -277,82 +275,12 @@ impl From<EncryptionAlgorithm> for u8 {
     }
 }
 
-#[cfg(feature = "serde")]
-mod serde_serialization {
-    use super::*;
-    use crate::ticks_to_secs;
-    use crate::time::format_duration;
-    use serde::ser::{Serialize, SerializeStruct, Serializer};
-    use std::fmt::LowerHex;
-    use std::time::Duration;
-
-    impl<C> Serialize for SpliceInfoSection<C, EncodedData>
-    where
-        C: SpliceCommand + Serialize,
-    {
-        fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-        where
-            S: Serializer,
-        {
-            #[inline]
-            fn as_hex<T>(value: T) -> String
-            where
-                T: LowerHex,
-            {
-                format!("0x{:x}", value)
-            }
-
-            let mut state = serializer.serialize_struct("SpliceInfoSection", 19)?;
-            state.serialize_field("table_id", &as_hex(self.state.table_id))?;
-            state.serialize_field(
-                "section_syntax_indicator",
-                &self.state.section_syntax_indicator,
-            )?;
-            state.serialize_field("private_indicator", &self.state.private_indicator)?;
-            state.serialize_field("sap_type", &as_hex(self.state.sap_type as u8))?;
-            state.serialize_field("section_length", &self.encoded.section_length)?;
-            state.serialize_field("protocol_version", &self.state.protocol_version)?;
-            state.serialize_field("encrypted_packet", &self.state.encrypted_packet)?;
-            state.serialize_field(
-                "encryption_algorithm",
-                &u8::from(self.state.encryption_algorithm),
-            )?;
-            state.serialize_field("pts_adjustment", &self.state.pts_adjustment)?;
-            let pts_adjustment_secs = ticks_to_secs(self.state.pts_adjustment);
-            state.serialize_field("pts_adjustment_secs", &pts_adjustment_secs)?;
-            state.serialize_field(
-                "pts_adjustment_human",
-                &format_duration(Duration::from_secs_f64(pts_adjustment_secs)).to_string(),
-            )?;
-            state.serialize_field("cw_index", &as_hex(self.state.cw_index))?;
-            state.serialize_field("tier", &as_hex(self.state.tier))?;
-            state.serialize_field("splice_command_length", &self.encoded.splice_command_length)?;
-            state.serialize_field(
-                "splice_command_type",
-                &u8::from(self.encoded.splice_command_type),
-            )?;
-            state.serialize_field("splice_command_name", &self.encoded.splice_command_type)?;
-            state.serialize_field("splice_command", &self.state.splice_command)?;
-            state.serialize_field(
-                "descriptor_loop_length",
-                &self.encoded.descriptor_loop_length,
-            )?;
-            state.serialize_field("descriptors", &self.state.descriptors)?;
-            state.serialize_field("crc_32", &as_hex(self.encoded.crc32))?;
-            state.end()
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::commands::*;
     use crate::descriptors::{SegmentationDescriptor, SegmentationType, SegmentationUpid};
-    use crate::ClockTimeExt;
     use anyhow::Result;
-    use assert_json_diff::assert_json_eq;
-    use std::time::Duration;
 
     #[test]
     fn write_splice_null_as_base64() -> Result<()> {
@@ -418,113 +346,6 @@ mod tests {
             // This example was encoded using the threefive Python library
             "0xfc3036000000000000fffff00506fe72bd00500020021e435545494800008e7fcf0001a599b00808000000002ca0a18a3402009ac9b6c1a0f1".to_string()
         );
-        Ok(())
-    }
-
-    #[cfg(feature = "serde")]
-    #[test]
-    fn compliance_spec_14_1_example_time_signal_as_json() -> Result<()> {
-        let expected_json: serde_json::Value = serde_json::from_str(
-            r#"{
-            "table_id": "0xfc",
-            "section_syntax_indicator": false,
-            "private_indicator": false,
-            "sap_type": "0x3",
-            "section_length": 54,
-            "protocol_version": 0,
-            "encrypted_packet": false,
-            "encryption_algorithm": 0,
-            "pts_adjustment": 0,
-            "pts_adjustment_secs": 0.0,
-            "pts_adjustment_human": "0s",
-            "cw_index": "0xff",
-            "tier": "0xfff",
-            "splice_command_length": 5,
-            "splice_command_type": 6,
-            "splice_command_name": "TimeSignal",
-            "splice_command": {
-                "name": "Time Signal",
-                "command_type": 6,
-                "command_length": 5,
-                "time_specified_flag": true,
-                "pts_time": 21388.766756,
-                "pts_time_ticks": 1924989008
-            },
-            "descriptor_loop_length": 32,
-            "descriptors": [
-                {
-                    "name": "Segmentation Descriptor",
-                    "splice_descriptor_tag": "0x02",
-                    "descriptor_length": 30,
-                    "identifier": "CUEI",
-                    "segmentation_event_id": "0x4800008e",
-                    "segmentation_event_cancel_indicator": false,
-                    "program_segmentation_flag": true,
-                    "segmentation_duration_flag": true,
-                    "delivery_not_restricted_flag": false,
-                    "web_delivery_allowed_flag": false,
-                    "no_regional_blackout_flag": true,
-                    "archive_allowed_flag": true,
-                    "device_restrictions": "None",
-                    "components": [],
-                    "segmentation_duration": 27630000,
-                    "segmentation_duration_secs": 307.0,
-                    "segmentation_duration_human": "5m 7s",
-                    "segmentation_upid_type": "0x08",
-                    "segmentation_upid_type_name": "AiringID",
-                    "segmentation_upid_length": 8,
-                    "segmentation_upid": "0x2ca0a18a",
-                    "segmentation_message": "Provider Placement Opportunity Start",
-                    "segmentation_type_id": 52,
-                    "segment_num": 2,
-                    "segments_expected": 0,
-                    "sub_segment_num": 154,
-                    "sub_segments_expected": 201
-                }
-            ],
-            "crc_32": "0xb6c1a0f1"
-        }"#,
-        )?;
-
-        assert_json_eq!(
-            serde_json::to_value(&spec_14_1_example_time_signal()?)?,
-            expected_json
-        );
-
-        Ok(())
-    }
-
-    #[cfg(feature = "serde")]
-    #[test]
-    fn serialize_as_json() -> Result<()> {
-        let splice = SpliceInfoSection::new(SpliceNull::default());
-
-        assert_json_eq!(
-            serde_json::to_value(&splice.into_encoded()?)?,
-            serde_json::json!({
-                "table_id": "0xfc",
-                "section_syntax_indicator": false,
-                "private_indicator": false,
-                "sap_type": "0x3",
-                "section_length": 17,
-                "protocol_version": 0,
-                "encrypted_packet": false,
-                "encryption_algorithm": 0,
-                "pts_adjustment": 0,
-                "pts_adjustment_secs": 0.0,
-                "pts_adjustment_human": "0s",
-                "cw_index": "0x0",
-                "tier": "0xfff",
-                "splice_command_length": 0,
-                "splice_command_type": 0,
-                "splice_command_name": "SpliceNull",
-                "splice_command": {},
-                "descriptor_loop_length": 0,
-                "descriptors": [],
-                "crc_32": "0x7a4fbfff"
-            })
-        );
-
         Ok(())
     }
 }

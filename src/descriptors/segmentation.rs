@@ -1,9 +1,6 @@
-use crate::{BytesWritten, ClockTimeExt, CueError, TransportPacketWrite};
-use anyhow::Context;
+use crate::{BytesWritten, ClockTimeExt};
 use ascii::AsciiString;
 use bitstream_io::{BigEndian, BitRecorder, BitWrite, BitWriter};
-use std::ffi::CStr;
-use std::io::Write;
 use std::{fmt, io};
 
 use crate::descriptors::{SpliceDescriptorExt, SpliceDescriptorTag};
@@ -31,191 +28,6 @@ pub struct SegmentationDescriptor {
     sub_segments_expected: u8,
 
     descriptor_length: Option<u8>,
-}
-
-#[cfg(feature = "serde")]
-mod serde_serialization {
-    use super::*;
-    use crate::ticks_to_secs;
-    use crate::time::format_duration;
-    use ascii::AsciiStr;
-    use serde::ser::{Error, Serialize, SerializeStruct, Serializer};
-    use std::fmt::{format, LowerHex};
-    use std::time::Duration;
-
-    impl Serialize for SegmentationDescriptor {
-        fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-        where
-            S: Serializer,
-        {
-            use SegmentationFieldSyntax::*;
-
-            #[inline]
-            fn as_hex<T>(value: T) -> String
-            where
-                T: LowerHex,
-            {
-                format!("0x{:02x}", value)
-            }
-
-            let segmentation_syntax = self.segmentation_type.syntax();
-
-            // predict number of fields in the struct
-            let mut num_fields = 6;
-            if !self.segmentation_event_cancel_indicator {
-                num_fields += 12;
-                if !self.delivery_not_restricted_flag {
-                    num_fields += 4;
-                }
-                if self.segmentation_duration_flag {
-                    num_fields += 2;
-                }
-                match segmentation_syntax.sub_segment_num {
-                    Fixed(_) | NonZero | ZeroOrNonZero => {
-                        num_fields += 1;
-                    }
-                    NotUsed => {}
-                }
-                match segmentation_syntax.sub_segments_expected {
-                    Fixed(_) | NonZero | ZeroOrNonZero => {
-                        num_fields += 1;
-                    }
-                    NotUsed => {}
-                }
-            }
-
-            let mut state = serializer.serialize_struct("SegmentationDescriptor", num_fields)?;
-            state.serialize_field("name", "Segmentation Descriptor")?;
-            state.serialize_field(
-                "splice_descriptor_tag",
-                &as_hex(self.splice_descriptor_tag()),
-            )?;
-            state.serialize_field("descriptor_length", &self.descriptor_length)?;
-            let id = self.identifier().to_be_bytes();
-            state.serialize_field(
-                "identifier",
-                AsciiStr::from_ascii(id.as_slice())
-                    .expect("ascii characters")
-                    .as_str(),
-            )?;
-            state.serialize_field("segmentation_event_id", &as_hex(self.segmentation_event_id))?;
-            state.serialize_field(
-                "segmentation_event_cancel_indicator",
-                &self.segmentation_event_cancel_indicator,
-            )?;
-
-            if !self.segmentation_event_cancel_indicator {
-                state.serialize_field(
-                    "program_segmentation_flag",
-                    &self.program_segmentation_flag,
-                )?;
-                state.serialize_field(
-                    "segmentation_duration_flag",
-                    &self.segmentation_duration_flag,
-                )?;
-                state.serialize_field(
-                    "delivery_not_restricted_flag",
-                    &self.delivery_not_restricted_flag,
-                )?;
-                if !self.delivery_not_restricted_flag {
-                    state.serialize_field(
-                        "web_delivery_allowed_flag",
-                        &self.web_delivery_allowed_flag,
-                    )?;
-                    state.serialize_field(
-                        "no_regional_blackout_flag",
-                        &self.no_regional_blackout_flag,
-                    )?;
-                    state.serialize_field("archive_allowed_flag", &self.archive_allowed_flag)?;
-                    state.serialize_field("device_restrictions", &self.device_restrictions)?;
-                }
-                state.serialize_field("components", &self.components)?;
-                if self.segmentation_duration_flag {
-                    let duration_secs = ticks_to_secs(self.segmentation_duration);
-                    state.serialize_field("segmentation_duration", &self.segmentation_duration)?;
-                    state.serialize_field("segmentation_duration_secs", &duration_secs)?;
-                    state.serialize_field(
-                        "segmentation_duration_human",
-                        &format_duration(Duration::from_secs_f64(duration_secs)).to_string(),
-                    )?;
-                }
-                state.serialize_field(
-                    "segmentation_upid_type",
-                    &as_hex(u8::from(self.segmentation_upid.segmentation_upid_type())),
-                )?;
-                state.serialize_field(
-                    "segmentation_upid_type_name",
-                    &format!("{}", self.segmentation_upid.segmentation_upid_type()),
-                )?;
-                state.serialize_field(
-                    "segmentation_upid_length",
-                    &self.segmentation_upid.segmentation_upid_length(),
-                )?;
-                state.serialize_field("segmentation_upid", &self.segmentation_upid)?;
-                state.serialize_field(
-                    "segmentation_message",
-                    &format!("{}", self.segmentation_type),
-                )?;
-                state.serialize_field("segmentation_type_id", &self.segmentation_type.id())?;
-                state.serialize_field("segment_num", &self.segment_num)?;
-                state.serialize_field("segments_expected", &self.segments_expected)?;
-                match segmentation_syntax.sub_segment_num {
-                    Fixed(v) => {
-                        state.serialize_field("sub_segment_num", &v)?;
-                    }
-                    NonZero | ZeroOrNonZero => {
-                        state.serialize_field("sub_segment_num", &self.sub_segment_num)?;
-                    }
-                    NotUsed => {}
-                }
-                match segmentation_syntax.sub_segments_expected {
-                    Fixed(v) => {
-                        state.serialize_field("sub_segments_expected", &v)?;
-                    }
-                    NonZero | ZeroOrNonZero => {
-                        state.serialize_field(
-                            "sub_segments_expected",
-                            &self.sub_segments_expected,
-                        )?;
-                    }
-                    NotUsed => {}
-                }
-            }
-            state.end()
-        }
-    }
-
-    impl Serialize for SegmentationUpid {
-        fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-        where
-            S: Serializer,
-        {
-            use SegmentationUpid::*;
-
-            let mut recorder = BitRecorder::<u32, BigEndian>::new();
-            self.write_to(&mut recorder)
-                .map_err(|err| S::Error::custom(format!("{}", err)))?;
-
-            let mut data = Vec::new();
-            let mut buffer = BitWriter::endian(&mut data, BigEndian);
-            recorder
-                .playback(&mut buffer)
-                .map_err(|err| S::Error::custom(format!("{}", err)))?;
-
-            // TODO: serialize as struct when variant is MPU and MID
-            match self {
-                // if field is represented as a character, then show with textual representation
-                ISCI(v) | AdID(v) | TID(v) | ADSInformation(v) | URI(v) | SCR(v) => {
-                    serializer.serialize_str(v.as_str())
-                }
-                // if field is represented as a number, then show as hex
-                ISAN(v) | EIDR(v) | UUID(v) => serializer.serialize_str(&format!("0x{:x}", v)),
-                ISANDeprecated(v) | AiringID(v) => serializer.serialize_str(&format!("0x{:x}", v)),
-                // everything else show as hex, we skip the first byte (which is the length)
-                _ => serializer.serialize_str(&format!("0x{}", hex::encode(&data[1..]))),
-            }
-        }
-    }
 }
 
 impl SegmentationDescriptor {
@@ -285,6 +97,78 @@ impl SegmentationDescriptor {
 
     pub fn set_sub_segments_expected(&mut self, sub_segments_expected: u8) {
         self.sub_segments_expected = sub_segments_expected;
+    }
+
+    pub fn segmentation_event_id(&self) -> u32 {
+        self.segmentation_event_id
+    }
+
+    pub fn segmentation_event_cancel_indicator(&self) -> bool {
+        self.segmentation_event_cancel_indicator
+    }
+
+    pub fn program_segmentation_flag(&self) -> bool {
+        self.program_segmentation_flag
+    }
+
+    pub fn segmentation_duration_flag(&self) -> bool {
+        self.segmentation_duration_flag
+    }
+
+    pub fn delivery_not_restricted_flag(&self) -> bool {
+        self.delivery_not_restricted_flag
+    }
+
+    pub fn web_delivery_allowed_flag(&self) -> bool {
+        self.web_delivery_allowed_flag
+    }
+
+    pub fn no_regional_blackout_flag(&self) -> bool {
+        self.no_regional_blackout_flag
+    }
+
+    pub fn archive_allowed_flag(&self) -> bool {
+        self.archive_allowed_flag
+    }
+
+    pub fn device_restrictions(&self) -> DeviceRestrictions {
+        self.device_restrictions
+    }
+
+    pub fn components(&self) -> &Vec<Component> {
+        &self.components
+    }
+
+    pub fn segmentation_duration(&self) -> u64 {
+        self.segmentation_duration
+    }
+
+    pub fn segmentation_upid(&self) -> &SegmentationUpid {
+        &self.segmentation_upid
+    }
+
+    pub fn segmentation_type(&self) -> SegmentationType {
+        self.segmentation_type
+    }
+
+    pub fn segment_num(&self) -> u8 {
+        self.segment_num
+    }
+
+    pub fn segments_expected(&self) -> u8 {
+        self.segments_expected
+    }
+
+    pub fn sub_segment_num(&self) -> u8 {
+        self.sub_segment_num
+    }
+
+    pub fn sub_segments_expected(&self) -> u8 {
+        self.sub_segments_expected
+    }
+
+    pub fn descriptor_length(&self) -> Option<u8> {
+        self.descriptor_length
     }
 
     pub(crate) fn write_to<W>(&mut self, buffer: &mut W) -> anyhow::Result<u32>
@@ -535,17 +419,17 @@ impl SegmentationUpid {
         }
     }
 
-    fn segmentation_upid_length(&self) -> u8 {
+    pub fn segmentation_upid_length(&self) -> u8 {
         use SegmentationUpid::*;
         match self {
             NotUsed => 0,
             UserDefinedDeprecated(s) => s.len() as u8,
-            ISCI(s) => 8,
-            AdID(s) => 12,
-            UMID(s) => 32,
+            ISCI(_) => 8,
+            AdID(_) => 12,
+            UMID(_) => 32,
             ISANDeprecated(_) => 8,
             ISAN(_) => 12,
-            TID(s) => 8,
+            TID(_) => 8,
             AiringID(_) => 8,
             ADI(s) => s.len() as u8,
             EIDR(_) => 12,
@@ -560,7 +444,7 @@ impl SegmentationUpid {
         }
     }
 
-    fn write_to(&self, out: &mut BitRecorder<u32, BigEndian>) -> anyhow::Result<()> {
+    pub(crate) fn write_to(&self, out: &mut BitRecorder<u32, BigEndian>) -> anyhow::Result<()> {
         use SegmentationUpid::*;
 
         let mut recorder = BitRecorder::<u32, BigEndian>::new();
@@ -614,13 +498,13 @@ impl SegmentationUpid {
 
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize))]
-struct Component {
+pub struct Component {
     component_tag: u8,
     pts_offset: u64,
 }
 
 impl Component {
-    fn write_to(&self, recorder: &mut BitRecorder<u32, BigEndian>) -> io::Result<()> {
+    pub(crate) fn write_to(&self, recorder: &mut BitRecorder<u32, BigEndian>) -> io::Result<()> {
         recorder.write(8, self.component_tag)?;
         recorder.write(7, 0x7f)?;
         recorder.write(33, self.pts_offset)
@@ -686,7 +570,7 @@ impl Default for SegmentationType {
 }
 
 impl SegmentationType {
-    fn id(&self) -> u8 {
+    pub fn id(&self) -> u8 {
         use SegmentationType::*;
         match self {
             NotIndicated => 0x00,
@@ -739,7 +623,7 @@ impl SegmentationType {
     }
 
     /// Reflects definitions on the Table 23 of the spec.
-    fn syntax(&self) -> SegmentationTypeSyntax {
+    pub fn syntax(&self) -> SegmentationTypeSyntax {
         use SegmentationFieldSyntax::*;
         use SegmentationType::*;
 
@@ -1147,26 +1031,46 @@ impl TryFrom<u8> for SegmentationType {
     }
 }
 
-enum SegmentationFieldSyntax {
+#[cfg_attr(feature = "serde", derive(Serialize))]
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub enum SegmentationFieldSyntax {
     Fixed(u8),
     ZeroOrNonZero,
     NonZero,
     NotUsed,
 }
 
-struct SegmentationTypeSyntax {
+#[cfg_attr(feature = "serde", derive(Serialize))]
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub struct SegmentationTypeSyntax {
     segment_num: SegmentationFieldSyntax,
     segments_expected: SegmentationFieldSyntax,
     sub_segment_num: SegmentationFieldSyntax,
     sub_segments_expected: SegmentationFieldSyntax,
 }
 
+impl SegmentationTypeSyntax {
+    pub fn segment_num(&self) -> SegmentationFieldSyntax {
+        self.segment_num
+    }
+
+    pub fn segments_expected(&self) -> SegmentationFieldSyntax {
+        self.segments_expected
+    }
+
+    pub fn sub_segment_num(&self) -> SegmentationFieldSyntax {
+        self.sub_segment_num
+    }
+
+    pub fn sub_segments_expected(&self) -> SegmentationFieldSyntax {
+        self.sub_segments_expected
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use anyhow::Result;
-    use assert_json_diff::assert_json_eq;
-    use std::time::Duration;
 
     #[test]
     fn write_segmentation_upid_airing_id() -> Result<()> {
@@ -1212,89 +1116,6 @@ mod tests {
             "021e435545494800008e7fcf0001a599b00808000000002ca0a18a3402009ac9".to_string()
         );
 
-        Ok(())
-    }
-
-    #[cfg(feature = "serde")]
-    #[test]
-    fn serialize_segmentation_to_json() -> Result<()> {
-        let mut descriptor = SegmentationDescriptor::default();
-        descriptor.set_segmentation_event_id(0x4800008e);
-        descriptor.set_program_segmentation_flag(true);
-        descriptor.set_segmentation_duration_flag(true);
-        descriptor.set_no_regional_blackout_flag(true);
-        descriptor.set_archive_allowed_flag(true);
-        descriptor.set_segmentation_duration(Duration::from_secs_f32(307.0));
-        descriptor.set_segmentation_duration(27630000);
-        descriptor.set_segmentation_upid(SegmentationUpid::AiringID(0x2ca0a18a));
-        descriptor.set_segmentation_type(SegmentationType::ProviderPlacementOpportunityStart);
-        descriptor.set_segment_num(2);
-        descriptor.set_sub_segment_num(154);
-        descriptor.set_sub_segments_expected(201);
-
-        // We need to write to calculate the length
-        let mut data = Vec::new();
-        descriptor.write_to(&mut data)?;
-
-        let expected_json: serde_json::Value = serde_json::from_str(
-            r#"{
-            "name": "Segmentation Descriptor",
-            "splice_descriptor_tag": "0x02",
-            "descriptor_length": 30,
-            "identifier": "CUEI",
-            "segmentation_event_id": "0x4800008e",
-            "segmentation_event_cancel_indicator": false,
-            "program_segmentation_flag": true,
-            "segmentation_duration_flag": true,
-            "delivery_not_restricted_flag": false,
-            "web_delivery_allowed_flag": false,
-            "no_regional_blackout_flag": true,
-            "archive_allowed_flag": true,
-            "device_restrictions": "None",
-            "components": [],
-            "segmentation_duration": 27630000,
-            "segmentation_duration_secs": 307.0,
-            "segmentation_duration_human": "5m 7s",
-            "segmentation_upid_type": "0x08",
-            "segmentation_upid_type_name": "AiringID",
-            "segmentation_upid_length": 8,
-            "segmentation_upid": "0x2ca0a18a",
-            "segmentation_message": "Provider Placement Opportunity Start",
-            "segmentation_type_id": 52,
-            "segment_num": 2,
-            "segments_expected": 0,
-            "sub_segment_num": 154,
-            "sub_segments_expected": 201
-        }"#,
-        )?;
-
-        assert_json_eq!(serde_json::to_value(&descriptor)?, expected_json);
-        Ok(())
-    }
-
-    #[cfg(feature = "serde")]
-    #[test]
-    fn serialize_segmentation_with_cancel_indicator_to_json() -> Result<()> {
-        let mut descriptor = SegmentationDescriptor::default();
-        descriptor.set_segmentation_event_id(0x4800008e);
-        descriptor.set_segmentation_event_cancel_indicator(true);
-
-        // We need to write to calculate the length
-        let mut data = Vec::new();
-        descriptor.write_to(&mut data)?;
-
-        let expected_json: serde_json::Value = serde_json::from_str(
-            r#"{
-            "name": "Segmentation Descriptor",
-            "splice_descriptor_tag": "0x02",
-            "descriptor_length": 9,
-            "identifier": "CUEI",
-            "segmentation_event_id": "0x4800008e",
-            "segmentation_event_cancel_indicator": true
-        }"#,
-        )?;
-
-        assert_json_eq!(serde_json::to_value(&descriptor)?, expected_json);
         Ok(())
     }
 }

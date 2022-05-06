@@ -1,24 +1,29 @@
 use crate::time::SpliceTime;
-use crate::{ClockTimeExt, CueError, TransportPacketWrite};
-use bitstream_io::{BigEndian, BitWrite, BitWriter};
+use crate::ClockTimeExt;
 use std::io;
 use std::io::Write;
-use std::ops::{Deref, DerefMut};
-use std::time::Duration;
 
 #[cfg(feature = "serde")]
 use serde::Serialize;
 
-pub trait SpliceCommand: TransportPacketWrite {
+pub trait SpliceCommand {
     fn splice_command_type(&self) -> SpliceCommandType;
+
+    fn write_to<W>(&mut self, buffer: &mut W) -> anyhow::Result<u32>
+    where
+        W: io::Write;
 }
 
 #[cfg_attr(feature = "serde", derive(Serialize))]
 #[derive(Debug, Default, Clone, Copy, PartialEq)]
 pub struct SpliceNull {}
 
-impl TransportPacketWrite for SpliceNull {
-    fn write_to<W>(&self, _: &mut W) -> anyhow::Result<u32>
+impl SpliceCommand for SpliceNull {
+    fn splice_command_type(&self) -> SpliceCommandType {
+        SpliceCommandType::SpliceNull
+    }
+
+    fn write_to<W>(&mut self, _: &mut W) -> anyhow::Result<u32>
     where
         W: io::Write,
     {
@@ -26,21 +31,12 @@ impl TransportPacketWrite for SpliceNull {
     }
 }
 
-impl SpliceCommand for SpliceNull {
-    fn splice_command_type(&self) -> SpliceCommandType {
-        SpliceCommandType::SpliceNull
-    }
-}
-
+#[derive(Debug, Default, Clone, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize), serde(transparent))]
 #[repr(transparent)]
 pub struct TimeSignal(SpliceTime);
 
 impl TimeSignal {
-    pub fn new() -> Self {
-        TimeSignal(SpliceTime::new())
-    }
-
     pub fn set_pts<T>(&mut self, pts: Option<T>)
     where
         T: ClockTimeExt,
@@ -49,19 +45,16 @@ impl TimeSignal {
     }
 }
 
-impl TransportPacketWrite for TimeSignal {
-    #[inline]
-    fn write_to<W>(&self, buffer: &mut W) -> anyhow::Result<u32>
+impl SpliceCommand for TimeSignal {
+    fn splice_command_type(&self) -> SpliceCommandType {
+        SpliceCommandType::TimeSignal
+    }
+
+    fn write_to<W>(&mut self, buffer: &mut W) -> anyhow::Result<u32>
     where
         W: Write,
     {
         self.0.write_to(buffer)
-    }
-}
-
-impl SpliceCommand for TimeSignal {
-    fn splice_command_type(&self) -> SpliceCommandType {
-        SpliceCommandType::TimeSignal
     }
 }
 
@@ -70,7 +63,7 @@ where
     T: ClockTimeExt,
 {
     fn from(pts: T) -> Self {
-        let mut t = Self::new();
+        let mut t = Self::default();
         t.set_pts(Some(pts));
         t
     }
@@ -113,34 +106,5 @@ impl From<SpliceCommandType> for u8 {
             SpliceCommandType::PrivateCommand => 0xff,
             SpliceCommandType::Reserved(value) => value,
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use anyhow::Result;
-    use assert_json_diff::assert_json_eq;
-
-    #[cfg(feature = "serde")]
-    #[test]
-    fn serialize_splice_null() -> Result<()> {
-        let splice_null = SpliceNull::default();
-        assert_json_eq!(serde_json::to_value(&splice_null)?, serde_json::json!({}));
-        Ok(())
-    }
-
-    #[cfg(feature = "serde")]
-    #[test]
-    fn serialize_time_signal() -> Result<()> {
-        let time_signal = TimeSignal::new();
-        assert_json_eq!(
-            serde_json::to_value(&time_signal)?,
-            serde_json::json!({
-                "time_specified_flag": false,
-                "pts_time": 0.0
-            })
-        );
-        Ok(())
     }
 }
