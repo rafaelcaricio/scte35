@@ -1,11 +1,7 @@
 mod segmentation;
 
-use crate::{CueError, TransportPacketWrite};
 pub use segmentation::*;
 use std::io;
-
-#[cfg(feature = "serde")]
-use serde::Serialize;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum SpliceDescriptor {
@@ -15,32 +11,6 @@ pub enum SpliceDescriptor {
     Time,
     Audio,
     Unknown(u8, u32, Vec<u8>),
-}
-#[cfg(feature = "serde")]
-mod serde_serialization {
-    use super::*;
-    use serde::ser::{Error, Serialize, SerializeStruct, Serializer};
-
-    impl Serialize for SpliceDescriptor {
-        fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-        where
-            S: Serializer,
-        {
-            use SpliceDescriptor::*;
-            match self {
-                Segmentation(seg) => seg.serialize(serializer),
-                Unknown(tag, len, data) => {
-                    let mut struc = serializer.serialize_struct("SpliceDescriptor", 3)?;
-                    struc.serialize_field("tag", &format!("0x{:x}", tag))?;
-                    struc.serialize_field("length", &len)?;
-                    struc.serialize_field("data", &format!("0x{}", hex::encode(data).as_str()))?;
-                    struc.end()
-                }
-                // TODO: add other descriptors
-                _ => serializer.serialize_str(&format!("{:?}", self)),
-            }
-        }
-    }
 }
 
 pub(crate) trait SpliceDescriptorExt {
