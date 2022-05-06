@@ -78,9 +78,14 @@ impl TransportPacketWrite for SpliceTime {
     }
 }
 
-impl From<Duration> for SpliceTime {
-    fn from(duration: Duration) -> Self {
-        Self::from_ticks(duration.to_90k())
+impl<T> From<T> for SpliceTime
+    where
+        T: ClockTimeExt,
+{
+    fn from(pts: T) -> Self {
+        let mut t = Self::new();
+        t.set_pts(Some(pts));
+        t
     }
 }
 
