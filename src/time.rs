@@ -80,3 +80,30 @@ where
         t
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn encode_time_signal() {
+
+        let mut st = SpliceTime::default();
+
+        let mut data = Vec::new();
+        st.write_to(&mut data).unwrap();
+
+        assert_eq!(hex::encode(data.as_slice()), "7f")
+    }
+
+    #[test]
+    fn encode_time_signal_with_time() {
+
+        let mut st = SpliceTime::from(0x072bd0050);
+
+        let mut data = Vec::new();
+        st.write_to(&mut data).unwrap();
+
+        assert_eq!(hex::encode(data.as_slice()), "fe72bd0050")
+    }
+}
