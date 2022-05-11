@@ -87,7 +87,6 @@ mod test {
 
     #[test]
     fn encode_time_signal() {
-
         let mut st = SpliceTime::default();
 
         let mut data = Vec::new();
@@ -98,7 +97,6 @@ mod test {
 
     #[test]
     fn encode_time_signal_with_time() {
-
         let mut st = SpliceTime::from(0x072bd0050);
 
         let mut data = Vec::new();
