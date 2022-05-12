@@ -1,3 +1,4 @@
+use deku::prelude::*;
 use crate::{BytesWritten, ClockTimeExt};
 use ascii::AsciiString;
 use bitstream_io::{BigEndian, BitRecorder, BitWrite, BitWriter};
@@ -252,9 +253,10 @@ impl SpliceDescriptorExt for SegmentationDescriptor {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, DekuRead, DekuWrite)]
 #[cfg_attr(feature = "serde", derive(Serialize))]
 #[repr(u8)]
+#[deku(type="u8", bits="2")]
 pub enum DeviceRestrictions {
     /// This Segment is restricted for a class of devices defined by an out of band message that
     /// describes which devices are excluded.
