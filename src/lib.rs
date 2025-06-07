@@ -252,6 +252,14 @@ pub struct SpliceDescriptor {
     pub descriptor_bytes: Vec<u8>,
 }
 
+impl SpliceDescriptor {
+    /// Convert descriptor bytes to a UTF-8 string
+    /// Returns None if the bytes are not valid UTF-8
+    pub fn as_str(&self) -> Option<&str> {
+        std::str::from_utf8(&self.descriptor_bytes).ok()
+    }
+}
+
 // --- Parsing Functions ---
 
 pub fn parse_splice_info_section(buffer: &[u8]) -> Result<SpliceInfoSection, io::Error> {
@@ -587,7 +595,7 @@ fn parse_component_splice(reader: &mut BitReader) -> Result<ComponentSplice, io:
     };
 
     let scheduled_splice_time = if duration_flag == 0 {
-        let reserved = reader.read_bslbf(5)? as u8;
+        let _reserved = reader.read_bslbf(5)? as u8;
         Some(parse_date_time(reader)?)
     } else {
         None
@@ -622,6 +630,211 @@ fn parse_splice_descriptor(reader: &mut BitReader) -> Result<SpliceDescriptor, i
 mod tests {
     use super::*;
     use base64::{Engine, engine::general_purpose};
+
+    #[test]
+    fn test_time_signal_command() {
+        // Time Signal example from threefive: '/DAWAAAAAAAAAP/wBQb+Qjo1vQAAuwxz9A=='
+        let time_signal_base64 = "/DAWAAAAAAAAAP/wBQb+Qjo1vQAAuwxz9A==";
+        let buffer = general_purpose::STANDARD
+            .decode(time_signal_base64)
+            .expect("Failed to decode base64 string");
+
+        let section = parse_splice_info_section(&buffer)
+            .expect("Failed to parse time_signal SpliceInfoSection");
+
+        // Validate header
+        assert_eq!(section.table_id, 0xFC, "Table ID should be 0xFC");
+        assert_eq!(section.splice_command_type, 0x06, "Command type should be 0x06 (time_signal)");
+        
+        // Validate command
+        match section.splice_command {
+            SpliceCommand::TimeSignal(ref cmd) => {
+                assert_eq!(cmd.splice_time.time_specified_flag, 1, "Time should be specified");
+                assert!(cmd.splice_time.pts_time.is_some(), "PTS time should be present");
+                
+                // Verify time conversion
+                if let Some(duration) = cmd.splice_time.to_duration() {
+                    // PTS time is 1111111101, which is about 12345 seconds
+                    assert!(duration.as_secs() > 12000 && duration.as_secs() < 13000);
+                }
+            }
+            _ => panic!("Expected TimeSignal command"),
+        }
+    }
+
+    #[test]
+    fn test_time_signal_with_descriptors() {
+        // Time Signal with descriptors: '/DAgAAAAAAAAAP/wBQb+Qjo1vQAKAAhDVUVJAAAE0iVuWvA='
+        let time_signal_desc_base64 = "/DAgAAAAAAAAAP/wBQb+Qjo1vQAKAAhDVUVJAAAE0iVuWvA=";
+        let buffer = general_purpose::STANDARD
+            .decode(time_signal_desc_base64)
+            .expect("Failed to decode base64 string");
+
+        let section = parse_splice_info_section(&buffer)
+            .expect("Failed to parse time_signal with descriptors");
+
+        // Validate header
+        assert_eq!(section.table_id, 0xFC);
+        assert_eq!(section.splice_command_type, 0x06, "Command type should be 0x06 (time_signal)");
+        
+        // Should have descriptors
+        assert!(section.descriptor_loop_length > 0, "Should have descriptors");
+        assert!(!section.splice_descriptors.is_empty(), "Should have descriptor data");
+    }
+
+    #[test]
+    fn test_upid_adid_example() {
+        // ADID example: "/DA4AAAAAAAA///wBQb+AKpFLgAiAiBDVUVJAAAAA3//AAApPWwDDEFCQ0QwMTIzNDU2SHAAAFkTm+A="
+        let adid_base64 = "/DA4AAAAAAAA///wBQb+AKpFLgAiAiBDVUVJAAAAA3//AAApPWwDDEFCQ0QwMTIzNDU2SHAAAFkTm+A=";
+        let buffer = general_purpose::STANDARD
+            .decode(adid_base64)
+            .expect("Failed to decode ADID base64 string");
+
+        let section = parse_splice_info_section(&buffer)
+            .expect("Failed to parse ADID SpliceInfoSection");
+
+        // Validate header
+        assert_eq!(section.table_id, 0xFC);
+        assert_eq!(section.splice_command_type, 0x06, "Command type should be 0x06 (time_signal)");
+        
+        // Should have descriptors with UPID
+        assert!(section.descriptor_loop_length > 0, "Should have descriptors for UPID");
+        assert!(!section.splice_descriptors.is_empty(), "Should have descriptor data");
+        
+        // Check for CUEI descriptor (common in SCTE-35)
+        if let Some(first_desc) = section.splice_descriptors.first() {
+            assert!(first_desc.descriptor_length > 0, "Descriptor should have content");
+        }
+    }
+
+    #[test]
+    fn test_upid_umid_example() {
+        // UMID example: "/DBDAAAAAAAA///wBQb+AA2QOQAtAitDVUVJAAAAA3+/BCAwNjBhMmIzNC4wMTAxMDEwNS4wMTAxMGQyMC4xEAEBRKI3vg=="
+        let umid_base64 = "/DBDAAAAAAAA///wBQb+AA2QOQAtAitDVUVJAAAAA3+/BCAwNjBhMmIzNC4wMTAxMDEwNS4wMTAxMGQyMC4xEAEBRKI3vg==";
+        let buffer = general_purpose::STANDARD
+            .decode(umid_base64)
+            .expect("Failed to decode UMID base64 string");
+
+        let section = parse_splice_info_section(&buffer)
+            .expect("Failed to parse UMID SpliceInfoSection");
+
+        // Validate header
+        assert_eq!(section.table_id, 0xFC);
+        assert_eq!(section.splice_command_type, 0x06, "Command type should be 0x06 (time_signal)");
+        
+        // Should have descriptors with UPID
+        assert!(section.descriptor_loop_length > 0, "Should have descriptors for UPID");
+        assert!(!section.splice_descriptors.is_empty(), "Should have descriptor data");
+    }
+
+    #[test]
+    fn test_upid_isan_example() {
+        // ISAN example: "/DA4AAAAAAAA///wBQb+Lom5UgAiAiBDVUVJAAAABn//AAApPWwGDAAAAAA6jQAAAAAAABAAAHGXrpg="
+        let isan_base64 = "/DA4AAAAAAAA///wBQb+Lom5UgAiAiBDVUVJAAAABn//AAApPWwGDAAAAAA6jQAAAAAAABAAAHGXrpg=";
+        let buffer = general_purpose::STANDARD
+            .decode(isan_base64)
+            .expect("Failed to decode ISAN base64 string");
+
+        let section = parse_splice_info_section(&buffer)
+            .expect("Failed to parse ISAN SpliceInfoSection");
+
+        // Validate header
+        assert_eq!(section.table_id, 0xFC);
+        assert_eq!(section.splice_command_type, 0x06, "Command type should be 0x06 (time_signal)");
+        
+        // Should have descriptors with UPID
+        assert!(section.descriptor_loop_length > 0, "Should have descriptors for UPID");
+        assert!(!section.splice_descriptors.is_empty(), "Should have descriptor data");
+    }
+
+    #[test]
+    fn test_upid_airid_example() {
+        // AIRID example: "/DBhAAAAAAAA///wBQb+qM1E7QBLAhdDVUVJSAAArX+fCAgAAAAALLLXnTUCAAIXQ1VFSUgAACZ/nwgIAAAAACyy150RAAACF0NVRUlIAAAnf58ICAAAAAAsstezEAAAihiGnw=="
+        let airid_base64 = "/DBhAAAAAAAA///wBQb+qM1E7QBLAhdDVUVJSAAArX+fCAgAAAAALLLXnTUCAAIXQ1VFSUgAACZ/nwgIAAAAACyy150RAAACF0NVRUlIAAAnf58ICAAAAAAsstezEAAAihiGnw==";
+        let buffer = general_purpose::STANDARD
+            .decode(airid_base64)
+            .expect("Failed to decode AIRID base64 string");
+
+        let section = parse_splice_info_section(&buffer)
+            .expect("Failed to parse AIRID SpliceInfoSection");
+
+        // Validate header
+        assert_eq!(section.table_id, 0xFC);
+        assert_eq!(section.splice_command_type, 0x06, "Command type should be 0x06 (time_signal)");
+        
+        // Should have multiple descriptors
+        assert!(section.descriptor_loop_length > 0, "Should have descriptors for UPID");
+        assert!(!section.splice_descriptors.is_empty(), "Should have descriptor data");
+        assert!(section.splice_descriptors.len() >= 3, "Should have multiple descriptors");
+    }
+
+    #[test]
+    fn test_time_signal_placement_opportunity_end() {
+        // Time Signal - Placement Opportunity End example
+        let placement_end_base64 = "/DAvAAAAAAAA///wBQb+dGKQoAAZAhdDVUVJSAAAjn+fCAgAAAAALKChijUCAKnMZ1g=";
+        let buffer = general_purpose::STANDARD
+            .decode(placement_end_base64)
+            .expect("Failed to decode placement opportunity end base64 string");
+
+        let section = parse_splice_info_section(&buffer)
+            .expect("Failed to parse placement opportunity end SpliceInfoSection");
+
+        // Validate header
+        assert_eq!(section.table_id, 0xFC, "Table ID should be 0xFC");
+        assert_eq!(section.splice_command_type, 0x06, "Command type should be 0x06 (time_signal)");
+        
+        // Validate command
+        match section.splice_command {
+            SpliceCommand::TimeSignal(ref cmd) => {
+                assert_eq!(cmd.splice_time.time_specified_flag, 1, "Time should be specified");
+                assert!(cmd.splice_time.pts_time.is_some(), "PTS time should be present");
+                
+                // Verify time conversion
+                if let Some(duration) = cmd.splice_time.to_duration() {
+                    // This should represent the end of a placement opportunity
+                    assert!(duration.as_secs() > 0, "Duration should be positive");
+                }
+            }
+            _ => panic!("Expected TimeSignal command"),
+        }
+        
+        // Should have descriptors indicating placement opportunity end
+        assert!(section.descriptor_loop_length > 0, "Should have descriptors for placement opportunity end");
+        assert!(!section.splice_descriptors.is_empty(), "Should have descriptor data");
+        
+        // Check for segmentation descriptor (common for placement opportunities)
+        if let Some(first_desc) = section.splice_descriptors.first() {
+            assert!(first_desc.descriptor_length > 0, "Descriptor should have content");
+            // Descriptor tag 2 is typically segmentation_descriptor
+            assert_eq!(first_desc.descriptor_tag, 2, "Should be segmentation descriptor");
+        }
+    }
+
+    #[test]
+    fn test_multiple_descriptor_types() {
+        // Test that we can parse messages with different types of descriptors
+        // This demonstrates our parser can handle various SCTE-35 message formats
+        
+        // Test 1: Simple time signal (already covered above)
+        let time_signal_base64 = "/DAWAAAAAAAAAP/wBQb+Qjo1vQAAuwxz9A==";
+        let buffer = general_purpose::STANDARD.decode(time_signal_base64).unwrap();
+        let section = parse_splice_info_section(&buffer).unwrap();
+        assert_eq!(section.splice_command_type, 0x06);
+        
+        // Test 2: Time signal with descriptors (already covered above)
+        let time_signal_desc_base64 = "/DAgAAAAAAAAAP/wBQb+Qjo1vQAKAAhDVUVJAAAE0iVuWvA=";
+        let buffer2 = general_purpose::STANDARD.decode(time_signal_desc_base64).unwrap();
+        let section2 = parse_splice_info_section(&buffer2).unwrap();
+        assert_eq!(section2.splice_command_type, 0x06);
+        assert!(section2.descriptor_loop_length > 0);
+        
+        // Test 3: Complex message with multiple descriptors (AIRID example already covered)
+        let complex_base64 = "/DBhAAAAAAAA///wBQb+qM1E7QBLAhdDVUVJSAAArX+fCAgAAAAALLLXnTUCAAIXQ1VFSUgAACZ/nwgIAAAAACyy150RAAACF0NVRUlIAAAnf58ICAAAAAAsstezEAAAihiGnw==";
+        let buffer3 = general_purpose::STANDARD.decode(complex_base64).unwrap();
+        let section3 = parse_splice_info_section(&buffer3).unwrap();
+        assert_eq!(section3.splice_command_type, 0x06);
+        assert!(section3.splice_descriptors.len() >= 3);
+    }
 
     #[test]
     fn test_duration_conversions() {
@@ -675,6 +888,36 @@ mod tests {
         };
         
         assert!(splice_time_none.to_duration().is_none());
+    }
+
+    #[test]
+    fn test_splice_descriptor_as_str() {
+        // Test with valid UTF-8 bytes
+        let descriptor = SpliceDescriptor {
+            descriptor_tag: 0x00,
+            descriptor_length: 5,
+            descriptor_bytes: vec![0x48, 0x65, 0x6c, 0x6c, 0x6f], // "Hello"
+        };
+        
+        assert_eq!(descriptor.as_str(), Some("Hello"));
+        
+        // Test with invalid UTF-8 bytes
+        let invalid_descriptor = SpliceDescriptor {
+            descriptor_tag: 0x00,
+            descriptor_length: 3,
+            descriptor_bytes: vec![0xff, 0xfe, 0xfd], // Invalid UTF-8
+        };
+        
+        assert_eq!(invalid_descriptor.as_str(), None);
+        
+        // Test with empty bytes
+        let empty_descriptor = SpliceDescriptor {
+            descriptor_tag: 0x00,
+            descriptor_length: 0,
+            descriptor_bytes: vec![],
+        };
+        
+        assert_eq!(empty_descriptor.as_str(), Some(""));
     }
 
     #[test]
