@@ -1,18 +1,20 @@
 # SCTE-35 Parsing Library
 
-A zero-dependency Rust library for parsing SCTE-35 (Society of Cable Telecommunications Engineers) messages. SCTE-35 is a standard for inserting cue messages into video streams, commonly used for ad insertion points in broadcast television.
+A Rust library for parsing SCTE-35 (Society of Cable Telecommunications Engineers) messages with built-in CRC validation. SCTE-35 is a standard for inserting cue messages into video streams, commonly used for ad insertion points in broadcast television.
 
 ## Features
 
-- **Zero dependencies** - The core library has no runtime dependencies
+- **CRC validation** - Built-in CRC-32 validation using MPEG-2 algorithm (enabled by default)
+- **Minimal dependencies** - Only the `crc` crate for validation (optional)
 - **Full SCTE-35 parsing** - Supports all major SCTE-35 command types
 - **Bit-level precision** - Accurate parsing of bit-packed SCTE-35 messages
 - **Optional CLI tool** - Command-line interface for parsing base64-encoded messages
 - **Type-safe** - Strongly typed representations of all SCTE-35 structures
+- **Data integrity** - Detects corrupted or tampered SCTE-35 messages
 
 ## Installation
 
-### As a Library (No Dependencies)
+### With CRC Validation (Default)
 
 Add this to your `Cargo.toml`:
 
@@ -21,7 +23,16 @@ Add this to your `Cargo.toml`:
 scte35-parsing = "0.1.0"
 ```
 
-### With CLI Tool
+### Without CRC Validation (Library only)
+
+If you need a zero-dependency library without CRC validation:
+
+```toml
+[dependencies]
+scte35-parsing = { version = "0.1.0", default-features = false }
+```
+
+### With CLI Tool (Automatically includes CRC validation)
 
 To include the command-line tool, enable the `cli` feature:
 
@@ -35,6 +46,8 @@ Or install the CLI tool directly:
 ```bash
 cargo install scte35-parsing --features cli
 ```
+
+**Note**: The CLI feature automatically enables CRC validation to provide complete message diagnostics.
 
 ## Usage
 
@@ -79,6 +92,45 @@ fn main() {
             }
         }
         Err(e) => eprintln!("Error parsing SCTE-35: {}", e),
+    }
+}
+```
+
+### CRC Validation
+
+By default, the library validates CRC-32 checksums in SCTE-35 messages to ensure data integrity:
+
+```rust
+use scte35_parsing::{parse_splice_info_section, validate_scte35_crc};
+
+// Parse with automatic CRC validation (default behavior)
+match parse_splice_info_section(&scte35_bytes) {
+    Ok(section) => {
+        println!("Valid SCTE-35 message parsed successfully");
+        println!("CRC-32: 0x{:08X}", section.get_crc());
+    }
+    Err(e) => {
+        if e.to_string().contains("CRC validation failed") {
+            eprintln!("Message corrupted or tampered: {}", e);
+        } else {
+            eprintln!("Parse error: {}", e);
+        }
+    }
+}
+
+// Validate CRC independently
+match validate_scte35_crc(&scte35_bytes) {
+    Ok(true) => println!("CRC validation passed"),
+    Ok(false) => println!("CRC validation failed or not available"),
+    Err(e) => eprintln!("Validation error: {}", e),
+}
+
+// Validate using the parsed section
+if let Ok(section) = parse_splice_info_section(&scte35_bytes) {
+    match section.validate_crc(&scte35_bytes) {
+        Ok(true) => println!("Message integrity verified"),
+        Ok(false) => println!("Message integrity check failed"),
+        Err(e) => eprintln!("Validation error: {}", e),
     }
 }
 ```
@@ -147,7 +199,7 @@ Successfully parsed SpliceInfoSection:
   Number of Descriptors: 1
     Descriptor Tag: 0
     Descriptor Length: 8
-  CRC-32: 1658561290
+  CRC-32: 0x62D2952A ✓ (Valid)
 ```
 
 ## Supported SCTE-35 Commands
@@ -158,6 +210,38 @@ Successfully parsed SpliceInfoSection:
 - **TimeSignal** - Time synchronization signals
 - **BandwidthReservation** - Bandwidth allocation commands
 - **PrivateCommand** - Private/custom commands
+
+## CRC Validation
+
+By default, the library validates CRC-32 checksums in SCTE-35 messages to ensure data integrity. This feature can be disabled if needed:
+
+### With CRC Validation (Default)
+```toml
+[dependencies]
+scte35-parsing = "0.1.0"
+```
+
+### Without CRC Validation (Library only)
+```toml
+[dependencies]
+scte35-parsing = { version = "0.1.0", default-features = false }
+```
+
+### With CLI Tool (Automatically includes CRC validation)
+```toml
+[dependencies]
+scte35-parsing = { version = "0.1.0", features = ["cli"] }
+```
+
+**Note**: The CLI feature automatically enables CRC validation to provide complete message diagnostics.
+
+### Benefits of CRC Validation
+
+1. **Data Integrity**: Ensures SCTE-35 messages haven't been corrupted during transmission
+2. **Security**: Helps detect tampered messages
+3. **Debugging**: Identifies parsing issues vs. data corruption
+4. **Standards Compliance**: Follows SCTE-35 specification requirements
+5. **Flexibility**: Optional feature allows users to choose performance vs. validation trade-offs
 
 ## API Documentation
 
@@ -171,7 +255,11 @@ cargo doc --no-deps --open
 
 #### `parse_splice_info_section(buffer: &[u8]) -> Result<SpliceInfoSection, io::Error>`
 
-Parses a complete SCTE-35 splice information section from a byte buffer.
+Parses a complete SCTE-35 splice information section from a byte buffer. Automatically validates CRC-32 when the `crc-validation` feature is enabled.
+
+#### `validate_scte35_crc(buffer: &[u8]) -> Result<bool, io::Error>`
+
+Validates the CRC-32 checksum of an SCTE-35 message independently. Returns `Ok(true)` if valid, `Ok(false)` if invalid or CRC validation is disabled.
 
 ### Data Structures
 

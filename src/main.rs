@@ -1,5 +1,5 @@
 use base64::{engine::general_purpose, Engine};
-use scte35_parsing::{parse_splice_info_section, SpliceCommand};
+use scte35_parsing::{parse_splice_info_section, validate_scte35_crc, SpliceCommand};
 use std::env;
 use std::process;
 
@@ -120,9 +120,16 @@ fn main() {
             }
 
             if let Some(crc) = section.e_crc_32 {
-                println!("  Encrypted CRC-32: {}", crc);
+                println!("  Encrypted CRC-32: 0x{:08X}", crc);
             }
-            println!("  CRC-32: {}", section.crc_32);
+            
+            // CRC validation is always available when CLI feature is enabled
+            // since cli feature depends on crc-validation
+            match validate_scte35_crc(&buffer) {
+                Ok(true) => println!("  CRC-32: 0x{:08X} ✓ (Valid)", section.crc_32),
+                Ok(false) => println!("  CRC-32: 0x{:08X} ✗ (Invalid)", section.crc_32),
+                Err(e) => println!("  CRC-32: 0x{:08X} ✗ (Error: {})", section.crc_32, e),
+            }
         }
         Err(e) => {
             eprintln!("Error parsing SpliceInfoSection: {}", e);
