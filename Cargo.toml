@@ -1,0 +1,19 @@
+[package]
+name = "scte35-parsing"
+version = "0.1.0"
+edition = "2021"
+publish = ["crates-io"]
+
+[features]
+default = []
+cli = ["base64"]
+
+[dependencies]
+base64 = { version = "0.22.1", optional = true }
+
+[dev-dependencies]
+base64 = "0.22.1"
+
+[[bin]]
+name = "scte35-parsing"
+required-features = ["cli"]
