@@ -8,15 +8,22 @@ This is a Rust library for parsing SCTE-35 (Society of Cable Telecommunications 
 
 ## Common Development Commands
 
-### Build Library (No Dependencies)
+### Build Library with CRC Validation (Default)
 ```bash
 cargo build
 ```
 
-### Build with CLI Tool
+### Build Library without CRC Validation
+```bash
+cargo build --no-default-features
+```
+
+### Build CLI Tool (Always includes CRC validation)
 ```bash
 cargo build --features cli
 ```
+
+**Note**: The CLI tool automatically enables CRC validation since it needs to provide complete diagnostic information.
 
 ### Run CLI Tool
 ```bash
@@ -63,11 +70,13 @@ Key components:
 
 ## Development Notes
 
-- The library has zero dependencies by default
-- The `cli` feature adds `base64` as a dependency for the CLI tool
+- The library includes CRC validation by default via the `crc-validation` feature
+- The `crc-validation` feature adds the `crc` crate as a dependency for MPEG-2 CRC validation
+- The `cli` feature adds `base64` as a dependency and automatically enables `crc-validation`
 - `base64` is also included as a dev dependency for testing with encoded SCTE-35 samples
 - When adding new command types or fields, ensure proper bit alignment and offset tracking
 - Test coverage includes parsing real SCTE-35 messages encoded in base64
+- CRC validation ensures data integrity and helps detect corrupted messages
 
 ## Development Guidelines
 

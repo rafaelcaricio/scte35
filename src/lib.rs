@@ -31,6 +31,14 @@
 use std::io::{self, ErrorKind};
 use std::time::Duration;
 
+// CRC validation module - only included when feature is enabled
+#[cfg(feature = "crc-validation")]
+pub mod crc;
+
+// Re-export commonly used CRC functions for convenience - only when available
+#[cfg(feature = "crc-validation")]
+pub use crc::{validate_message_crc, CrcValidatable};
+
 // Helper struct to read bits from a byte slice
 struct BitReader<'a> {
     buffer: &'a [u8],
@@ -633,6 +641,17 @@ pub fn parse_splice_info_section(buffer: &[u8]) -> Result<SpliceInfoSection, io:
     };
     let crc_32 = reader.read_rpchof(32)? as u32;
 
+    // Validate CRC if feature is enabled - much cleaner!
+    #[cfg(feature = "crc-validation")]
+    {
+        if !crc::validate_crc(&buffer[0..buffer.len() - 4], crc_32) {
+            return Err(io::Error::new(
+                ErrorKind::InvalidData,
+                format!("CRC validation failed. Expected: 0x{:08X}", crc_32)
+            ));
+        }
+    }
+
     Ok(SpliceInfoSection {
         table_id,
         section_syntax_indicator,
@@ -906,6 +925,88 @@ fn parse_splice_descriptor(reader: &mut BitReader) -> Result<SpliceDescriptor, i
     })
 }
 
+/// Validates the CRC-32 checksum of an SCTE-35 message.
+///
+/// This is a convenience function that wraps [`crc::validate_message_crc`].
+/// For more CRC functionality, use the [`crc`] module directly.
+///
+/// # Arguments
+///
+/// * `buffer` - The complete SCTE-35 message bytes
+///
+/// # Returns
+///
+/// * `Ok(true)` - CRC validation passed
+/// * `Ok(false)` - CRC validation not available (feature disabled)
+/// * `Err(io::Error)` - Parse error or validation error
+///
+/// # Example
+///
+/// ```rust
+/// use scte35_parsing::validate_scte35_crc;
+/// use base64::{Engine, engine::general_purpose};
+///
+/// let base64_message = "/DAWAAAAAAAAAP/wBQb+Qjo1vQAAuwxz9A==";
+/// let buffer = general_purpose::STANDARD.decode(base64_message).unwrap();
+///
+/// match validate_scte35_crc(&buffer) {
+///     Ok(true) => println!("CRC validation passed"),
+///     Ok(false) => println!("CRC validation failed or not available"),
+///     Err(e) => eprintln!("Error: {}", e),
+/// }
+/// ```
+#[cfg(feature = "crc-validation")]
+pub fn validate_scte35_crc(buffer: &[u8]) -> Result<bool, io::Error> {
+    crc::validate_message_crc(buffer)
+}
+
+/// Stub function when CRC validation is not available.
+#[cfg(not(feature = "crc-validation"))]
+pub fn validate_scte35_crc(_buffer: &[u8]) -> Result<bool, io::Error> {
+    Ok(false) // CRC validation not available
+}
+
+impl SpliceInfoSection {
+    /// Validates the CRC-32 checksum against the original message data.
+    ///
+    /// # Arguments
+    ///
+    /// * `original_buffer` - The original message bytes used to parse this section
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(true)` - CRC validation passed
+    /// * `Ok(false)` - CRC validation disabled or failed
+    /// * `Err(io::Error)` - Validation error
+    #[cfg(feature = "crc-validation")]
+    pub fn validate_crc(&self, original_buffer: &[u8]) -> Result<bool, io::Error> {
+        crc::validate_message_crc(original_buffer)
+    }
+    
+    /// Stub function when CRC validation is not available.
+    #[cfg(not(feature = "crc-validation"))]
+    pub fn validate_crc(&self, _original_buffer: &[u8]) -> Result<bool, io::Error> {
+        Ok(false) // CRC validation not available
+    }
+    
+    /// Returns the stored CRC-32 value from the parsed section.
+    pub fn get_crc(&self) -> u32 {
+        self.crc_32
+    }
+}
+
+// Only implement the trait when the feature is available
+#[cfg(feature = "crc-validation")]
+impl CrcValidatable for SpliceInfoSection {
+    fn validate_crc(&self, original_buffer: &[u8]) -> Result<bool, io::Error> {
+        crc::validate_message_crc(original_buffer)
+    }
+    
+    fn get_crc(&self) -> u32 {
+        self.crc_32
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -981,14 +1082,34 @@ mod tests {
     }
 
     #[test]
-    fn test_upid_adid_example() {
-        // ADID example: "/DA4AAAAAAAA///wBQb+AKpFLgAiAiBDVUVJAAAAA3//AAApPWwDDEFCQ0QwMTIzNDU2SHAAAFkTm+A="
+    #[cfg(feature = "crc-validation")]
+    fn test_upid_adid_example_invalid_crc() {
+        // ADID example with invalid CRC: "/DA4AAAAAAAA///wBQb+AKpFLgAiAiBDVUVJAAAAA3//AAApPWwDDEFCQ0QwMTIzNDU2SHAAAFkTm+A="
         let adid_base64 =
             "/DA4AAAAAAAA///wBQb+AKpFLgAiAiBDVUVJAAAAA3//AAApPWwDDEFCQ0QwMTIzNDU2SHAAAFkTm+A=";
         let buffer = general_purpose::STANDARD
             .decode(adid_base64)
             .expect("Failed to decode ADID base64 string");
 
+        // Should fail to parse due to invalid CRC when CRC validation is enabled
+        let section = parse_splice_info_section(&buffer);
+        assert!(section.is_err());
+        let error = section.unwrap_err();
+        assert_eq!(error.kind(), std::io::ErrorKind::InvalidData);
+        assert!(error.to_string().contains("CRC validation failed"));
+    }
+
+    #[test]
+    #[cfg(not(feature = "crc-validation"))]
+    fn test_upid_adid_example_no_crc_validation() {
+        // ADID example (CRC validation disabled): "/DA4AAAAAAAA///wBQb+AKpFLgAiAiBDVUVJAAAAA3//AAApPWwDDEFCQ0QwMTIzNDU2SHAAAFkTm+A="
+        let adid_base64 =
+            "/DA4AAAAAAAA///wBQb+AKpFLgAiAiBDVUVJAAAAA3//AAApPWwDDEFCQ0QwMTIzNDU2SHAAAFkTm+A=";
+        let buffer = general_purpose::STANDARD
+            .decode(adid_base64)
+            .expect("Failed to decode ADID base64 string");
+
+        // Should parse successfully when CRC validation is disabled
         let section =
             parse_splice_info_section(&buffer).expect("Failed to parse ADID SpliceInfoSection");
 
@@ -1440,5 +1561,118 @@ mod tests {
                 "Eighth byte should be 0x35"
             );
         }
+    }
+
+    #[test]
+    #[cfg(feature = "crc-validation")]
+    fn test_valid_crc() {
+        let valid_message = "/DAWAAAAAAAAAP/wBQb+Qjo1vQAAuwxz9A==";
+        let buffer = general_purpose::STANDARD.decode(valid_message).unwrap();
+        
+        let result = validate_scte35_crc(&buffer);
+        assert!(result.is_ok());
+        assert!(result.unwrap());
+    }
+
+    #[test]
+    #[cfg(feature = "crc-validation")]
+    fn test_invalid_crc() {
+        let mut buffer = general_purpose::STANDARD
+            .decode("/DAWAAAAAAAAAP/wBQb+Qjo1vQAAuwxz9A==")
+            .unwrap();
+        
+        // Corrupt the CRC (last 4 bytes)
+        let len = buffer.len();
+        buffer[len - 1] = 0x00;
+        
+        let result = validate_scte35_crc(&buffer);
+        assert!(result.is_ok());
+        assert!(!result.unwrap());
+    }
+
+    #[test]
+    #[cfg(feature = "crc-validation")]
+    fn test_parse_with_crc_validation() {
+        let valid_message = "/DAWAAAAAAAAAP/wBQb+Qjo1vQAAuwxz9A==";
+        let buffer = general_purpose::STANDARD.decode(valid_message).unwrap();
+        
+        // Should parse successfully with valid CRC
+        let section = parse_splice_info_section(&buffer);
+        assert!(section.is_ok());
+    }
+
+    #[test]
+    #[cfg(feature = "crc-validation")]
+    fn test_parse_with_invalid_crc_fails() {
+        let mut buffer = general_purpose::STANDARD
+            .decode("/DAWAAAAAAAAAP/wBQb+Qjo1vQAAuwxz9A==")
+            .unwrap();
+        
+        // Corrupt the CRC (last 4 bytes)
+        let len = buffer.len();
+        buffer[len - 1] = 0x00;
+        
+        // Should fail to parse with invalid CRC
+        let section = parse_splice_info_section(&buffer);
+        assert!(section.is_err());
+        let error = section.unwrap_err();
+        assert_eq!(error.kind(), std::io::ErrorKind::InvalidData);
+        assert!(error.to_string().contains("CRC validation failed"));
+    }
+
+    #[test]
+    #[cfg(feature = "crc-validation")]
+    fn test_splice_info_section_validate_crc() {
+        let valid_message = "/DAWAAAAAAAAAP/wBQb+Qjo1vQAAuwxz9A==";
+        let buffer = general_purpose::STANDARD.decode(valid_message).unwrap();
+        
+        let section = parse_splice_info_section(&buffer).unwrap();
+        
+        // Test method-based validation
+        let result = section.validate_crc(&buffer);
+        assert!(result.is_ok());
+        assert!(result.unwrap());
+        
+        // Test get_crc method
+        assert_eq!(section.get_crc(), section.crc_32);
+    }
+
+    #[test]
+    #[cfg(feature = "crc-validation")]
+    fn test_crc_validatable_trait() {
+        let valid_message = "/DAWAAAAAAAAAP/wBQb+Qjo1vQAAuwxz9A==";
+        let buffer = general_purpose::STANDARD.decode(valid_message).unwrap();
+        
+        let section = parse_splice_info_section(&buffer).unwrap();
+        
+        // Test trait implementation
+        let result = section.validate_crc(&buffer);
+        assert!(result.is_ok());
+        assert!(result.unwrap());
+        
+        let crc = section.get_crc();
+        assert!(crc > 0);
+    }
+
+    #[test]
+    #[cfg(not(feature = "crc-validation"))]
+    fn test_crc_disabled() {
+        let valid_message = "/DAWAAAAAAAAAP/wBQb+Qjo1vQAAuwxz9A==";
+        let buffer = general_purpose::STANDARD.decode(valid_message).unwrap();
+        
+        // Should always return false when CRC validation is disabled
+        let result = validate_scte35_crc(&buffer);
+        assert!(result.is_ok());
+        assert!(!result.unwrap());
+        
+        // Parse should still work without CRC validation
+        let section = parse_splice_info_section(&buffer);
+        assert!(section.is_ok());
+        
+        // Method should return false when disabled
+        let section = section.unwrap();
+        let result = section.validate_crc(&buffer);
+        assert!(result.is_ok());
+        assert!(!result.unwrap());
     }
 }
