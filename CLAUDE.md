@@ -38,6 +38,11 @@ cargo fix --lib -p scte35-parsing
 cargo check
 ```
 
+### Generate Documentation
+```bash
+cargo doc --no-deps --open
+```
+
 ### Run Tests for a Specific Test
 ```bash
 cargo test test_parse_splice_info_section
@@ -67,3 +72,65 @@ Key components:
 ## Development Guidelines
 
 - Always add test cases to cover new functionality
+- Follow comprehensive documentation standards (see Documentation Guidelines below)
+
+## Documentation Guidelines
+
+This project follows strict documentation standards. All changes must include proper documentation:
+
+### Required Documentation
+
+1. **All public items must be documented** - The codebase uses `#![warn(missing_docs)]` to enforce this
+2. **Module-level documentation** - Comprehensive overview with examples in `lib.rs`
+3. **Function documentation** - Purpose, parameters, return values, and examples
+4. **Struct documentation** - Purpose and usage context
+5. **Field documentation** - Meaning and valid values for each public field
+6. **Enum variant documentation** - Purpose of each variant
+
+### Documentation Standards
+
+1. **Use `///` for public items** and `//` for internal comments
+2. **Start with a brief summary** - One line describing what the item does
+3. **Include examples** when helpful, especially for public functions
+4. **Explain SCTE-35 context** - What this represents in the specification
+5. **Document bit fields and flags** - Explain what 0/1 values mean
+6. **Include units** - Specify when values are in 90kHz ticks, bytes, etc.
+7. **Cross-reference** - Link to related structs/functions when appropriate
+
+### Example Documentation Format
+
+```rust
+/// Represents a splice insert command for ad insertion points.
+///
+/// This is the most commonly used command for indicating where
+/// advertisements should be inserted into the video stream.
+#[derive(Debug)]
+pub struct SpliceInsert {
+    /// Unique identifier for the splice event
+    pub splice_event_id: u32,
+    /// Flag indicating if this event should be cancelled (0 = proceed, 1 = cancel)
+    pub splice_event_cancel_indicator: u8,
+    /// Duration of the break/ad insertion in 90kHz ticks
+    pub break_duration: Option<BreakDuration>,
+}
+```
+
+### Documentation Commands
+
+```bash
+# Generate and open documentation
+cargo doc --no-deps --open
+
+# Check for missing documentation
+cargo check  # Will show warnings for missing docs
+
+# Test documentation examples
+cargo test  # Includes doctests
+```
+
+### Before Committing
+
+1. Run `cargo check` and ensure no missing documentation warnings
+2. Run `cargo doc --no-deps` to verify documentation builds correctly
+3. Run `cargo test` to ensure doc examples work
+4. Review generated documentation for clarity and completeness

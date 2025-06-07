@@ -161,6 +161,12 @@ Successfully parsed SpliceInfoSection:
 
 ## API Documentation
 
+Full API documentation is available at [docs.rs](https://docs.rs/scte35-parsing) or can be generated locally:
+
+```bash
+cargo doc --no-deps --open
+```
+
 ### Main Functions
 
 #### `parse_splice_info_section(buffer: &[u8]) -> Result<SpliceInfoSection, io::Error>`
