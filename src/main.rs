@@ -1,20 +1,23 @@
-use base64::{Engine, engine::general_purpose};
+use base64::{engine::general_purpose, Engine};
 use scte35_parsing::{parse_splice_info_section, SpliceCommand};
 use std::env;
 use std::process;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
-    
+
     if args.len() != 2 {
         eprintln!("Usage: {} <base64-encoded-scte35-payload>", args[0]);
         eprintln!("\nExample:");
-        eprintln!("  {} /DAvAAAAAAAA///wFAVIAACPf+/+c2nALv4AUsz1AAAAAAAKAAhDVUVJAAABNWLbowo=", args[0]);
+        eprintln!(
+            "  {} /DAvAAAAAAAA///wFAVIAACPf+/+c2nALv4AUsz1AAAAAAAKAAhDVUVJAAABNWLbowo=",
+            args[0]
+        );
         process::exit(1);
     }
-    
+
     let base64_payload = &args[1];
-    
+
     let buffer = match general_purpose::STANDARD.decode(base64_payload) {
         Ok(data) => data,
         Err(e) => {
@@ -22,7 +25,7 @@ fn main() {
             process::exit(1);
         }
     };
-    
+
     match parse_splice_info_section(&buffer) {
         Ok(section) => {
             println!("Successfully parsed SpliceInfoSection:");
@@ -50,24 +53,35 @@ fn main() {
                 SpliceCommand::SpliceInsert(cmd) => {
                     println!("  Splice Command: SpliceInsert");
                     println!("    Splice Event ID: 0x{:08x}", cmd.splice_event_id);
-                    println!("    Splice Event Cancel: {}", cmd.splice_event_cancel_indicator);
+                    println!(
+                        "    Splice Event Cancel: {}",
+                        cmd.splice_event_cancel_indicator
+                    );
                     println!("    Out of Network: {}", cmd.out_of_network_indicator);
                     println!("    Program Splice Flag: {}", cmd.program_splice_flag);
                     println!("    Duration Flag: {}", cmd.duration_flag);
                     println!("    Splice Immediate Flag: {}", cmd.splice_immediate_flag);
-                    
+
                     if let Some(splice_time) = &cmd.splice_time {
                         if let Some(pts) = splice_time.pts_time {
-                            println!("    Splice Time PTS: 0x{:09x} ({:.6} seconds)", pts, pts as f64 / 90000.0);
+                            println!(
+                                "    Splice Time PTS: 0x{:09x} ({:.6} seconds)",
+                                pts,
+                                pts as f64 / 90000.0
+                            );
                         }
                     }
-                    
+
                     if let Some(break_duration) = &cmd.break_duration {
                         println!("    Break Duration:");
                         println!("      Auto Return: {}", break_duration.auto_return);
-                        println!("      Duration: 0x{:09x} ({:.6} seconds)", break_duration.duration, break_duration.duration as f64 / 90000.0);
+                        println!(
+                            "      Duration: 0x{:09x} ({:.6} seconds)",
+                            break_duration.duration,
+                            break_duration.duration as f64 / 90000.0
+                        );
                     }
-                    
+
                     println!("    Unique Program ID: {}", cmd.unique_program_id);
                     println!("    Avail Num: {}", cmd.avail_num);
                     println!("    Avails Expected: {}", cmd.avails_expected);
