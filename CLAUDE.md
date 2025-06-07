@@ -63,3 +63,7 @@ Key components:
 - `base64` is also included as a dev dependency for testing with encoded SCTE-35 samples
 - When adding new command types or fields, ensure proper bit alignment and offset tracking
 - Test coverage includes parsing real SCTE-35 messages encoded in base64
+
+## Development Guidelines
+
+- Always add test cases to cover new functionality
