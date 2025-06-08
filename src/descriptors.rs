@@ -1,0 +1,321 @@
+//! SCTE-35 descriptor types and parsing.
+//!
+//! This module contains structures and functions for handling SCTE-35 descriptors,
+//! which provide additional metadata about splice operations.
+
+use std::time::Duration;
+use crate::upid::{SegmentationUpidType, format_uuid, format_isan, format_base64};
+
+/// Represents different types of splice descriptors with parsed content.
+///
+/// This enum provides structured access to descriptor data, with full parsing
+/// for supported descriptor types and raw bytes for unsupported types.
+#[derive(Debug, Clone)]
+pub enum SpliceDescriptor {
+    /// Segmentation descriptor (tag 0x02) - fully parsed
+    Segmentation(SegmentationDescriptor),
+    /// Unknown or unsupported descriptor type with raw bytes
+    Unknown {
+        /// Descriptor tag
+        tag: u8,
+        /// Length of descriptor data
+        length: u8,
+        /// Raw descriptor bytes
+        data: Vec<u8>,
+    },
+}
+
+impl SpliceDescriptor {
+    /// Returns the descriptor tag.
+    pub fn tag(&self) -> u8 {
+        match self {
+            SpliceDescriptor::Segmentation(_) => 0x02,
+            SpliceDescriptor::Unknown { tag, .. } => *tag,
+        }
+    }
+
+    /// Returns the descriptor length.
+    pub fn length(&self) -> u8 {
+        match self {
+            SpliceDescriptor::Segmentation(_) => {
+                // For segmentation descriptors, we calculate based on the actual content
+                // This is a simplified calculation - real implementation would serialize back
+                33 // Minimum segmentation descriptor length
+            }
+            SpliceDescriptor::Unknown { length, .. } => *length,
+        }
+    }
+
+    /// Returns raw descriptor bytes if available (for unknown descriptor types).
+    pub fn raw_bytes(&self) -> Option<&[u8]> {
+        match self {
+            SpliceDescriptor::Segmentation(_) => None,
+            SpliceDescriptor::Unknown { data, .. } => Some(data),
+        }
+    }
+
+    /// Attempts to interpret descriptor bytes as a UTF-8 string.
+    ///
+    /// This is useful for descriptors that contain text-based data.
+    /// For segmentation descriptors, this will attempt to interpret the UPID as a string.
+    ///
+    /// # Returns
+    ///
+    /// - `Some(String)` if the descriptor can be converted to a readable string
+    /// - `None` if the descriptor doesn't support string conversion
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use scte35_parsing::SpliceDescriptor;
+    ///
+    /// // For an unknown descriptor with raw bytes
+    /// let descriptor = SpliceDescriptor::Unknown {
+    ///     tag: 0x00,
+    ///     length: 5,
+    ///     data: vec![0x48, 0x65, 0x6c, 0x6c, 0x6f], // "Hello"
+    /// };
+    ///
+    /// assert_eq!(descriptor.as_str(), Some("Hello".to_string()));
+    /// ```
+    pub fn as_str(&self) -> Option<String> {
+        match self {
+            SpliceDescriptor::Segmentation(seg_desc) => seg_desc.upid_as_string(),
+            SpliceDescriptor::Unknown { data, .. } => {
+                std::str::from_utf8(data).ok().map(|s| s.to_string())
+            }
+        }
+    }
+}
+
+/// Represents a parsed segmentation descriptor (tag 0x02).
+///
+/// Segmentation descriptors provide detailed information about content segments,
+/// including timing, UPID data, and segmentation types. This struct provides
+/// structured access to the segmentation descriptor fields.
+#[derive(Debug, Clone)]
+pub struct SegmentationDescriptor {
+    /// Segmentation event identifier
+    pub segmentation_event_id: u32,
+    /// Indicates if this event should be cancelled
+    pub segmentation_event_cancel_indicator: bool,
+    /// Program segmentation flag
+    pub program_segmentation_flag: bool,
+    /// Segmentation duration flag
+    pub segmentation_duration_flag: bool,
+    /// Delivery not restricted flag
+    pub delivery_not_restricted_flag: bool,
+    /// Web delivery allowed flag (present when delivery_not_restricted_flag is false)
+    pub web_delivery_allowed_flag: Option<bool>,
+    /// No regional blackout flag (present when delivery_not_restricted_flag is false)
+    pub no_regional_blackout_flag: Option<bool>,
+    /// Archive allowed flag (present when delivery_not_restricted_flag is false)
+    pub archive_allowed_flag: Option<bool>,
+    /// Device restrictions (present when delivery_not_restricted_flag is false)
+    pub device_restrictions: Option<u8>,
+    /// Segmentation duration in 90kHz ticks (present when segmentation_duration_flag is true)
+    pub segmentation_duration: Option<u64>,
+    /// UPID type identifier
+    pub segmentation_upid_type: SegmentationUpidType,
+    /// Length of UPID data in bytes
+    pub segmentation_upid_length: u8,
+    /// Raw UPID data bytes
+    pub segmentation_upid: Vec<u8>,
+    /// Segmentation type identifier
+    pub segmentation_type_id: u8,
+    /// Segment number
+    pub segment_num: u8,
+    /// Expected number of segments
+    pub segments_expected: u8,
+    /// Sub-segment number (present for certain segmentation types)
+    pub sub_segment_num: Option<u8>,
+    /// Expected number of sub-segments (present for certain segmentation types)
+    pub sub_segments_expected: Option<u8>,
+}
+
+impl SegmentationDescriptor {
+    /// Returns the UPID as a human-readable string if possible.
+    ///
+    /// This method attempts to convert the raw UPID bytes into a meaningful
+    /// string representation based on the UPID type.
+    ///
+    /// # Returns
+    ///
+    /// - `Some(String)` if the UPID can be converted to a readable string
+    /// - `None` if the UPID type doesn't support string conversion or the data is malformed
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use scte35_parsing::{SegmentationDescriptor, SegmentationUpidType};
+    ///
+    /// let descriptor = SegmentationDescriptor {
+    ///     segmentation_event_id: 1,
+    ///     segmentation_event_cancel_indicator: false,
+    ///     program_segmentation_flag: true,
+    ///     segmentation_duration_flag: false,
+    ///     delivery_not_restricted_flag: true,
+    ///     web_delivery_allowed_flag: None,
+    ///     no_regional_blackout_flag: None,
+    ///     archive_allowed_flag: None,
+    ///     device_restrictions: None,
+    ///     segmentation_duration: None,
+    ///     segmentation_upid_type: SegmentationUpidType::AdID,
+    ///     segmentation_upid_length: 12,
+    ///     segmentation_upid: b"ABCD01234567".to_vec(),
+    ///     segmentation_type_id: 0x30,
+    ///     segment_num: 1,
+    ///     segments_expected: 1,
+    ///     sub_segment_num: None,
+    ///     sub_segments_expected: None,
+    /// };
+    ///
+    /// assert_eq!(descriptor.upid_as_string(), Some("ABCD01234567".to_string()));
+    /// ```
+    pub fn upid_as_string(&self) -> Option<String> {
+        match self.segmentation_upid_type {
+            SegmentationUpidType::URI 
+            | SegmentationUpidType::MPU 
+            | SegmentationUpidType::AdID 
+            | SegmentationUpidType::TID => {
+                std::str::from_utf8(&self.segmentation_upid)
+                    .ok()
+                    .map(|s| s.to_string())
+            }
+            SegmentationUpidType::UUID => {
+                if self.segmentation_upid.len() == 16 {
+                    Some(format_uuid(&self.segmentation_upid))
+                } else {
+                    None
+                }
+            }
+            SegmentationUpidType::ISAN => {
+                if self.segmentation_upid.len() >= 12 {
+                    Some(format_isan(&self.segmentation_upid))
+                } else {
+                    None
+                }
+            }
+            // For other types, return base64 representation for now
+            _ => {
+                if !self.segmentation_upid.is_empty() {
+                    Some(format_base64(&self.segmentation_upid))
+                } else {
+                    None
+                }
+            }
+        }
+    }
+
+    /// Returns a description of the UPID type.
+    ///
+    /// This is a convenience method that delegates to the UPID type's description method.
+    pub fn upid_type_description(&self) -> &'static str {
+        self.segmentation_upid_type.description()
+    }
+
+    /// Converts the segmentation duration to a [`std::time::Duration`] if present.
+    ///
+    /// Segmentation durations are stored as 90kHz ticks in SCTE-35 messages.
+    /// This method converts those ticks to a standard Rust Duration.
+    ///
+    /// # Returns
+    ///
+    /// - `Some(Duration)` if a segmentation duration is specified
+    /// - `None` if no duration is specified (segmentation_duration_flag is false)
+    pub fn duration(&self) -> Option<Duration> {
+        self.segmentation_duration.map(|ticks| {
+            let seconds = ticks / 90_000;
+            let nanos = ((ticks % 90_000) * 1_000_000_000) / 90_000;
+            Duration::new(seconds, nanos as u32)
+        })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_splice_descriptor_tag() {
+        let seg_desc = SegmentationDescriptor {
+            segmentation_event_id: 1,
+            segmentation_event_cancel_indicator: false,
+            program_segmentation_flag: true,
+            segmentation_duration_flag: false,
+            delivery_not_restricted_flag: true,
+            web_delivery_allowed_flag: None,
+            no_regional_blackout_flag: None,
+            archive_allowed_flag: None,
+            device_restrictions: None,
+            segmentation_duration: None,
+            segmentation_upid_type: SegmentationUpidType::NotUsed,
+            segmentation_upid_length: 0,
+            segmentation_upid: vec![],
+            segmentation_type_id: 0x30,
+            segment_num: 1,
+            segments_expected: 1,
+            sub_segment_num: None,
+            sub_segments_expected: None,
+        };
+        
+        let descriptor = SpliceDescriptor::Segmentation(seg_desc);
+        assert_eq!(descriptor.tag(), 0x02);
+
+        let unknown = SpliceDescriptor::Unknown {
+            tag: 0xFF,
+            length: 0,
+            data: vec![],
+        };
+        assert_eq!(unknown.tag(), 0xFF);
+    }
+
+    #[test]
+    fn test_splice_descriptor_as_str() {
+        let unknown = SpliceDescriptor::Unknown {
+            tag: 0x00,
+            length: 5,
+            data: vec![0x48, 0x65, 0x6c, 0x6c, 0x6f], // "Hello"
+        };
+        assert_eq!(unknown.as_str(), Some("Hello".to_string()));
+
+        let unknown_binary = SpliceDescriptor::Unknown {
+            tag: 0x00,
+            length: 3,
+            data: vec![0xFF, 0xFE, 0xFD], // Not valid UTF-8
+        };
+        assert_eq!(unknown_binary.as_str(), None);
+    }
+
+    #[test]
+    fn test_segmentation_descriptor_duration() {
+        let desc = SegmentationDescriptor {
+            segmentation_event_id: 1,
+            segmentation_event_cancel_indicator: false,
+            program_segmentation_flag: true,
+            segmentation_duration_flag: true,
+            delivery_not_restricted_flag: true,
+            web_delivery_allowed_flag: None,
+            no_regional_blackout_flag: None,
+            archive_allowed_flag: None,
+            device_restrictions: None,
+            segmentation_duration: Some(900_000), // 10 seconds
+            segmentation_upid_type: SegmentationUpidType::NotUsed,
+            segmentation_upid_length: 0,
+            segmentation_upid: vec![],
+            segmentation_type_id: 0x30,
+            segment_num: 1,
+            segments_expected: 1,
+            sub_segment_num: None,
+            sub_segments_expected: None,
+        };
+
+        assert_eq!(desc.duration(), Some(Duration::from_secs(10)));
+
+        let desc_no_duration = SegmentationDescriptor {
+            segmentation_duration: None,
+            ..desc
+        };
+        assert_eq!(desc_no_duration.duration(), None);
+    }
+}
