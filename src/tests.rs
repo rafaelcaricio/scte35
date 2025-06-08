@@ -1028,3 +1028,59 @@ fn test_segmentation_type_field_populated_during_parsing() {
         _ => panic!("Expected a segmentation descriptor"),
     }
 }
+
+#[test]
+fn test_mpu_upid_example() {
+    use base64::{engine::general_purpose, Engine};
+
+    // Example with MPU UPID type
+    let base64_message = "/DAsAAAAAAAAAP/wBQb+7YaD1QAWAhRDVUVJAADc8X+/DAVPVkxZSSIAAJ6Gk2Q=";
+    let buffer = general_purpose::STANDARD
+        .decode(base64_message)
+        .expect("Failed to decode base64");
+
+    let section = parse_splice_info_section(&buffer).expect("Failed to parse SCTE-35 message");
+
+    // Verify header
+    assert_eq!(section.table_id, 0xFC);
+    assert_eq!(section.splice_command_type, 0x06); // TimeSignal
+
+    // Verify TimeSignal command
+    match section.splice_command {
+        SpliceCommand::TimeSignal(ref cmd) => {
+            assert_eq!(cmd.splice_time.time_specified_flag, 1);
+            assert_eq!(cmd.splice_time.pts_time, Some(3985015765));
+        }
+        _ => panic!("Expected TimeSignal command"),
+    }
+
+    // Verify segmentation descriptor
+    assert_eq!(section.splice_descriptors.len(), 1);
+    match &section.splice_descriptors[0] {
+        SpliceDescriptor::Segmentation(seg_desc) => {
+            assert_eq!(seg_desc.segmentation_event_id, 0x0000dcf1);
+            assert_eq!(seg_desc.segmentation_event_cancel_indicator, false);
+            assert_eq!(seg_desc.program_segmentation_flag, true);
+            assert_eq!(seg_desc.segmentation_duration_flag, false);
+
+            // Check UPID type and data
+            assert_eq!(seg_desc.segmentation_upid_type, SegmentationUpidType::MPU);
+            assert_eq!(seg_desc.segmentation_upid_length, 5);
+            assert_eq!(seg_desc.segmentation_upid, b"OVLYI");
+
+            // MPU type should return the string as-is
+            assert_eq!(seg_desc.upid_as_string(), Some("OVLYI".to_string()));
+
+            // Check segmentation type
+            assert_eq!(seg_desc.segmentation_type_id, 0x22);
+            assert_eq!(seg_desc.segmentation_type, SegmentationType::BreakStart);
+
+            assert_eq!(seg_desc.segment_num, 0);
+            assert_eq!(seg_desc.segments_expected, 0);
+        }
+        _ => panic!("Expected segmentation descriptor"),
+    }
+
+    // Verify CRC
+    assert_eq!(section.crc_32, 0x9E869364);
+}

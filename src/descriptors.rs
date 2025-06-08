@@ -12,6 +12,8 @@ use std::time::Duration;
 /// This enum provides structured access to descriptor data, with full parsing
 /// for supported descriptor types and raw bytes for unsupported types.
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(tag = "descriptor_type"))]
 pub enum SpliceDescriptor {
     /// Segmentation descriptor (tag 0x02) - fully parsed
     Segmentation(SegmentationDescriptor),
@@ -22,6 +24,13 @@ pub enum SpliceDescriptor {
         /// Length of descriptor data
         length: u8,
         /// Raw descriptor bytes
+        #[cfg_attr(
+            feature = "serde",
+            serde(
+                serialize_with = "crate::serde::serialize_bytes",
+                deserialize_with = "crate::serde::deserialize_bytes"
+            )
+        )]
         data: Vec<u8>,
     },
 }
@@ -95,6 +104,7 @@ impl SpliceDescriptor {
 /// including timing, UPID data, and segmentation types. This struct provides
 /// structured access to the segmentation descriptor fields.
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Deserialize))]
 pub struct SegmentationDescriptor {
     /// Segmentation event identifier
     pub segmentation_event_id: u32,
@@ -121,6 +131,13 @@ pub struct SegmentationDescriptor {
     /// Length of UPID data in bytes
     pub segmentation_upid_length: u8,
     /// Raw UPID data bytes
+    #[cfg_attr(
+        feature = "serde",
+        serde(
+            serialize_with = "crate::serde::serialize_bytes",
+            deserialize_with = "crate::serde::deserialize_bytes"
+        )
+    )]
     pub segmentation_upid: Vec<u8>,
     /// Segmentation type identifier
     pub segmentation_type_id: u8,

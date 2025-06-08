@@ -20,6 +20,7 @@ use std::fmt;
 /// - Optional descriptors
 /// - CRC for data integrity
 #[derive(Debug, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct SpliceInfoSection {
     /// Table identifier, should be 0xFC for SCTE-35
     pub table_id: u8,
@@ -54,6 +55,13 @@ pub struct SpliceInfoSection {
     /// List of splice descriptors
     pub splice_descriptors: Vec<SpliceDescriptor>,
     /// Alignment stuffing bits for byte alignment
+    #[cfg_attr(
+        feature = "serde",
+        serde(
+            serialize_with = "crate::serde::serialize_bytes",
+            deserialize_with = "crate::serde::deserialize_bytes"
+        )
+    )]
     pub alignment_stuffing_bits: Vec<u8>,
     /// Encrypted CRC-32 (present when encrypted_packet = 1)
     pub e_crc_32: Option<u32>,
@@ -66,6 +74,8 @@ pub struct SpliceInfoSection {
 /// Each variant contains the specific data structure for that command type.
 /// The command type determines how the splice operation should be performed.
 #[derive(Debug, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(tag = "type"))]
 pub enum SpliceCommand {
     /// Null command (0x00) - No operation
     SpliceNull,
@@ -88,6 +98,7 @@ pub enum SpliceCommand {
 /// This command indicates no splice operation should be performed.
 /// It's used as a placeholder or to clear previous splice commands.
 #[derive(Debug, PartialEq, Default)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct SpliceNull {}
 
 /// Represents a splice schedule command (0x04).
@@ -95,6 +106,7 @@ pub struct SpliceNull {}
 /// This command schedules splice events to occur at specific times in the future.
 /// It allows for pre-scheduling of ad insertion points or other splice operations.
 #[derive(Debug, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct SpliceSchedule {
     /// Unique identifier for this splice event
     pub splice_event_id: u32,
@@ -123,6 +135,7 @@ pub struct SpliceSchedule {
 /// This is the most commonly used splice command for ad insertion.
 /// It signals the start and end of commercial breaks or other content substitutions.
 #[derive(Debug, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct SpliceInsert {
     /// Unique identifier for this splice event
     pub splice_event_id: u32,
@@ -161,6 +174,7 @@ pub struct SpliceInsert {
 /// This command provides time synchronization information and is often used
 /// with segmentation descriptors to indicate various types of content boundaries.
 #[derive(Debug, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct TimeSignal {
     /// The presentation timestamp for this time signal
     pub splice_time: SpliceTime,
@@ -171,6 +185,7 @@ pub struct TimeSignal {
 /// This command is used to reserve bandwidth for future use,
 /// typically in cable systems for managing network capacity.
 #[derive(Debug, PartialEq, Default)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct BandwidthReservation {
     /// Reserved bits for future use
     pub reserved: u8,
@@ -183,12 +198,20 @@ pub struct BandwidthReservation {
 /// This command allows for custom, proprietary splice operations
 /// that are not defined in the standard SCTE-35 specification.
 #[derive(Debug, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct PrivateCommand {
     /// Identifier for the private command type
     pub private_command_id: u16,
     /// Length of the private command data in bytes
     pub private_command_length: u8,
     /// Raw bytes containing the private command data
+    #[cfg_attr(
+        feature = "serde",
+        serde(
+            serialize_with = "crate::serde::serialize_bytes",
+            deserialize_with = "crate::serde::deserialize_bytes"
+        )
+    )]
     pub private_bytes: Vec<u8>,
 }
 
@@ -197,6 +220,7 @@ pub struct PrivateCommand {
 /// This structure contains timing and mode information for individual components
 /// when performing component-level splicing operations.
 #[derive(Debug, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct ComponentSplice {
     /// Identifier for the specific component (audio/video track)
     pub component_tag: u8,
@@ -217,6 +241,7 @@ pub struct ComponentSplice {
 /// This structure contains the splice time for individual components
 /// when performing component-level splice insert operations.
 #[derive(Debug, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct SpliceInsertComponent {
     /// Identifier for the specific component (audio/video track)
     pub component_tag: u8,

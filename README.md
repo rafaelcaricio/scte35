@@ -4,11 +4,12 @@ A Rust library for parsing SCTE-35 (Society of Cable Telecommunications Engineer
 
 ## Features
 
+- **Serde support** - Serialize/deserialize SCTE-35 messages to/from JSON and other formats (enabled by default)
 - **CRC validation** - Built-in CRC-32 validation using MPEG-2 algorithm (enabled by default)
 - **Human-readable UPID parsing** - Full support for 18 standard UPID types with intelligent formatting
 - **Human-readable segmentation types** - Complete set of 48 standard segmentation types with descriptive names
 - **Segmentation descriptor parsing** - Complete parsing of segmentation descriptors including UPID data
-- **Minimal dependencies** - Only the `crc` crate for validation (optional)
+- **Minimal dependencies** - Only the `crc` crate for validation (optional) and `serde` for serialization (optional)
 - **Full SCTE-35 parsing** - Supports all major SCTE-35 command types
 - **Bit-level precision** - Accurate parsing of bit-packed SCTE-35 messages
 - **Optional CLI tool** - Command-line interface for parsing base64-encoded messages with UPID display
@@ -17,7 +18,7 @@ A Rust library for parsing SCTE-35 (Society of Cable Telecommunications Engineer
 
 ## Installation
 
-### With CRC Validation (Default)
+### With All Features (Default)
 
 Add this to your `Cargo.toml`:
 
@@ -26,9 +27,20 @@ Add this to your `Cargo.toml`:
 scte35-parsing = "0.1.0"
 ```
 
-### Without CRC Validation (Library only)
+This includes both CRC validation and serde support.
 
-If you need a zero-dependency library without CRC validation:
+### Without Serde Support
+
+If you don't need JSON serialization:
+
+```toml
+[dependencies]
+scte35-parsing = { version = "0.1.0", default-features = false, features = ["crc-validation"] }
+```
+
+### Minimal (No CRC or Serde)
+
+For a minimal library without CRC validation or serde:
 
 ```toml
 [dependencies]
@@ -180,6 +192,68 @@ assert_eq!(duration.as_secs(), 30);
 // Or use the method directly
 let duration2 = break_duration.to_duration();
 assert_eq!(duration2.as_secs(), 30);
+```
+
+### Serde Support (JSON Serialization)
+
+The library includes built-in serde support for serializing/deserializing SCTE-35 messages:
+
+```rust
+use scte35_parsing::parse_splice_info_section;
+use serde_json;
+
+// Parse SCTE-35 message
+let scte35_bytes = vec![
+    0xFC, 0x30, 0x16, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xF0, 0x05, 0x06, 0xFE, 
+    0x42, 0x3A, 0x35, 0xBD, 0x00, 0x00, 0xBB, 0x0C, 0x73, 0xF4
+];
+
+if let Ok(section) = parse_splice_info_section(&scte35_bytes) {
+    // Serialize to JSON
+    let json = serde_json::to_string_pretty(&section).unwrap();
+    println!("{}", json);
+    
+    // Deserialize from JSON
+    let deserialized: scte35_parsing::SpliceInfoSection = 
+        serde_json::from_str(&json).unwrap();
+    assert_eq!(section, deserialized);
+}
+```
+
+The serde implementation includes:
+
+- **Binary data as base64**: All raw bytes (private commands, UPID data, alignment bits) are encoded as base64 strings
+- **Human-readable enums**: Segmentation types and UPID types include both numeric values and descriptions
+- **Time duration info**: PTS times and durations include both raw ticks and human-readable formats
+- **Computed fields**: Segmentation descriptors include parsed UPID strings when available
+
+Example JSON output:
+```json
+{
+  "table_id": 252,
+  "splice_command": {
+    "type": "TimeSignal",
+    "splice_time": {
+      "time_specified_flag": 1,
+      "pts_time": 900000,
+      "duration_info": {
+        "ticks": 900000,
+        "seconds": 10.0,
+        "human_readable": "10.0s"
+      }
+    }
+  },
+  "splice_descriptors": [{
+    "descriptor_type": "Segmentation",
+    "segmentation_event_id": 12345,
+    "segmentation_upid": "VEVTVDEyMzQ1Njc4",
+    "upid_string": "TEST12345678",
+    "segmentation_type": {
+      "id": 48,
+      "description": "Provider Advertisement Start"
+    }
+  }]
+}
 ```
 
 ### Segmentation Types
