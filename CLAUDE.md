@@ -143,3 +143,9 @@ cargo test  # Includes doctests
 2. Run `cargo doc --no-deps` to verify documentation builds correctly
 3. Run `cargo test` to ensure doc examples work
 4. Review generated documentation for clarity and completeness
+```
+
+## Memories
+
+- Update README.md with new features as we implement them
+- Run all tests after every code change, this allow early and interactive constant feedback during development
