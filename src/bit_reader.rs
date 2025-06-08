@@ -122,10 +122,10 @@ mod tests {
 
         // Read 4 bits: should get 0b1010 = 10
         assert_eq!(reader.read_bits(4).unwrap(), 10);
-        
+
         // Read 4 more bits: should get 0b1010 = 10
         assert_eq!(reader.read_bits(4).unwrap(), 10);
-        
+
         // Read 8 bits: should get 0b11110000 = 240
         assert_eq!(reader.read_bits(8).unwrap(), 240);
     }
@@ -137,7 +137,7 @@ mod tests {
 
         // Read 6 bits: should get 0b101010 = 42
         assert_eq!(reader.read_bits(6).unwrap(), 42);
-        
+
         // Read 6 bits across byte boundary: should get 0b101111 = 47
         assert_eq!(reader.read_bits(6).unwrap(), 47);
     }
@@ -149,7 +149,7 @@ mod tests {
 
         // Skip 4 bits
         reader.skip_bits(4).unwrap();
-        
+
         // Read 4 bits: should get 0b1010 = 10
         assert_eq!(reader.read_bits(4).unwrap(), 10);
     }

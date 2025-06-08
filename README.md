@@ -6,6 +6,7 @@ A Rust library for parsing SCTE-35 (Society of Cable Telecommunications Engineer
 
 - **CRC validation** - Built-in CRC-32 validation using MPEG-2 algorithm (enabled by default)
 - **Human-readable UPID parsing** - Full support for 18 standard UPID types with intelligent formatting
+- **Human-readable segmentation types** - Complete set of 48 standard segmentation types with descriptive names
 - **Segmentation descriptor parsing** - Complete parsing of segmentation descriptors including UPID data
 - **Minimal dependencies** - Only the `crc` crate for validation (optional)
 - **Full SCTE-35 parsing** - Supports all major SCTE-35 command types
@@ -60,8 +61,11 @@ use scte35_parsing::{parse_splice_info_section, SpliceCommand, SpliceDescriptor}
 use std::time::Duration;
 
 fn main() {
-    // Your SCTE-35 message as bytes
-    let scte35_bytes = vec![/* your SCTE-35 bytes */];
+    // Your SCTE-35 message as bytes (example message)
+    let scte35_bytes = vec![
+        0xFC, 0x30, 0x16, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xF0, 0x05, 0x06, 0xFE, 
+        0x42, 0x3A, 0x35, 0xBD, 0x00, 0x00, 0xBB, 0x0C, 0x73, 0xF4
+    ];
     
     match parse_splice_info_section(&scte35_bytes) {
         Ok(section) => {
@@ -98,6 +102,7 @@ fn main() {
                 if let SpliceDescriptor::Segmentation(seg_desc) = descriptor {
                     println!("Segmentation Event ID: 0x{:08x}", seg_desc.segmentation_event_id);
                     println!("UPID Type: {}", seg_desc.upid_type_description());
+                    println!("Segmentation Type: {}", seg_desc.segmentation_type_description());
                     
                     if let Some(upid_str) = seg_desc.upid_as_string() {
                         println!("UPID: {}", upid_str);
@@ -115,7 +120,13 @@ fn main() {
 By default, the library validates CRC-32 checksums in SCTE-35 messages to ensure data integrity:
 
 ```rust
-use scte35_parsing::{parse_splice_info_section, validate_scte35_crc};
+use scte35_parsing::{parse_splice_info_section, validate_scte35_crc, CrcValidatable};
+
+// Example SCTE-35 message bytes
+let scte35_bytes = vec![
+    0xFC, 0x30, 0x16, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xF0, 0x05, 0x06, 0xFE, 
+    0x42, 0x3A, 0x35, 0xBD, 0x00, 0x00, 0xBB, 0x0C, 0x73, 0xF4
+];
 
 // Parse with automatic CRC validation (default behavior)
 match parse_splice_info_section(&scte35_bytes) {
@@ -164,16 +175,79 @@ let break_duration = BreakDuration {
     duration: 2_700_000,
 };
 
-// Convert using Into trait
-let duration: Duration = break_duration.into();
+// Convert using Into trait  
+let duration: Duration = (&break_duration).into();
 assert_eq!(duration.as_secs(), 30);
 
 // Or use the method directly
-let duration = break_duration.to_duration();
-
-// Also works with references
-let duration: Duration = (&break_duration).into();
+let duration2 = break_duration.to_duration();
+assert_eq!(duration2.as_secs(), 30);
 ```
+
+### Segmentation Types
+
+The library provides human-readable segmentation types that correspond to the numeric IDs in SCTE-35 messages:
+
+```rust
+use scte35_parsing::{SegmentationType, parse_splice_info_section, SpliceDescriptor};
+
+// Work with segmentation types directly
+let seg_type = SegmentationType::ProviderAdvertisementStart;
+println!("Type: {} (ID: 0x{:02X})", seg_type.description(), seg_type.id());
+
+// Convert from numeric ID (useful when parsing)
+let seg_type = SegmentationType::from_id(0x30);
+assert_eq!(seg_type, SegmentationType::ProviderAdvertisementStart);
+assert_eq!(seg_type.description(), "Provider Advertisement Start");
+
+// Example: Parse a message and check segmentation descriptors
+let scte35_bytes = vec![
+    0xFC, 0x30, 0x16, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xF0, 0x05, 0x06, 0xFE, 
+    0x42, 0x3A, 0x35, 0xBD, 0x00, 0x00, 0xBB, 0x0C, 0x73, 0xF4
+];
+
+if let Ok(section) = parse_splice_info_section(&scte35_bytes) {
+    // Segmentation descriptors automatically populate both fields
+    // The numeric ID and human-readable type are always consistent
+    for descriptor in &section.splice_descriptors {
+        if let SpliceDescriptor::Segmentation(seg_desc) = descriptor {
+            println!("Segmentation Type ID: 0x{:02X}", seg_desc.segmentation_type_id);
+            println!("Segmentation Type: {:?}", seg_desc.segmentation_type);
+            println!("Description: {}", seg_desc.segmentation_type_description());
+        }
+    }
+}
+```
+
+#### Supported Segmentation Types
+
+The library supports all standard SCTE-35 segmentation types including:
+
+**Program Boundaries:**
+- Program Start/End
+- Program Early Termination
+- Program Breakaway/Resumption
+- Program Runover (Planned/Unplanned)
+- Program Overlap Start
+- Program Blackout Override
+- Program Join
+
+**Content Segments:**
+- Chapter Start/End
+- Break Start/End
+- Content Identification
+
+**Advertisement Opportunities:**
+- Provider/Distributor Advertisement Start/End
+- Provider/Distributor Placement Opportunity Start/End
+- Provider/Distributor Overlay Placement Opportunity Start/End
+- Provider/Distributor Promo Start/End
+- Provider/Distributor Ad Block Start/End
+
+**Special Events:**
+- Unscheduled Event Start/End
+- Alternate Content Opportunity Start/End
+- Network Start/End
 
 ### CLI Usage
 
@@ -188,7 +262,7 @@ scte35-parsing "/DAvAAAAAAAA///wFAVIAACPf+/+c2nALv4AUsz1AAAAAAAKAAhDVUVJAAABNWLb
 ```
 
 Example output with segmentation descriptor and UPID information:
-```
+```text
 Successfully parsed SpliceInfoSection:
   Table ID: 252
   Section Length: 67
@@ -208,6 +282,7 @@ Successfully parsed SpliceInfoSection:
       UPID Length: 28 bytes
       UPID: MDYwYTJiMzQuMDEwMTAxMDUuMDEwMTBkMjAuMQ==
       Segmentation Type ID: 0x10
+      Segmentation Type: Program Start
       Segment Number: 1
       Segments Expected: 1
   CRC-32: 0x44A237BE ✓ (Valid)

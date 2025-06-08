@@ -155,7 +155,7 @@ pub fn format_uuid(bytes: &[u8]) -> String {
     if bytes.len() != 16 {
         return format_base64(bytes);
     }
-    
+
     format!(
         "{:02x}{:02x}{:02x}{:02x}-{:02x}{:02x}-{:02x}{:02x}-{:02x}{:02x}-{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}",
         bytes[0], bytes[1], bytes[2], bytes[3],
@@ -171,9 +171,18 @@ pub fn format_isan(bytes: &[u8]) -> String {
         // ISAN format: XXXX-XXXX-XXXX-XXXX-XXXX-X (using hex representation)
         format!(
             "{:02x}{:02x}-{:02x}{:02x}-{:02x}{:02x}-{:02x}{:02x}-{:02x}{:02x}-{:02x}{:02x}",
-            bytes[0], bytes[1], bytes[2], bytes[3],
-            bytes[4], bytes[5], bytes[6], bytes[7],
-            bytes[8], bytes[9], bytes[10], bytes[11]
+            bytes[0],
+            bytes[1],
+            bytes[2],
+            bytes[3],
+            bytes[4],
+            bytes[5],
+            bytes[6],
+            bytes[7],
+            bytes[8],
+            bytes[9],
+            bytes[10],
+            bytes[11]
         )
     } else {
         format_base64(bytes)
@@ -207,23 +216,32 @@ mod tests {
 
     #[test]
     fn test_upid_type_from_u8() {
-        assert_eq!(SegmentationUpidType::from(0x00), SegmentationUpidType::NotUsed);
+        assert_eq!(
+            SegmentationUpidType::from(0x00),
+            SegmentationUpidType::NotUsed
+        );
         assert_eq!(SegmentationUpidType::from(0x03), SegmentationUpidType::AdID);
         assert_eq!(SegmentationUpidType::from(0x10), SegmentationUpidType::UUID);
-        assert_eq!(SegmentationUpidType::from(0xFF), SegmentationUpidType::Reserved(0xFF));
+        assert_eq!(
+            SegmentationUpidType::from(0xFF),
+            SegmentationUpidType::Reserved(0xFF)
+        );
     }
 
     #[test]
     fn test_upid_type_description() {
         assert_eq!(SegmentationUpidType::AdID.description(), "Ad Identifier");
-        assert_eq!(SegmentationUpidType::UUID.description(), "UUID (Universally Unique Identifier)");
+        assert_eq!(
+            SegmentationUpidType::UUID.description(),
+            "UUID (Universally Unique Identifier)"
+        );
     }
 
     #[test]
     fn test_format_uuid() {
         let uuid_bytes = vec![
-            0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc, 0xde, 0xf0,
-            0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc, 0xde, 0xf0
+            0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc, 0xde, 0xf0, 0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc,
+            0xde, 0xf0,
         ];
         let formatted = format_uuid(&uuid_bytes);
         assert_eq!(formatted, "12345678-9abc-def0-1234-56789abcdef0");
@@ -232,8 +250,7 @@ mod tests {
     #[test]
     fn test_format_isan() {
         let isan_bytes = vec![
-            0x00, 0x00, 0x00, 0x01, 0x23, 0x45,
-            0x67, 0x89, 0xab, 0xcd, 0xef, 0x00
+            0x00, 0x00, 0x00, 0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef, 0x00,
         ];
         let formatted = format_isan(&isan_bytes);
         assert_eq!(formatted, "0000-0001-2345-6789-abcd-ef00");

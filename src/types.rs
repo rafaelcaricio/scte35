@@ -3,8 +3,8 @@
 //! This module contains the main structures representing SCTE-35 messages,
 //! commands, and related components.
 
-use crate::time::{DateTime, SpliceTime, BreakDuration};
 use crate::descriptors::SpliceDescriptor;
+use crate::time::{BreakDuration, DateTime, SpliceTime};
 
 /// Represents a complete SCTE-35 splice information section.
 ///
@@ -221,4 +221,337 @@ pub struct SpliceInsertComponent {
     pub component_tag: u8,
     /// Presentation timestamp when this component should splice (present when splice_immediate_flag = 0)
     pub splice_time: Option<SpliceTime>,
+}
+
+/// Represents the different types of segmentation as defined in SCTE-35.
+///
+/// These values indicate the type of content segment boundary being signaled.
+/// They provide semantic meaning to segmentation descriptors, allowing systems
+/// to understand what type of content transition is occurring.
+///
+/// # Usage
+///
+/// This enum is typically used with segmentation descriptors to provide
+/// human-readable context for splice operations:
+///
+/// ```rust
+/// use scte35_parsing::SegmentationType;
+///
+/// let seg_type = SegmentationType::ProviderAdvertisementStart;
+/// println!("Segmentation type: {:?} (ID: 0x{:02X})", seg_type, seg_type.id());
+/// ```
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
+pub enum SegmentationType {
+    /// Not indicated (0x00) - No specific segmentation type
+    NotIndicated,
+    /// Content identification (0x01) - Identifies content for tracking
+    ContentIdentification,
+    /// Program start (0x10) - Beginning of a program
+    ProgramStart,
+    /// Program end (0x11) - End of a program
+    ProgramEnd,
+    /// Program early termination (0x12) - Program ended before scheduled time
+    ProgramEarlyTermination,
+    /// Program breakaway (0x13) - Program interrupted for local content
+    ProgramBreakaway,
+    /// Program resumption (0x14) - Return to program after breakaway
+    ProgramResumption,
+    /// Program runover planned (0x15) - Program extending beyond scheduled time
+    ProgramRunoverPlanned,
+    /// Program runover unplanned (0x16) - Unexpected program extension
+    ProgramRunoverUnplanned,
+    /// Program overlap start (0x17) - Beginning of overlapping program content
+    ProgramOverlapStart,
+    /// Program blackout override (0x18) - Override blackout restrictions
+    ProgramBlackoutOverride,
+    /// Program join (0x19) - Joining program already in progress
+    ProgramJoin,
+    /// Chapter start (0x20) - Beginning of a chapter or segment
+    ChapterStart,
+    /// Chapter end (0x21) - End of a chapter or segment
+    ChapterEnd,
+    /// Break start (0x22) - Beginning of a break period
+    BreakStart,
+    /// Break end (0x23) - End of a break period
+    BreakEnd,
+    /// Opening credit start (0x24) - Deprecated, use content identification
+    OpeningCreditStartDeprecated,
+    /// Opening credit end (0x25) - Deprecated, use content identification
+    OpeningCreditEndDeprecated,
+    /// Closing credit start (0x26) - Deprecated, use content identification
+    ClosingCreditStartDeprecated,
+    /// Closing credit end (0x27) - Deprecated, use content identification
+    ClosingCreditEndDeprecated,
+    /// Provider advertisement start (0x30) - Beginning of provider ad
+    ProviderAdvertisementStart,
+    /// Provider advertisement end (0x31) - End of provider ad
+    ProviderAdvertisementEnd,
+    /// Distributor advertisement start (0x32) - Beginning of distributor ad
+    DistributorAdvertisementStart,
+    /// Distributor advertisement end (0x33) - End of distributor ad
+    DistributorAdvertisementEnd,
+    /// Provider placement opportunity start (0x34) - Beginning of provider placement
+    ProviderPlacementOpportunityStart,
+    /// Provider placement opportunity end (0x35) - End of provider placement
+    ProviderPlacementOpportunityEnd,
+    /// Distributor placement opportunity start (0x36) - Beginning of distributor placement
+    DistributorPlacementOpportunityStart,
+    /// Distributor placement opportunity end (0x37) - End of distributor placement
+    DistributorPlacementOpportunityEnd,
+    /// Provider overlay placement opportunity start (0x38) - Beginning of provider overlay
+    ProviderOverlayPlacementOpportunityStart,
+    /// Provider overlay placement opportunity end (0x39) - End of provider overlay
+    ProviderOverlayPlacementOpportunityEnd,
+    /// Distributor overlay placement opportunity start (0x3A) - Beginning of distributor overlay
+    DistributorOverlayPlacementOpportunityStart,
+    /// Distributor overlay placement opportunity end (0x3B) - End of distributor overlay
+    DistributorOverlayPlacementOpportunityEnd,
+    /// Provider promo start (0x3C) - Beginning of provider promotional content
+    ProviderPromoStart,
+    /// Provider promo end (0x3D) - End of provider promotional content
+    ProviderPromoEnd,
+    /// Distributor promo start (0x3E) - Beginning of distributor promotional content
+    DistributorPromoStart,
+    /// Distributor promo end (0x3F) - End of distributor promotional content
+    DistributorPromoEnd,
+    /// Unscheduled event start (0x40) - Beginning of unscheduled content
+    UnscheduledEventStart,
+    /// Unscheduled event end (0x41) - End of unscheduled content
+    UnscheduledEventEnd,
+    /// Alternate content opportunity start (0x42) - Beginning of alternate content
+    AlternateContentOpportunityStart,
+    /// Alternate content opportunity end (0x43) - End of alternate content
+    AlternateContentOpportunityEnd,
+    /// Provider ad block start (0x44) - Beginning of provider ad block
+    ProviderAdBlockStart,
+    /// Provider ad block end (0x45) - End of provider ad block
+    ProviderAdBlockEnd,
+    /// Distributor ad block start (0x46) - Beginning of distributor ad block
+    DistributorAdBlockStart,
+    /// Distributor ad block end (0x47) - End of distributor ad block
+    DistributorAdBlockEnd,
+    /// Network start (0x50) - Beginning of network content
+    NetworkStart,
+    /// Network end (0x51) - End of network content
+    NetworkEnd,
+}
+
+impl Default for SegmentationType {
+    fn default() -> Self {
+        SegmentationType::NotIndicated
+    }
+}
+
+impl SegmentationType {
+    /// Returns the numeric identifier for this segmentation type.
+    ///
+    /// These IDs correspond to the values defined in the SCTE-35 specification
+    /// for segmentation descriptor types.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use scte35_parsing::SegmentationType;
+    ///
+    /// assert_eq!(SegmentationType::ProviderAdvertisementStart.id(), 0x30);
+    /// assert_eq!(SegmentationType::ProgramStart.id(), 0x10);
+    /// ```
+    pub fn id(&self) -> u8 {
+        use SegmentationType::*;
+        match self {
+            NotIndicated => 0x00,
+            ContentIdentification => 0x01,
+            ProgramStart => 0x10,
+            ProgramEnd => 0x11,
+            ProgramEarlyTermination => 0x12,
+            ProgramBreakaway => 0x13,
+            ProgramResumption => 0x14,
+            ProgramRunoverPlanned => 0x15,
+            ProgramRunoverUnplanned => 0x16,
+            ProgramOverlapStart => 0x17,
+            ProgramBlackoutOverride => 0x18,
+            ProgramJoin => 0x19,
+            ChapterStart => 0x20,
+            ChapterEnd => 0x21,
+            BreakStart => 0x22,
+            BreakEnd => 0x23,
+            OpeningCreditStartDeprecated => 0x24,
+            OpeningCreditEndDeprecated => 0x25,
+            ClosingCreditStartDeprecated => 0x26,
+            ClosingCreditEndDeprecated => 0x27,
+            ProviderAdvertisementStart => 0x30,
+            ProviderAdvertisementEnd => 0x31,
+            DistributorAdvertisementStart => 0x32,
+            DistributorAdvertisementEnd => 0x33,
+            ProviderPlacementOpportunityStart => 0x34,
+            ProviderPlacementOpportunityEnd => 0x35,
+            DistributorPlacementOpportunityStart => 0x36,
+            DistributorPlacementOpportunityEnd => 0x37,
+            ProviderOverlayPlacementOpportunityStart => 0x38,
+            ProviderOverlayPlacementOpportunityEnd => 0x39,
+            DistributorOverlayPlacementOpportunityStart => 0x3A,
+            DistributorOverlayPlacementOpportunityEnd => 0x3B,
+            ProviderPromoStart => 0x3C,
+            ProviderPromoEnd => 0x3D,
+            DistributorPromoStart => 0x3E,
+            DistributorPromoEnd => 0x3F,
+            UnscheduledEventStart => 0x40,
+            UnscheduledEventEnd => 0x41,
+            AlternateContentOpportunityStart => 0x42,
+            AlternateContentOpportunityEnd => 0x43,
+            ProviderAdBlockStart => 0x44,
+            ProviderAdBlockEnd => 0x45,
+            DistributorAdBlockStart => 0x46,
+            DistributorAdBlockEnd => 0x47,
+            NetworkStart => 0x50,
+            NetworkEnd => 0x51,
+        }
+    }
+
+    /// Converts a numeric segmentation type ID to the corresponding enum variant.
+    ///
+    /// This method is useful for parsing segmentation descriptors from SCTE-35 messages
+    /// and converting the raw numeric values into typed enum variants.
+    ///
+    /// # Arguments
+    ///
+    /// * `id` - The numeric segmentation type identifier (0x00-0xFF)
+    ///
+    /// # Returns
+    ///
+    /// The corresponding `SegmentationType` variant, or `NotIndicated` for unknown values.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use scte35_parsing::SegmentationType;
+    ///
+    /// assert_eq!(SegmentationType::from_id(0x30), SegmentationType::ProviderAdvertisementStart);
+    /// assert_eq!(SegmentationType::from_id(0x10), SegmentationType::ProgramStart);
+    /// assert_eq!(SegmentationType::from_id(0xFF), SegmentationType::NotIndicated); // Unknown value
+    /// ```
+    pub fn from_id(id: u8) -> Self {
+        use SegmentationType::*;
+        match id {
+            0x00 => NotIndicated,
+            0x01 => ContentIdentification,
+            0x10 => ProgramStart,
+            0x11 => ProgramEnd,
+            0x12 => ProgramEarlyTermination,
+            0x13 => ProgramBreakaway,
+            0x14 => ProgramResumption,
+            0x15 => ProgramRunoverPlanned,
+            0x16 => ProgramRunoverUnplanned,
+            0x17 => ProgramOverlapStart,
+            0x18 => ProgramBlackoutOverride,
+            0x19 => ProgramJoin,
+            0x20 => ChapterStart,
+            0x21 => ChapterEnd,
+            0x22 => BreakStart,
+            0x23 => BreakEnd,
+            0x24 => OpeningCreditStartDeprecated,
+            0x25 => OpeningCreditEndDeprecated,
+            0x26 => ClosingCreditStartDeprecated,
+            0x27 => ClosingCreditEndDeprecated,
+            0x30 => ProviderAdvertisementStart,
+            0x31 => ProviderAdvertisementEnd,
+            0x32 => DistributorAdvertisementStart,
+            0x33 => DistributorAdvertisementEnd,
+            0x34 => ProviderPlacementOpportunityStart,
+            0x35 => ProviderPlacementOpportunityEnd,
+            0x36 => DistributorPlacementOpportunityStart,
+            0x37 => DistributorPlacementOpportunityEnd,
+            0x38 => ProviderOverlayPlacementOpportunityStart,
+            0x39 => ProviderOverlayPlacementOpportunityEnd,
+            0x3A => DistributorOverlayPlacementOpportunityStart,
+            0x3B => DistributorOverlayPlacementOpportunityEnd,
+            0x3C => ProviderPromoStart,
+            0x3D => ProviderPromoEnd,
+            0x3E => DistributorPromoStart,
+            0x3F => DistributorPromoEnd,
+            0x40 => UnscheduledEventStart,
+            0x41 => UnscheduledEventEnd,
+            0x42 => AlternateContentOpportunityStart,
+            0x43 => AlternateContentOpportunityEnd,
+            0x44 => ProviderAdBlockStart,
+            0x45 => ProviderAdBlockEnd,
+            0x46 => DistributorAdBlockStart,
+            0x47 => DistributorAdBlockEnd,
+            0x50 => NetworkStart,
+            0x51 => NetworkEnd,
+            _ => NotIndicated, // Default for unknown values
+        }
+    }
+
+    /// Returns a human-readable description of the segmentation type.
+    ///
+    /// This method provides descriptive text for each segmentation type that can be
+    /// used in user interfaces or logging to make SCTE-35 data more understandable.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use scte35_parsing::SegmentationType;
+    ///
+    /// let seg_type = SegmentationType::ProviderAdvertisementStart;
+    /// println!("{}", seg_type.description()); // "Provider Advertisement Start"
+    /// ```
+    pub fn description(&self) -> &'static str {
+        use SegmentationType::*;
+        match self {
+            NotIndicated => "Not Indicated",
+            ContentIdentification => "Content Identification",
+            ProgramStart => "Program Start",
+            ProgramEnd => "Program End",
+            ProgramEarlyTermination => "Program Early Termination",
+            ProgramBreakaway => "Program Breakaway",
+            ProgramResumption => "Program Resumption",
+            ProgramRunoverPlanned => "Program Runover Planned",
+            ProgramRunoverUnplanned => "Program Runover Unplanned",
+            ProgramOverlapStart => "Program Overlap Start",
+            ProgramBlackoutOverride => "Program Blackout Override",
+            ProgramJoin => "Program Join",
+            ChapterStart => "Chapter Start",
+            ChapterEnd => "Chapter End",
+            BreakStart => "Break Start",
+            BreakEnd => "Break End",
+            OpeningCreditStartDeprecated => "Opening Credit Start (Deprecated)",
+            OpeningCreditEndDeprecated => "Opening Credit End (Deprecated)",
+            ClosingCreditStartDeprecated => "Closing Credit Start (Deprecated)",
+            ClosingCreditEndDeprecated => "Closing Credit End (Deprecated)",
+            ProviderAdvertisementStart => "Provider Advertisement Start",
+            ProviderAdvertisementEnd => "Provider Advertisement End",
+            DistributorAdvertisementStart => "Distributor Advertisement Start",
+            DistributorAdvertisementEnd => "Distributor Advertisement End",
+            ProviderPlacementOpportunityStart => "Provider Placement Opportunity Start",
+            ProviderPlacementOpportunityEnd => "Provider Placement Opportunity End",
+            DistributorPlacementOpportunityStart => "Distributor Placement Opportunity Start",
+            DistributorPlacementOpportunityEnd => "Distributor Placement Opportunity End",
+            ProviderOverlayPlacementOpportunityStart => {
+                "Provider Overlay Placement Opportunity Start"
+            }
+            ProviderOverlayPlacementOpportunityEnd => "Provider Overlay Placement Opportunity End",
+            DistributorOverlayPlacementOpportunityStart => {
+                "Distributor Overlay Placement Opportunity Start"
+            }
+            DistributorOverlayPlacementOpportunityEnd => {
+                "Distributor Overlay Placement Opportunity End"
+            }
+            ProviderPromoStart => "Provider Promo Start",
+            ProviderPromoEnd => "Provider Promo End",
+            DistributorPromoStart => "Distributor Promo Start",
+            DistributorPromoEnd => "Distributor Promo End",
+            UnscheduledEventStart => "Unscheduled Event Start",
+            UnscheduledEventEnd => "Unscheduled Event End",
+            AlternateContentOpportunityStart => "Alternate Content Opportunity Start",
+            AlternateContentOpportunityEnd => "Alternate Content Opportunity End",
+            ProviderAdBlockStart => "Provider Ad Block Start",
+            ProviderAdBlockEnd => "Provider Ad Block End",
+            DistributorAdBlockStart => "Distributor Ad Block Start",
+            DistributorAdBlockEnd => "Distributor Ad Block End",
+            NetworkStart => "Network Start",
+            NetworkEnd => "Network End",
+        }
+    }
 }

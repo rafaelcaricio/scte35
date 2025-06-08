@@ -1,31 +1,4 @@
-//! # SCTE-35 Parsing Library
-//!
-//! This library provides functionality to parse SCTE-35 (Society of Cable 
-//! Telecommunications Engineers) messages, which are used for inserting cue 
-//! messages into video streams for ad insertion points in broadcast television.
-//!
-//! ## Features
-//!
-//! - Zero-dependency library (optional CLI tool requires base64)
-//! - Bit-level parsing of SCTE-35 binary messages
-//! - Support for all major splice command types
-//! - Time conversion utilities (90kHz ticks to std::time::Duration)
-//! - String conversion for descriptor data
-//!
-//! ## Example
-//!
-//! ```rust
-//! use scte35_parsing::parse_splice_info_section;
-//! use base64::{Engine, engine::general_purpose};
-//!
-//! let base64_message = "/DAWAAAAAAAAAP/wBQb+Qjo1vQAAuwxz9A==";
-//! let buffer = general_purpose::STANDARD.decode(base64_message).unwrap();
-//! let section = parse_splice_info_section(&buffer).unwrap();
-//!
-//! println!("Table ID: 0x{:02X}", section.table_id);
-//! println!("Command Type: 0x{:02X}", section.splice_command_type);
-//! ```
-
+#![doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/README.md"))]
 #![warn(missing_docs)]
 
 use std::io;
@@ -35,11 +8,11 @@ mod bit_reader;
 mod commands;
 
 // Public modules
+pub mod descriptors;
+pub mod parser;
 pub mod time;
 pub mod types;
 pub mod upid;
-pub mod descriptors;
-pub mod parser;
 
 // CRC validation module - only included when feature is enabled
 #[cfg(feature = "crc-validation")]
@@ -54,18 +27,18 @@ pub use parser::parse_splice_info_section;
 
 // Re-export main types
 pub use types::{
-    SpliceInfoSection, SpliceCommand, SpliceNull, SpliceSchedule, SpliceInsert, 
-    TimeSignal, BandwidthReservation, PrivateCommand, ComponentSplice, SpliceInsertComponent
+    BandwidthReservation, ComponentSplice, PrivateCommand, SegmentationType, SpliceCommand,
+    SpliceInfoSection, SpliceInsert, SpliceInsertComponent, SpliceNull, SpliceSchedule, TimeSignal,
 };
 
 // Re-export time types
-pub use time::{SpliceTime, DateTime, BreakDuration};
+pub use time::{BreakDuration, DateTime, SpliceTime};
 
 // Re-export UPID types
 pub use upid::SegmentationUpidType;
 
 // Re-export descriptor types
-pub use descriptors::{SpliceDescriptor, SegmentationDescriptor};
+pub use descriptors::{SegmentationDescriptor, SpliceDescriptor};
 
 /// Validates the CRC-32 checksum of an SCTE-35 message.
 ///

@@ -10,8 +10,8 @@ fn test_time_signal_command() {
         .decode(time_signal_base64)
         .expect("Failed to decode base64 string");
 
-    let section = parse_splice_info_section(&buffer)
-        .expect("Failed to parse time_signal SpliceInfoSection");
+    let section =
+        parse_splice_info_section(&buffer).expect("Failed to parse time_signal SpliceInfoSection");
 
     // Validate header
     assert_eq!(section.table_id, 0xFC, "Table ID should be 0xFC");
@@ -50,8 +50,8 @@ fn test_time_signal_with_descriptors() {
         .decode(time_signal_desc_base64)
         .expect("Failed to decode base64 string");
 
-    let section = parse_splice_info_section(&buffer)
-        .expect("Failed to parse time_signal with descriptors");
+    let section =
+        parse_splice_info_section(&buffer).expect("Failed to parse time_signal with descriptors");
 
     // Validate header
     assert_eq!(section.table_id, 0xFC);
@@ -122,10 +122,7 @@ fn test_upid_adid_example_no_crc_validation() {
 
     // Check for CUEI descriptor (common in SCTE-35)
     if let Some(first_desc) = section.splice_descriptors.first() {
-        assert!(
-            first_desc.length() > 0,
-            "Descriptor should have content"
-        );
+        assert!(first_desc.length() > 0, "Descriptor should have content");
     }
 }
 
@@ -273,15 +270,9 @@ fn test_time_signal_placement_opportunity_end() {
 
     // Check for segmentation descriptor (common for placement opportunities)
     if let Some(first_desc) = section.splice_descriptors.first() {
-        assert!(
-            first_desc.length() > 0,
-            "Descriptor should have content"
-        );
+        assert!(first_desc.length() > 0, "Descriptor should have content");
         // Descriptor tag 2 is typically segmentation_descriptor
-        assert_eq!(
-            first_desc.tag(), 2,
-            "Should be segmentation descriptor"
-        );
+        assert_eq!(first_desc.tag(), 2, "Should be segmentation descriptor");
     }
 }
 
@@ -510,49 +501,23 @@ fn test_parse_splice_info_section() {
 
     if let Some(descriptor) = section.splice_descriptors.first() {
         assert_eq!(
-            descriptor.tag(), 0x00,
+            descriptor.tag(),
+            0x00,
             "Descriptor tag should be 0x00 (Avail Descriptor)"
         );
-        assert_eq!(
-            descriptor.length(), 8,
-            "Descriptor length should be 8"
-        );
-        
+        assert_eq!(descriptor.length(), 8, "Descriptor length should be 8");
+
         // For unknown descriptors, validate the raw bytes
         if let Some(raw_bytes) = descriptor.raw_bytes() {
             // Validate avail descriptor identifier (first 4 bytes should be 0x00000135)
-            assert_eq!(
-                raw_bytes[0], 0x43,
-                "First byte should be 0x43"
-            );
-            assert_eq!(
-                raw_bytes[1], 0x55,
-                "Second byte should be 0x55"
-            );
-            assert_eq!(
-                raw_bytes[2], 0x45,
-                "Third byte should be 0x45"
-            );
-            assert_eq!(
-                raw_bytes[3], 0x49,
-                "Fourth byte should be 0x49"
-            );
-            assert_eq!(
-                raw_bytes[4], 0x00,
-                "Fifth byte should be 0x00"
-            );
-            assert_eq!(
-                raw_bytes[5], 0x00,
-                "Sixth byte should be 0x00"
-            );
-            assert_eq!(
-                raw_bytes[6], 0x01,
-                "Seventh byte should be 0x01"
-            );
-            assert_eq!(
-                raw_bytes[7], 0x35,
-                "Eighth byte should be 0x35"
-            );
+            assert_eq!(raw_bytes[0], 0x43, "First byte should be 0x43");
+            assert_eq!(raw_bytes[1], 0x55, "Second byte should be 0x55");
+            assert_eq!(raw_bytes[2], 0x45, "Third byte should be 0x45");
+            assert_eq!(raw_bytes[3], 0x49, "Fourth byte should be 0x49");
+            assert_eq!(raw_bytes[4], 0x00, "Fifth byte should be 0x00");
+            assert_eq!(raw_bytes[5], 0x00, "Sixth byte should be 0x00");
+            assert_eq!(raw_bytes[6], 0x01, "Seventh byte should be 0x01");
+            assert_eq!(raw_bytes[7], 0x35, "Eighth byte should be 0x35");
         }
     }
 }
@@ -562,7 +527,7 @@ fn test_parse_splice_info_section() {
 fn test_valid_crc() {
     let valid_message = "/DAWAAAAAAAAAP/wBQb+Qjo1vQAAuwxz9A==";
     let buffer = general_purpose::STANDARD.decode(valid_message).unwrap();
-    
+
     let result = validate_scte35_crc(&buffer);
     assert!(result.is_ok());
     assert!(result.unwrap());
@@ -574,11 +539,11 @@ fn test_invalid_crc() {
     let mut buffer = general_purpose::STANDARD
         .decode("/DAWAAAAAAAAAP/wBQb+Qjo1vQAAuwxz9A==")
         .unwrap();
-    
+
     // Corrupt the CRC (last 4 bytes)
     let len = buffer.len();
     buffer[len - 1] = 0x00;
-    
+
     let result = validate_scte35_crc(&buffer);
     assert!(result.is_ok());
     assert!(!result.unwrap());
@@ -589,7 +554,7 @@ fn test_invalid_crc() {
 fn test_parse_with_crc_validation() {
     let valid_message = "/DAWAAAAAAAAAP/wBQb+Qjo1vQAAuwxz9A==";
     let buffer = general_purpose::STANDARD.decode(valid_message).unwrap();
-    
+
     // Should parse successfully with valid CRC
     let section = parse_splice_info_section(&buffer);
     assert!(section.is_ok());
@@ -601,11 +566,11 @@ fn test_parse_with_invalid_crc_fails() {
     let mut buffer = general_purpose::STANDARD
         .decode("/DAWAAAAAAAAAP/wBQb+Qjo1vQAAuwxz9A==")
         .unwrap();
-    
+
     // Corrupt the CRC (last 4 bytes)
     let len = buffer.len();
     buffer[len - 1] = 0x00;
-    
+
     // Should fail to parse with invalid CRC
     let section = parse_splice_info_section(&buffer);
     assert!(section.is_err());
@@ -619,14 +584,14 @@ fn test_parse_with_invalid_crc_fails() {
 fn test_splice_info_section_validate_crc() {
     let valid_message = "/DAWAAAAAAAAAP/wBQb+Qjo1vQAAuwxz9A==";
     let buffer = general_purpose::STANDARD.decode(valid_message).unwrap();
-    
+
     let section = parse_splice_info_section(&buffer).unwrap();
-    
+
     // Test method-based validation
     let result = section.validate_crc(&buffer);
     assert!(result.is_ok());
     assert!(result.unwrap());
-    
+
     // Test get_crc method
     assert_eq!(section.get_crc(), section.crc_32);
 }
@@ -636,14 +601,14 @@ fn test_splice_info_section_validate_crc() {
 fn test_crc_validatable_trait() {
     let valid_message = "/DAWAAAAAAAAAP/wBQb+Qjo1vQAAuwxz9A==";
     let buffer = general_purpose::STANDARD.decode(valid_message).unwrap();
-    
+
     let section = parse_splice_info_section(&buffer).unwrap();
-    
+
     // Test trait implementation
     let result = section.validate_crc(&buffer);
     assert!(result.is_ok());
     assert!(result.unwrap());
-    
+
     let crc = section.get_crc();
     assert!(crc > 0);
 }
@@ -653,16 +618,16 @@ fn test_crc_validatable_trait() {
 fn test_crc_disabled() {
     let valid_message = "/DAWAAAAAAAAAP/wBQb+Qjo1vQAAuwxz9A==";
     let buffer = general_purpose::STANDARD.decode(valid_message).unwrap();
-    
+
     // Should always return false when CRC validation is disabled
     let result = validate_scte35_crc(&buffer);
     assert!(result.is_ok());
     assert!(!result.unwrap());
-    
+
     // Parse should still work without CRC validation
     let section = parse_splice_info_section(&buffer);
     assert!(section.is_ok());
-    
+
     // Method should return false when disabled
     let section = section.unwrap();
     let result = section.validate_crc(&buffer);
@@ -673,18 +638,30 @@ fn test_crc_disabled() {
 #[test]
 fn test_segmentation_upid_type_conversions() {
     // Test From<u8> implementation
-    assert_eq!(SegmentationUpidType::from(0x00), SegmentationUpidType::NotUsed);
+    assert_eq!(
+        SegmentationUpidType::from(0x00),
+        SegmentationUpidType::NotUsed
+    );
     assert_eq!(SegmentationUpidType::from(0x03), SegmentationUpidType::AdID);
     assert_eq!(SegmentationUpidType::from(0x04), SegmentationUpidType::UMID);
     assert_eq!(SegmentationUpidType::from(0x06), SegmentationUpidType::ISAN);
-    assert_eq!(SegmentationUpidType::from(0x08), SegmentationUpidType::AiringID);
+    assert_eq!(
+        SegmentationUpidType::from(0x08),
+        SegmentationUpidType::AiringID
+    );
     assert_eq!(SegmentationUpidType::from(0x0C), SegmentationUpidType::MPU);
     assert_eq!(SegmentationUpidType::from(0x10), SegmentationUpidType::UUID);
     assert_eq!(SegmentationUpidType::from(0x11), SegmentationUpidType::SCR);
-    
+
     // Test reserved values
-    assert_eq!(SegmentationUpidType::from(0x50), SegmentationUpidType::Reserved(0x50));
-    assert_eq!(SegmentationUpidType::from(0xFF), SegmentationUpidType::Reserved(0xFF));
+    assert_eq!(
+        SegmentationUpidType::from(0x50),
+        SegmentationUpidType::Reserved(0x50)
+    );
+    assert_eq!(
+        SegmentationUpidType::from(0xFF),
+        SegmentationUpidType::Reserved(0xFF)
+    );
 
     // Test Into<u8> implementation (From<SegmentationUpidType> for u8)
     assert_eq!(u8::from(SegmentationUpidType::NotUsed), 0x00);
@@ -701,29 +678,80 @@ fn test_segmentation_upid_type_conversions() {
 #[test]
 fn test_segmentation_upid_type_descriptions() {
     assert_eq!(SegmentationUpidType::NotUsed.description(), "Not Used");
-    assert_eq!(SegmentationUpidType::UserDefinedDeprecated.description(), "User Defined (Deprecated)");
-    assert_eq!(SegmentationUpidType::ISCI.description(), "ISCI (Industry Standard Commercial Identifier)");
+    assert_eq!(
+        SegmentationUpidType::UserDefinedDeprecated.description(),
+        "User Defined (Deprecated)"
+    );
+    assert_eq!(
+        SegmentationUpidType::ISCI.description(),
+        "ISCI (Industry Standard Commercial Identifier)"
+    );
     assert_eq!(SegmentationUpidType::AdID.description(), "Ad Identifier");
-    assert_eq!(SegmentationUpidType::UMID.description(), "UMID (Unique Material Identifier)");
-    assert_eq!(SegmentationUpidType::ISANDeprecated.description(), "ISAN (Deprecated)");
-    assert_eq!(SegmentationUpidType::ISAN.description(), "ISAN (International Standard Audiovisual Number)");
-    assert_eq!(SegmentationUpidType::TID.description(), "TID (Turner Identifier)");
+    assert_eq!(
+        SegmentationUpidType::UMID.description(),
+        "UMID (Unique Material Identifier)"
+    );
+    assert_eq!(
+        SegmentationUpidType::ISANDeprecated.description(),
+        "ISAN (Deprecated)"
+    );
+    assert_eq!(
+        SegmentationUpidType::ISAN.description(),
+        "ISAN (International Standard Audiovisual Number)"
+    );
+    assert_eq!(
+        SegmentationUpidType::TID.description(),
+        "TID (Turner Identifier)"
+    );
     assert_eq!(SegmentationUpidType::AiringID.description(), "Airing ID");
-    assert_eq!(SegmentationUpidType::ADI.description(), "ADI (Advertising Digital Identification)");
-    assert_eq!(SegmentationUpidType::EIDR.description(), "EIDR (Entertainment Identifier Registry)");
-    assert_eq!(SegmentationUpidType::ATSCContentIdentifier.description(), "ATSC Content Identifier");
-    assert_eq!(SegmentationUpidType::MPU.description(), "MPU (Media Processing Unit)");
-    assert_eq!(SegmentationUpidType::MID.description(), "MID (Media Identifier)");
-    assert_eq!(SegmentationUpidType::ADSInformation.description(), "ADS Information");
-    assert_eq!(SegmentationUpidType::URI.description(), "URI (Uniform Resource Identifier)");
-    assert_eq!(SegmentationUpidType::UUID.description(), "UUID (Universally Unique Identifier)");
-    assert_eq!(SegmentationUpidType::SCR.description(), "SCR (Subscriber Company Reporting)");
-    assert_eq!(SegmentationUpidType::Reserved(0x99).description(), "Reserved/Unknown");
+    assert_eq!(
+        SegmentationUpidType::ADI.description(),
+        "ADI (Advertising Digital Identification)"
+    );
+    assert_eq!(
+        SegmentationUpidType::EIDR.description(),
+        "EIDR (Entertainment Identifier Registry)"
+    );
+    assert_eq!(
+        SegmentationUpidType::ATSCContentIdentifier.description(),
+        "ATSC Content Identifier"
+    );
+    assert_eq!(
+        SegmentationUpidType::MPU.description(),
+        "MPU (Media Processing Unit)"
+    );
+    assert_eq!(
+        SegmentationUpidType::MID.description(),
+        "MID (Media Identifier)"
+    );
+    assert_eq!(
+        SegmentationUpidType::ADSInformation.description(),
+        "ADS Information"
+    );
+    assert_eq!(
+        SegmentationUpidType::URI.description(),
+        "URI (Uniform Resource Identifier)"
+    );
+    assert_eq!(
+        SegmentationUpidType::UUID.description(),
+        "UUID (Universally Unique Identifier)"
+    );
+    assert_eq!(
+        SegmentationUpidType::SCR.description(),
+        "SCR (Subscriber Company Reporting)"
+    );
+    assert_eq!(
+        SegmentationUpidType::Reserved(0x99).description(),
+        "Reserved/Unknown"
+    );
 }
 
 #[test]
 fn test_segmentation_upid_type_default() {
-    assert_eq!(SegmentationUpidType::default(), SegmentationUpidType::NotUsed);
+    assert_eq!(
+        SegmentationUpidType::default(),
+        SegmentationUpidType::NotUsed
+    );
 }
 
 #[test]
@@ -754,7 +782,11 @@ fn test_segmentation_upid_type_roundtrip() {
     for upid_type in types {
         let byte_value = u8::from(upid_type);
         let back_to_type = SegmentationUpidType::from(byte_value);
-        assert_eq!(upid_type, back_to_type, "Round-trip failed for {:?}", upid_type);
+        assert_eq!(
+            upid_type, back_to_type,
+            "Round-trip failed for {:?}",
+            upid_type
+        );
     }
 }
 
@@ -776,18 +808,22 @@ fn test_segmentation_descriptor_upid_as_string() {
         segmentation_upid_length: 12,
         segmentation_upid: b"ABCD01234567".to_vec(),
         segmentation_type_id: 0x30,
+        segmentation_type: SegmentationType::from_id(0x30),
         segment_num: 1,
         segments_expected: 1,
         sub_segment_num: None,
         sub_segments_expected: None,
     };
 
-    assert_eq!(ad_id_descriptor.upid_as_string(), Some("ABCD01234567".to_string()));
+    assert_eq!(
+        ad_id_descriptor.upid_as_string(),
+        Some("ABCD01234567".to_string())
+    );
 
     // Test UUID (16-byte format)
     let uuid_bytes = vec![
-        0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc, 0xde, 0xf0,
-        0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc, 0xde, 0xf0,
+        0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc, 0xde, 0xf0, 0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc, 0xde,
+        0xf0,
     ];
     let uuid_descriptor = SegmentationDescriptor {
         segmentation_event_id: 1,
@@ -804,6 +840,7 @@ fn test_segmentation_descriptor_upid_as_string() {
         segmentation_upid_length: 16,
         segmentation_upid: uuid_bytes,
         segmentation_type_id: 0x30,
+        segmentation_type: SegmentationType::from_id(0x30),
         segment_num: 1,
         segments_expected: 1,
         sub_segment_num: None,
@@ -816,7 +853,9 @@ fn test_segmentation_descriptor_upid_as_string() {
     );
 
     // Test ISAN (12-byte format)
-    let isan_bytes = vec![0x00, 0x00, 0x00, 0x3a, 0x8d, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10, 0x00];
+    let isan_bytes = vec![
+        0x00, 0x00, 0x00, 0x3a, 0x8d, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10, 0x00,
+    ];
     let isan_descriptor = SegmentationDescriptor {
         segmentation_event_id: 1,
         segmentation_event_cancel_indicator: false,
@@ -832,6 +871,7 @@ fn test_segmentation_descriptor_upid_as_string() {
         segmentation_upid_length: 12,
         segmentation_upid: isan_bytes,
         segmentation_type_id: 0x30,
+        segmentation_type: SegmentationType::from_id(0x30),
         segment_num: 1,
         segments_expected: 1,
         sub_segment_num: None,
@@ -859,6 +899,7 @@ fn test_segmentation_descriptor_upid_as_string() {
         segmentation_upid_length: 4,
         segmentation_upid: vec![0xDE, 0xAD, 0xBE, 0xEF],
         segmentation_type_id: 0x30,
+        segmentation_type: SegmentationType::from_id(0x30),
         segment_num: 1,
         segments_expected: 1,
         sub_segment_num: None,
@@ -866,7 +907,10 @@ fn test_segmentation_descriptor_upid_as_string() {
     };
 
     // Should return base64 representation
-    assert_eq!(unknown_descriptor.upid_as_string(), Some("3q2+7w==".to_string()));
+    assert_eq!(
+        unknown_descriptor.upid_as_string(),
+        Some("3q2+7w==".to_string())
+    );
 }
 
 #[test]
@@ -886,6 +930,7 @@ fn test_segmentation_descriptor_convenience_methods() {
         segmentation_upid_length: 12,
         segmentation_upid: b"ABCD01234567".to_vec(),
         segmentation_type_id: 0x30,
+        segmentation_type: SegmentationType::from_id(0x30),
         segment_num: 1,
         segments_expected: 1,
         sub_segment_num: None,
@@ -911,12 +956,12 @@ fn test_segmentation_descriptor_convenience_methods() {
 
 #[test]
 fn test_format_helper_functions() {
-    use crate::upid::{format_uuid, format_isan, format_base64};
-    
+    use crate::upid::{format_base64, format_isan, format_uuid};
+
     // Test UUID formatting
     let uuid_bytes = vec![
-        0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc, 0xde, 0xf0,
-        0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc, 0xde, 0xf0,
+        0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc, 0xde, 0xf0, 0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc, 0xde,
+        0xf0,
     ];
     assert_eq!(
         format_uuid(&uuid_bytes),
@@ -928,11 +973,10 @@ fn test_format_helper_functions() {
     assert_eq!(format_uuid(&short_uuid), "EjQ="); // base64 of [0x12, 0x34]
 
     // Test ISAN formatting
-    let isan_bytes = vec![0x00, 0x00, 0x00, 0x3a, 0x8d, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10, 0x00];
-    assert_eq!(
-        format_isan(&isan_bytes),
-        "0000-003a-8d00-0000-0000-1000"
-    );
+    let isan_bytes = vec![
+        0x00, 0x00, 0x00, 0x3a, 0x8d, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10, 0x00,
+    ];
+    assert_eq!(format_isan(&isan_bytes), "0000-003a-8d00-0000-0000-1000");
 
     // Test ISAN with wrong length (should fallback to base64)
     let short_isan = vec![0x12, 0x34];
@@ -941,4 +985,46 @@ fn test_format_helper_functions() {
     // Test base64 formatting
     let test_bytes = vec![0xDE, 0xAD, 0xBE, 0xEF];
     assert_eq!(format_base64(&test_bytes), "3q2+7w==");
+}
+
+#[test]
+fn test_segmentation_type_field_populated_during_parsing() {
+    // Test that the segmentation_type field is correctly populated from segmentation_type_id during parsing
+    let test_message = "/DAvAAAAAAAA///wBQb+dGKQoAAZAhdDVUVJSAAAjn+fCAgAAAAALKChijUCAKnMZ1g=";
+    let buffer = general_purpose::STANDARD.decode(test_message).unwrap();
+
+    let section = parse_splice_info_section(&buffer).unwrap();
+
+    // Verify we have a segmentation descriptor
+    assert_eq!(section.splice_descriptors.len(), 1);
+
+    match &section.splice_descriptors[0] {
+        SpliceDescriptor::Segmentation(seg_desc) => {
+            // Verify that the segmentation_type_id was parsed correctly
+            assert_eq!(seg_desc.segmentation_type_id, 0x35);
+
+            // Verify that the segmentation_type field was automatically populated from the ID
+            assert_eq!(
+                seg_desc.segmentation_type,
+                SegmentationType::ProviderPlacementOpportunityEnd
+            );
+
+            // Verify that the description method works
+            assert_eq!(
+                seg_desc.segmentation_type_description(),
+                "Provider Placement Opportunity End"
+            );
+
+            // Verify consistency between the ID and type
+            assert_eq!(
+                seg_desc.segmentation_type.id(),
+                seg_desc.segmentation_type_id
+            );
+            assert_eq!(
+                SegmentationType::from_id(seg_desc.segmentation_type_id),
+                seg_desc.segmentation_type
+            );
+        }
+        _ => panic!("Expected a segmentation descriptor"),
+    }
 }
