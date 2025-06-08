@@ -18,6 +18,10 @@ pub mod upid;
 #[cfg(feature = "crc-validation")]
 pub mod crc;
 
+// Serde support module - only included when feature is enabled
+#[cfg(feature = "serde")]
+pub mod serde;
+
 // Re-export commonly used CRC functions for convenience - only when available
 #[cfg(feature = "crc-validation")]
 pub use crc::{validate_message_crc, CrcValidatable};
