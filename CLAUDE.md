@@ -149,3 +149,4 @@ cargo test  # Includes doctests
 
 - Update README.md with new features as we implement them
 - Run all tests after every code change, this allow early and interactive constant feedback during development
+- Use cargo clippy to introduce the suggested changes, try avoiding deactivating checks. Prioritize implementing the suggestions
