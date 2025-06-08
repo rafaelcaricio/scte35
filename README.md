@@ -12,7 +12,7 @@ A Rust library for parsing SCTE-35 (Society of Cable Telecommunications Engineer
 - **Minimal dependencies** - Only the `crc` crate for validation (optional) and `serde` for serialization (optional)
 - **Full SCTE-35 parsing** - Supports all major SCTE-35 command types
 - **Bit-level precision** - Accurate parsing of bit-packed SCTE-35 messages
-- **Optional CLI tool** - Command-line interface for parsing base64-encoded messages with UPID display
+- **Optional CLI tool** - Command-line interface for parsing base64-encoded messages with text and JSON output formats
 - **Type-safe** - Strongly typed representations of all SCTE-35 structures
 - **Data integrity** - Detects corrupted or tampered SCTE-35 messages
 
@@ -79,49 +79,49 @@ let scte35_bytes = vec![
 ];
 
 match parse_splice_info_section(&scte35_bytes) {
-    Ok(section) => {
-        println!("Table ID: {}", section.table_id);
-        println!("Command Type: {}", section.splice_command_type);
-        
-        match section.splice_command {
-            SpliceCommand::SpliceInsert(insert) => {
-                println!("Splice Event ID: 0x{:08x}", insert.splice_event_id);
-                
-                // Convert break duration to std::time::Duration
-                if let Some(break_duration) = &insert.break_duration {
-                    let duration: Duration = break_duration.into();
-                    println!("Break Duration: {:?}", duration);
-                    println!("Break Duration: {:.3} seconds", duration.as_secs_f64());
-                }
-                
-                // Convert splice time to Duration
-                if let Some(duration) = insert.splice_time.as_ref()
-                    .and_then(|st| st.to_duration()) {
-                    println!("Splice Time: {:?}", duration);
-                }
+Ok(section) => {
+    println!("Table ID: {}", section.table_id);
+    println!("Command Type: {}", section.splice_command_type);
+    
+    match section.splice_command {
+        SpliceCommand::SpliceInsert(insert) => {
+            println!("Splice Event ID: 0x{:08x}", insert.splice_event_id);
+            
+            // Convert break duration to std::time::Duration
+            if let Some(break_duration) = &insert.break_duration {
+                let duration: Duration = break_duration.into();
+                println!("Break Duration: {:?}", duration);
+                println!("Break Duration: {:.3} seconds", duration.as_secs_f64());
             }
-            SpliceCommand::TimeSignal(signal) => {
-                if let Some(duration) = signal.splice_time.to_duration() {
-                    println!("Time Signal: {:?}", duration);
-                }
+            
+            // Convert splice time to Duration
+            if let Some(duration) = insert.splice_time.as_ref()
+                .and_then(|st| st.to_duration()) {
+                println!("Splice Time: {:?}", duration);
             }
-            _ => println!("Other command type"),
         }
-        
-        // Parse segmentation descriptors with UPID information
-        for descriptor in &section.splice_descriptors {
-            if let SpliceDescriptor::Segmentation(seg_desc) = descriptor {
-                println!("Segmentation Event ID: 0x{:08x}", seg_desc.segmentation_event_id);
-                println!("UPID Type: {}", seg_desc.upid_type_description());
-                println!("Segmentation Type: {}", seg_desc.segmentation_type_description());
-                
-                if let Some(upid_str) = seg_desc.upid_as_string() {
-                    println!("UPID: {}", upid_str);
-                }
+        SpliceCommand::TimeSignal(signal) => {
+            if let Some(duration) = signal.splice_time.to_duration() {
+                println!("Time Signal: {:?}", duration);
+            }
+        }
+        _ => println!("Other command type"),
+    }
+    
+    // Parse segmentation descriptors with UPID information
+    for descriptor in &section.splice_descriptors {
+        if let SpliceDescriptor::Segmentation(seg_desc) = descriptor {
+            println!("Segmentation Event ID: 0x{:08x}", seg_desc.segmentation_event_id);
+            println!("UPID Type: {}", seg_desc.upid_type_description());
+            println!("Segmentation Type: {}", seg_desc.segmentation_type_description());
+            
+            if let Some(upid_str) = seg_desc.upid_as_string() {
+                println!("UPID: {}", upid_str);
             }
         }
     }
-    Err(e) => eprintln!("Error parsing SCTE-35: {}", e),
+}
+Err(e) => eprintln!("Error parsing SCTE-35: {}", e),
 }
 ```
 
@@ -140,17 +140,17 @@ let scte35_bytes = vec![
 
 // Parse with automatic CRC validation (default behavior)
 match parse_splice_info_section(&scte35_bytes) {
-    Ok(section) => {
-        println!("Valid SCTE-35 message parsed successfully");
-        println!("CRC-32: 0x{:08X}", section.get_crc());
+Ok(section) => {
+    println!("Valid SCTE-35 message parsed successfully");
+    println!("CRC-32: 0x{:08X}", section.get_crc());
+}
+Err(e) => {
+    if e.to_string().contains("CRC validation failed") {
+        eprintln!("Message corrupted or tampered: {}", e);
+    } else {
+        eprintln!("Parse error: {}", e);
     }
-    Err(e) => {
-        if e.to_string().contains("CRC validation failed") {
-            eprintln!("Message corrupted or tampered: {}", e);
-        } else {
-            eprintln!("Parse error: {}", e);
-        }
-    }
+}
 }
 
 // Validate CRC independently
@@ -323,41 +323,94 @@ The library supports all standard SCTE-35 segmentation types including:
 
 ### CLI Usage
 
-When built with the `cli` feature, you can parse base64-encoded SCTE-35 messages:
+When built with the `cli` feature, you can parse base64-encoded SCTE-35 messages with multiple output formats:
 
 ```bash
-# Run with cargo
+# Text output (default)
 cargo run --features cli -- "/DAvAAAAAAAA///wFAVIAACPf+/+c2nALv4AUsz1AAAAAAAKAAhDVUVJAAABNWLbowo="
 
-# Or if installed
-scte35-parsing "/DAvAAAAAAAA///wFAVIAACPf+/+c2nALv4AUsz1AAAAAAAKAAhDVUVJAAABNWLbowo="
+# JSON output
+cargo run --features cli -- -o json "/DAvAAAAAAAA///wFAVIAACPf+/+c2nALv4AUsz1AAAAAAAKAAhDVUVJAAABNWLbowo="
+
+# Or with long flag
+cargo run --features cli -- --output json "/DAvAAAAAAAA///wFAVIAACPf+/+c2nALv4AUsz1AAAAAAAKAAhDVUVJAAABNWLbowo="
+
+# Get help
+cargo run --features cli -- --help
 ```
 
-Example output with segmentation descriptor and UPID information:
+Example output with splice insert command and break duration:
 ```text
 Successfully parsed SpliceInfoSection:
   Table ID: 252
-  Section Length: 67
+  Section Length: 47
   Protocol Version: 0
-  Splice Command Type: 6
-  Splice Command Length: 5
-  Splice Command: TimeSignal
-    PTS Time: 888889
-  Descriptor Loop Length: 45
+  Splice Command Type: 5
+  Splice Command Length: 20
+  Splice Command: SpliceInsert
+    Splice Event ID: 0x4800008f
+    Splice Event Cancel: 0
+    Out of Network: 1
+    Program Splice Flag: 1
+    Duration Flag: 1
+    Splice Immediate Flag: 0
+    Splice Time PTS: 0x07369c02e
+    Splice Time: 21514.559089 seconds
+    Break Duration:
+      Auto Return: 1
+      Duration: 0x00052ccf5 (60.293567 seconds)
+    Unique Program ID: 0
+    Avail Num: 0
+    Avails Expected: 0
+  Descriptor Loop Length: 10
   Number of Descriptors: 1
-    Segmentation Descriptor:
-      Event ID: 0x00000003
-      Cancel Indicator: false
-      Program Segmentation: true
-      Duration Flag: false
-      UPID Type: UMID (Unique Material Identifier) (0x04)
-      UPID Length: 28 bytes
-      UPID: MDYwYTJiMzQuMDEwMTAxMDUuMDEwMTBkMjAuMQ==
-      Segmentation Type ID: 0x10
-      Segmentation Type: Program Start
-      Segment Number: 1
-      Segments Expected: 1
-  CRC-32: 0x44A237BE ✓ (Valid)
+    Unknown Descriptor:
+      Tag: 0x00
+      Length: 8
+      Content: "CUEI  5"
+  CRC-32: 0x62DBA30A ✓ (Valid)
+```
+
+#### CLI Output Formats
+
+The CLI supports two output formats:
+
+- **Text format** (default): Human-readable format with detailed field descriptions
+- **JSON format**: Structured JSON output for programmatic use
+
+JSON output includes the complete parsed structure with CRC validation results:
+
+```bash
+cargo run --features cli -- -o json "/DAvAAAAAAAA///wFAVIAACPf+/+c2nALv4AUsz1AAAAAAAKAAhDVUVJAAABNWLbowo="
+```
+
+```json
+{
+  "status": "success",
+  "data": {
+    "table_id": 252,
+    "section_length": 47,
+    "splice_command": {
+      "type": "SpliceInsert",
+      "splice_event_id": 1207959695,
+      "out_of_network_indicator": 1,
+      "break_duration": {
+        "auto_return": 1,
+        "duration": 5426421,
+        "duration_info": {
+          "seconds": 60.293567,
+          "human_readable": "1m 0.3s"
+        }
+      }
+    },
+    "splice_descriptors": [...],
+    "crc_32": 1658561290
+  },
+  "crc_validation": {
+    "valid": true,
+    "error": null
+  }
+}
 ```
 
 ## Supported SCTE-35 Commands
