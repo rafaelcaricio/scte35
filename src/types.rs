@@ -19,7 +19,7 @@ use std::fmt;
 /// - Splice command data
 /// - Optional descriptors
 /// - CRC for data integrity
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct SpliceInfoSection {
     /// Table identifier, should be 0xFC for SCTE-35
     pub table_id: u8,
@@ -65,7 +65,7 @@ pub struct SpliceInfoSection {
 ///
 /// Each variant contains the specific data structure for that command type.
 /// The command type determines how the splice operation should be performed.
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum SpliceCommand {
     /// Null command (0x00) - No operation
     SpliceNull,
@@ -87,14 +87,14 @@ pub enum SpliceCommand {
 ///
 /// This command indicates no splice operation should be performed.
 /// It's used as a placeholder or to clear previous splice commands.
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Default)]
 pub struct SpliceNull {}
 
 /// Represents a splice schedule command (0x04).
 ///
 /// This command schedules splice events to occur at specific times in the future.
 /// It allows for pre-scheduling of ad insertion points or other splice operations.
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct SpliceSchedule {
     /// Unique identifier for this splice event
     pub splice_event_id: u32,
@@ -122,7 +122,7 @@ pub struct SpliceSchedule {
 ///
 /// This is the most commonly used splice command for ad insertion.
 /// It signals the start and end of commercial breaks or other content substitutions.
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct SpliceInsert {
     /// Unique identifier for this splice event
     pub splice_event_id: u32,
@@ -160,7 +160,7 @@ pub struct SpliceInsert {
 ///
 /// This command provides time synchronization information and is often used
 /// with segmentation descriptors to indicate various types of content boundaries.
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct TimeSignal {
     /// The presentation timestamp for this time signal
     pub splice_time: SpliceTime,
@@ -170,7 +170,7 @@ pub struct TimeSignal {
 ///
 /// This command is used to reserve bandwidth for future use,
 /// typically in cable systems for managing network capacity.
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Default)]
 pub struct BandwidthReservation {
     /// Reserved bits for future use
     pub reserved: u8,
@@ -182,7 +182,7 @@ pub struct BandwidthReservation {
 ///
 /// This command allows for custom, proprietary splice operations
 /// that are not defined in the standard SCTE-35 specification.
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct PrivateCommand {
     /// Identifier for the private command type
     pub private_command_id: u16,
@@ -196,7 +196,7 @@ pub struct PrivateCommand {
 ///
 /// This structure contains timing and mode information for individual components
 /// when performing component-level splicing operations.
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct ComponentSplice {
     /// Identifier for the specific component (audio/video track)
     pub component_tag: u8,
@@ -216,7 +216,7 @@ pub struct ComponentSplice {
 ///
 /// This structure contains the splice time for individual components
 /// when performing component-level splice insert operations.
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct SpliceInsertComponent {
     /// Identifier for the specific component (audio/video track)
     pub component_tag: u8,
@@ -241,10 +241,11 @@ pub struct SpliceInsertComponent {
 /// let seg_type = SegmentationType::ProviderAdvertisementStart;
 /// println!("Segmentation type: {:?} (ID: 0x{:02X})", seg_type, seg_type.id());
 /// ```
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 #[non_exhaustive]
 pub enum SegmentationType {
     /// Not indicated (0x00) - No specific segmentation type
+    #[default]
     NotIndicated,
     /// Content identification (0x01) - Identifies content for tracking
     ContentIdentification,
@@ -336,12 +337,6 @@ pub enum SegmentationType {
     NetworkStart,
     /// Network end (0x51) - End of network content
     NetworkEnd,
-}
-
-impl Default for SegmentationType {
-    fn default() -> Self {
-        SegmentationType::NotIndicated
-    }
 }
 
 impl SegmentationType {

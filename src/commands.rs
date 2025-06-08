@@ -211,7 +211,7 @@ pub(crate) fn parse_splice_time(reader: &mut BitReader) -> Result<SpliceTime, io
     let time_specified_flag = reader.read_bslbf(1)? as u8;
     let pts_time = if time_specified_flag == 1 {
         let _reserved = reader.read_bslbf(6)? as u8;
-        Some(reader.read_uimsbf(33)? as u64)
+        Some(reader.read_uimsbf(33)?)
     } else {
         let _reserved = reader.read_bslbf(7)? as u8;
         None
@@ -226,7 +226,7 @@ pub(crate) fn parse_splice_time(reader: &mut BitReader) -> Result<SpliceTime, io
 pub(crate) fn parse_break_duration(reader: &mut BitReader) -> Result<BreakDuration, io::Error> {
     let auto_return = reader.read_bslbf(1)? as u8;
     let reserved = reader.read_bslbf(6)? as u8;
-    let duration = reader.read_uimsbf(33)? as u64;
+    let duration = reader.read_uimsbf(33)?;
     Ok(BreakDuration {
         auto_return,
         reserved,

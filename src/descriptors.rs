@@ -11,7 +11,7 @@ use std::time::Duration;
 ///
 /// This enum provides structured access to descriptor data, with full parsing
 /// for supported descriptor types and raw bytes for unsupported types.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum SpliceDescriptor {
     /// Segmentation descriptor (tag 0x02) - fully parsed
     Segmentation(SegmentationDescriptor),
@@ -94,7 +94,7 @@ impl SpliceDescriptor {
 /// Segmentation descriptors provide detailed information about content segments,
 /// including timing, UPID data, and segmentation types. This struct provides
 /// structured access to the segmentation descriptor fields.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct SegmentationDescriptor {
     /// Segmentation event identifier
     pub segmentation_event_id: u32,
@@ -310,6 +310,7 @@ impl SegmentationDescriptor {
     /// // The segmentation_type is automatically set to ProviderAdvertisementStart
     /// assert_eq!(descriptor.segmentation_type, SegmentationType::ProviderAdvertisementStart);
     /// ```
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         segmentation_event_id: u32,
         segmentation_event_cancel_indicator: bool,
