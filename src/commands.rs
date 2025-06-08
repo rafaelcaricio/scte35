@@ -3,13 +3,13 @@
 //! This module contains functions for parsing different types of splice commands
 //! from binary data.
 
-use std::io;
 use crate::bit_reader::BitReader;
+use crate::time::{BreakDuration, DateTime, SpliceTime};
 use crate::types::{
-    SpliceCommand, SpliceSchedule, SpliceInsert, TimeSignal,
-    BandwidthReservation, PrivateCommand, ComponentSplice, SpliceInsertComponent
+    BandwidthReservation, ComponentSplice, PrivateCommand, SpliceCommand, SpliceInsert,
+    SpliceInsertComponent, SpliceSchedule, TimeSignal,
 };
-use crate::time::{SpliceTime, BreakDuration, DateTime};
+use std::io;
 
 /// Parses a splice command based on the command type.
 ///
@@ -22,13 +22,17 @@ pub(crate) fn parse_splice_command(
 ) -> Result<SpliceCommand, io::Error> {
     match splice_command_type {
         0x00 => Ok(SpliceCommand::SpliceNull),
-        0x04 => Ok(SpliceCommand::SpliceSchedule(parse_splice_schedule(reader)?)),
+        0x04 => Ok(SpliceCommand::SpliceSchedule(parse_splice_schedule(
+            reader,
+        )?)),
         0x05 => Ok(SpliceCommand::SpliceInsert(parse_splice_insert(reader)?)),
         0x06 => Ok(SpliceCommand::TimeSignal(parse_time_signal(reader)?)),
         0x07 => Ok(SpliceCommand::BandwidthReservation(
             parse_bandwidth_reservation(reader)?,
         )),
-        0xFF => Ok(SpliceCommand::PrivateCommand(parse_private_command(reader)?)),
+        0xFF => Ok(SpliceCommand::PrivateCommand(parse_private_command(
+            reader,
+        )?)),
         _ => {
             // Unknown command type - skip the data
             reader.skip_bits((splice_command_length * 8) as usize)?;
@@ -176,7 +180,9 @@ pub(crate) fn parse_time_signal(reader: &mut BitReader) -> Result<TimeSignal, io
 }
 
 /// Parses a bandwidth reservation command (0x07).
-pub(crate) fn parse_bandwidth_reservation(reader: &mut BitReader) -> Result<BandwidthReservation, io::Error> {
+pub(crate) fn parse_bandwidth_reservation(
+    reader: &mut BitReader,
+) -> Result<BandwidthReservation, io::Error> {
     let reserved = reader.read_bslbf(8)? as u8;
     let dwbw_reservation = reader.read_uimsbf(32)? as u32;
     Ok(BandwidthReservation {
@@ -258,20 +264,20 @@ pub(crate) fn parse_component_splice(reader: &mut BitReader) -> Result<Component
     let reserved = reader.read_bslbf(5)? as u8;
     let splice_mode_indicator = reader.read_bslbf(1)? as u8;
     let duration_flag = reader.read_bslbf(1)? as u8;
-    
+
     let splice_duration = if duration_flag == 1 {
         Some(reader.read_uimsbf(32)? as u32)
     } else {
         None
     };
-    
+
     let scheduled_splice_time = if duration_flag == 0 {
         let _reserved = reader.read_bslbf(5)? as u8;
         Some(parse_date_time(reader)?)
     } else {
         None
     };
-    
+
     Ok(ComponentSplice {
         component_tag,
         reserved,

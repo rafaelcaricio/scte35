@@ -90,15 +90,13 @@ pub fn validate_message_crc(buffer: &[u8]) -> Result<bool, io::Error> {
     if buffer.len() < 4 {
         return Err(io::Error::new(
             ErrorKind::InvalidData,
-            "Buffer too short to contain CRC-32 field"
+            "Buffer too short to contain CRC-32 field",
         ));
     }
 
     // Extract CRC from the last 4 bytes (big-endian)
     let crc_bytes = &buffer[buffer.len() - 4..];
-    let stored_crc = u32::from_be_bytes([
-        crc_bytes[0], crc_bytes[1], crc_bytes[2], crc_bytes[3]
-    ]);
+    let stored_crc = u32::from_be_bytes([crc_bytes[0], crc_bytes[1], crc_bytes[2], crc_bytes[3]]);
 
     // Calculate CRC over the data (excluding CRC field)
     let data = &buffer[0..buffer.len() - 4];
@@ -119,7 +117,7 @@ pub trait CrcValidatable {
     /// * `Ok(false)` - CRC validation disabled or failed
     /// * `Err(io::Error)` - Validation error
     fn validate_crc(&self, original_buffer: &[u8]) -> Result<bool, io::Error>;
-    
+
     /// Returns the stored CRC-32 value from the parsed structure.
     fn get_crc(&self) -> u32;
 }
@@ -134,7 +132,7 @@ mod tests {
         let test_data = b"Hello, SCTE-35!";
         let crc = calculate_crc(test_data);
         assert!(crc.is_some());
-        
+
         // Validate the calculated CRC
         let calculated = crc.unwrap();
         assert!(validate_crc(test_data, calculated));
@@ -146,7 +144,7 @@ mod tests {
         let test_data = b"Hello, SCTE-35!";
         let crc = calculate_crc(test_data);
         assert!(crc.is_none());
-        
+
         // Should always return false when disabled
         assert!(!validate_crc(test_data, 0));
     }
@@ -163,12 +161,12 @@ mod tests {
     fn test_message_crc_validation() {
         // Create a test buffer with known CRC
         let mut test_data = vec![0xFC, 0x30, 0x11, 0x00, 0x00, 0x00, 0x00, 0x00];
-        
+
         // Calculate CRC for the data
         if let Some(calculated_crc) = calculate_crc(&test_data) {
             // Append CRC to create complete message
             test_data.extend_from_slice(&calculated_crc.to_be_bytes());
-            
+
             // Validate the complete message
             let result = validate_message_crc(&test_data);
             assert!(result.is_ok());

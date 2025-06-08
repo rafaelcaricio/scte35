@@ -1,5 +1,7 @@
 use base64::{engine::general_purpose, Engine};
-use scte35_parsing::{parse_splice_info_section, validate_scte35_crc, SpliceCommand, SpliceDescriptor};
+use scte35_parsing::{
+    parse_splice_info_section, validate_scte35_crc, SpliceCommand, SpliceDescriptor,
+};
 use std::env;
 use std::process;
 
@@ -119,37 +121,65 @@ fn main() {
                     SpliceDescriptor::Segmentation(seg_desc) => {
                         println!("    Segmentation Descriptor:");
                         println!("      Event ID: 0x{:08x}", seg_desc.segmentation_event_id);
-                        println!("      Cancel Indicator: {}", seg_desc.segmentation_event_cancel_indicator);
-                        println!("      Program Segmentation: {}", seg_desc.program_segmentation_flag);
-                        println!("      Duration Flag: {}", seg_desc.segmentation_duration_flag);
-                        
+                        println!(
+                            "      Cancel Indicator: {}",
+                            seg_desc.segmentation_event_cancel_indicator
+                        );
+                        println!(
+                            "      Program Segmentation: {}",
+                            seg_desc.program_segmentation_flag
+                        );
+                        println!(
+                            "      Duration Flag: {}",
+                            seg_desc.segmentation_duration_flag
+                        );
+
                         if let Some(duration) = seg_desc.segmentation_duration {
                             println!("      Duration: {:.3} seconds", duration as f64 / 90000.0);
                         }
-                        
-                        println!("      UPID Type: {} (0x{:02x})", 
-                                 seg_desc.upid_type_description(),
-                                 u8::from(seg_desc.segmentation_upid_type));
-                        println!("      UPID Length: {} bytes", seg_desc.segmentation_upid_length);
-                        
+
+                        println!(
+                            "      UPID Type: {} (0x{:02x})",
+                            seg_desc.upid_type_description(),
+                            u8::from(seg_desc.segmentation_upid_type)
+                        );
+                        println!(
+                            "      UPID Length: {} bytes",
+                            seg_desc.segmentation_upid_length
+                        );
+
                         if let Some(upid_str) = seg_desc.upid_as_string() {
                             println!("      UPID: {}", upid_str);
                         } else if !seg_desc.segmentation_upid.is_empty() {
                             // Show base64 for binary data when base64 is available
                             #[cfg(feature = "base64")]
                             {
-                                println!("      UPID (base64): {}", general_purpose::STANDARD.encode(&seg_desc.segmentation_upid));
+                                println!(
+                                    "      UPID (base64): {}",
+                                    general_purpose::STANDARD.encode(&seg_desc.segmentation_upid)
+                                );
                             }
                             #[cfg(not(feature = "base64"))]
                             {
-                                println!("      UPID (hex): {}", seg_desc.segmentation_upid.iter().map(|b| format!("{:02x}", b)).collect::<Vec<_>>().join(""));
+                                println!(
+                                    "      UPID (hex): {}",
+                                    seg_desc
+                                        .segmentation_upid
+                                        .iter()
+                                        .map(|b| format!("{:02x}", b))
+                                        .collect::<Vec<_>>()
+                                        .join("")
+                                );
                             }
                         }
-                        
-                        println!("      Segmentation Type ID: 0x{:02x}", seg_desc.segmentation_type_id);
+
+                        println!(
+                            "      Segmentation Type ID: 0x{:02x}",
+                            seg_desc.segmentation_type_id
+                        );
                         println!("      Segment Number: {}", seg_desc.segment_num);
                         println!("      Segments Expected: {}", seg_desc.segments_expected);
-                        
+
                         if let Some(sub_num) = seg_desc.sub_segment_num {
                             println!("      Sub-segment Number: {}", sub_num);
                         }
@@ -173,7 +203,7 @@ fn main() {
             if let Some(crc) = section.e_crc_32 {
                 println!("  Encrypted CRC-32: 0x{:08X}", crc);
             }
-            
+
             // CRC validation is always available when CLI feature is enabled
             // since cli feature depends on crc-validation
             match validate_scte35_crc(&buffer) {

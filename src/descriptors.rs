@@ -3,8 +3,9 @@
 //! This module contains structures and functions for handling SCTE-35 descriptors,
 //! which provide additional metadata about splice operations.
 
+use crate::types::SegmentationType;
+use crate::upid::{format_base64, format_isan, format_uuid, SegmentationUpidType};
 use std::time::Duration;
-use crate::upid::{SegmentationUpidType, format_uuid, format_isan, format_base64};
 
 /// Represents different types of splice descriptors with parsed content.
 ///
@@ -123,6 +124,8 @@ pub struct SegmentationDescriptor {
     pub segmentation_upid: Vec<u8>,
     /// Segmentation type identifier
     pub segmentation_type_id: u8,
+    /// Human-readable segmentation type (derived from segmentation_type_id)
+    pub segmentation_type: SegmentationType,
     /// Segment number
     pub segment_num: u8,
     /// Expected number of segments
@@ -147,7 +150,7 @@ impl SegmentationDescriptor {
     /// # Example
     ///
     /// ```rust
-    /// use scte35_parsing::{SegmentationDescriptor, SegmentationUpidType};
+    /// use scte35_parsing::{SegmentationDescriptor, SegmentationUpidType, SegmentationType};
     ///
     /// let descriptor = SegmentationDescriptor {
     ///     segmentation_event_id: 1,
@@ -164,6 +167,7 @@ impl SegmentationDescriptor {
     ///     segmentation_upid_length: 12,
     ///     segmentation_upid: b"ABCD01234567".to_vec(),
     ///     segmentation_type_id: 0x30,
+    ///     segmentation_type: SegmentationType::from_id(0x30),
     ///     segment_num: 1,
     ///     segments_expected: 1,
     ///     sub_segment_num: None,
@@ -174,14 +178,12 @@ impl SegmentationDescriptor {
     /// ```
     pub fn upid_as_string(&self) -> Option<String> {
         match self.segmentation_upid_type {
-            SegmentationUpidType::URI 
-            | SegmentationUpidType::MPU 
-            | SegmentationUpidType::AdID 
-            | SegmentationUpidType::TID => {
-                std::str::from_utf8(&self.segmentation_upid)
-                    .ok()
-                    .map(|s| s.to_string())
-            }
+            SegmentationUpidType::URI
+            | SegmentationUpidType::MPU
+            | SegmentationUpidType::AdID
+            | SegmentationUpidType::TID => std::str::from_utf8(&self.segmentation_upid)
+                .ok()
+                .map(|s| s.to_string()),
             SegmentationUpidType::UUID => {
                 if self.segmentation_upid.len() == 16 {
                     Some(format_uuid(&self.segmentation_upid))
@@ -230,6 +232,126 @@ impl SegmentationDescriptor {
             Duration::new(seconds, nanos as u32)
         })
     }
+
+    /// Returns a human-readable description of the segmentation type.
+    ///
+    /// This is a convenience method that delegates to the segmentation type's description method.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use scte35_parsing::{SegmentationDescriptor, SegmentationUpidType, SegmentationType};
+    ///
+    /// let descriptor = SegmentationDescriptor {
+    ///     segmentation_event_id: 1,
+    ///     segmentation_event_cancel_indicator: false,
+    ///     program_segmentation_flag: true,
+    ///     segmentation_duration_flag: false,
+    ///     delivery_not_restricted_flag: true,
+    ///     web_delivery_allowed_flag: None,
+    ///     no_regional_blackout_flag: None,
+    ///     archive_allowed_flag: None,
+    ///     device_restrictions: None,
+    ///     segmentation_duration: None,
+    ///     segmentation_upid_type: SegmentationUpidType::NotUsed,
+    ///     segmentation_upid_length: 0,
+    ///     segmentation_upid: vec![],
+    ///     segmentation_type_id: 0x30,
+    ///     segmentation_type: SegmentationType::ProviderAdvertisementStart,
+    ///     segment_num: 1,
+    ///     segments_expected: 1,
+    ///     sub_segment_num: None,
+    ///     sub_segments_expected: None,
+    /// };
+    ///
+    /// assert_eq!(descriptor.segmentation_type_description(), "Provider Advertisement Start");
+    /// ```
+    pub fn segmentation_type_description(&self) -> &'static str {
+        self.segmentation_type.description()
+    }
+
+    /// Creates a new SegmentationDescriptor with the segmentation_type field automatically
+    /// populated from the segmentation_type_id.
+    ///
+    /// This is a convenience constructor that ensures the human-readable segmentation type
+    /// is always consistent with the numeric ID.
+    ///
+    /// # Arguments
+    ///
+    /// All the same fields as the struct, except `segmentation_type` which is derived
+    /// from `segmentation_type_id`.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use scte35_parsing::{SegmentationDescriptor, SegmentationUpidType, SegmentationType};
+    ///
+    /// let descriptor = SegmentationDescriptor::new(
+    ///     1,                                    // segmentation_event_id
+    ///     false,                               // segmentation_event_cancel_indicator
+    ///     true,                                // program_segmentation_flag
+    ///     false,                               // segmentation_duration_flag
+    ///     true,                                // delivery_not_restricted_flag
+    ///     None,                                // web_delivery_allowed_flag
+    ///     None,                                // no_regional_blackout_flag
+    ///     None,                                // archive_allowed_flag
+    ///     None,                                // device_restrictions
+    ///     None,                                // segmentation_duration
+    ///     SegmentationUpidType::NotUsed,       // segmentation_upid_type
+    ///     0,                                   // segmentation_upid_length
+    ///     vec![],                              // segmentation_upid
+    ///     0x30,                                // segmentation_type_id
+    ///     1,                                   // segment_num
+    ///     1,                                   // segments_expected
+    ///     None,                                // sub_segment_num
+    ///     None,                                // sub_segments_expected
+    /// );
+    ///
+    /// // The segmentation_type is automatically set to ProviderAdvertisementStart
+    /// assert_eq!(descriptor.segmentation_type, SegmentationType::ProviderAdvertisementStart);
+    /// ```
+    pub fn new(
+        segmentation_event_id: u32,
+        segmentation_event_cancel_indicator: bool,
+        program_segmentation_flag: bool,
+        segmentation_duration_flag: bool,
+        delivery_not_restricted_flag: bool,
+        web_delivery_allowed_flag: Option<bool>,
+        no_regional_blackout_flag: Option<bool>,
+        archive_allowed_flag: Option<bool>,
+        device_restrictions: Option<u8>,
+        segmentation_duration: Option<u64>,
+        segmentation_upid_type: SegmentationUpidType,
+        segmentation_upid_length: u8,
+        segmentation_upid: Vec<u8>,
+        segmentation_type_id: u8,
+        segment_num: u8,
+        segments_expected: u8,
+        sub_segment_num: Option<u8>,
+        sub_segments_expected: Option<u8>,
+    ) -> Self {
+        Self {
+            segmentation_event_id,
+            segmentation_event_cancel_indicator,
+            program_segmentation_flag,
+            segmentation_duration_flag,
+            delivery_not_restricted_flag,
+            web_delivery_allowed_flag,
+            no_regional_blackout_flag,
+            archive_allowed_flag,
+            device_restrictions,
+            segmentation_duration,
+            segmentation_upid_type,
+            segmentation_upid_length,
+            segmentation_upid,
+            segmentation_type_id,
+            segmentation_type: SegmentationType::from_id(segmentation_type_id),
+            segment_num,
+            segments_expected,
+            sub_segment_num,
+            sub_segments_expected,
+        }
+    }
 }
 
 #[cfg(test)]
@@ -253,12 +375,13 @@ mod tests {
             segmentation_upid_length: 0,
             segmentation_upid: vec![],
             segmentation_type_id: 0x30,
+            segmentation_type: SegmentationType::ProviderAdvertisementStart,
             segment_num: 1,
             segments_expected: 1,
             sub_segment_num: None,
             sub_segments_expected: None,
         };
-        
+
         let descriptor = SpliceDescriptor::Segmentation(seg_desc);
         assert_eq!(descriptor.tag(), 0x02);
 
@@ -304,6 +427,7 @@ mod tests {
             segmentation_upid_length: 0,
             segmentation_upid: vec![],
             segmentation_type_id: 0x30,
+            segmentation_type: SegmentationType::ProviderAdvertisementStart,
             segment_num: 1,
             segments_expected: 1,
             sub_segment_num: None,
