@@ -231,6 +231,17 @@ Example JSON output:
 ```json
 {
   "table_id": 252,
+  "section_syntax_indicator": 0,
+  "private_indicator": 0,
+  "section_length": 22,
+  "protocol_version": 0,
+  "encrypted_packet": 0,
+  "encryption_algorithm": 0,
+  "pts_adjustment": 0,
+  "cw_index": 255,
+  "tier": 4095,
+  "splice_command_length": 5,
+  "splice_command_type": 6,
   "splice_command": {
     "type": "TimeSignal",
     "splice_time": {
@@ -243,16 +254,11 @@ Example JSON output:
       }
     }
   },
-  "splice_descriptors": [{
-    "descriptor_type": "Segmentation",
-    "segmentation_event_id": 12345,
-    "segmentation_upid": "VEVTVDEyMzQ1Njc4",
-    "upid_string": "TEST12345678",
-    "segmentation_type": {
-      "id": 48,
-      "description": "Provider Advertisement Start"
-    }
-  }]
+  "descriptor_loop_length": 0,
+  "splice_descriptors": [],
+  "alignment_stuffing_bits": "",
+  "e_crc_32": null,
+  "crc_32": 0
 }
 ```
 
@@ -390,20 +396,48 @@ cargo run --features cli -- -o json "/DAvAAAAAAAA///wFAVIAACPf+/+c2nALv4AUsz1AAA
   "data": {
     "table_id": 252,
     "section_length": 47,
+    "protocol_version": 0,
+    "splice_command_type": 5,
+    "splice_command_length": 20,
     "splice_command": {
       "type": "SpliceInsert",
       "splice_event_id": 1207959695,
+      "splice_event_cancel_indicator": 0,
       "out_of_network_indicator": 1,
+      "program_splice_flag": 1,
+      "duration_flag": 1,
+      "splice_immediate_flag": 0,
+      "splice_time": {
+        "time_specified_flag": 1,
+        "pts_time": 1936310318,
+        "duration_info": {
+          "ticks": 1936310318,
+          "seconds": 21514.559088888887,
+          "human_readable": "5h 58m 34.6s"
+        }
+      },
       "break_duration": {
         "auto_return": 1,
         "duration": 5426421,
         "duration_info": {
-          "seconds": 60.293567,
+          "ticks": 5426421,
+          "seconds": 60.29356666666666,
           "human_readable": "1m 0.3s"
         }
-      }
+      },
+      "unique_program_id": 0,
+      "avail_num": 0,
+      "avails_expected": 0
     },
-    "splice_descriptors": [...],
+    "descriptor_loop_length": 10,
+    "splice_descriptors": [
+      {
+        "descriptor_type": "Unknown",
+        "tag": 0,
+        "length": 8,
+        "data": "Q1VFSQAAATU="
+      }
+    ],
     "crc_32": 1658561290
   },
   "crc_validation": {
