@@ -5,10 +5,12 @@ A Rust library for parsing SCTE-35 (Society of Cable Telecommunications Engineer
 ## Features
 
 - **CRC validation** - Built-in CRC-32 validation using MPEG-2 algorithm (enabled by default)
+- **Human-readable UPID parsing** - Full support for 18 standard UPID types with intelligent formatting
+- **Segmentation descriptor parsing** - Complete parsing of segmentation descriptors including UPID data
 - **Minimal dependencies** - Only the `crc` crate for validation (optional)
 - **Full SCTE-35 parsing** - Supports all major SCTE-35 command types
 - **Bit-level precision** - Accurate parsing of bit-packed SCTE-35 messages
-- **Optional CLI tool** - Command-line interface for parsing base64-encoded messages
+- **Optional CLI tool** - Command-line interface for parsing base64-encoded messages with UPID display
 - **Type-safe** - Strongly typed representations of all SCTE-35 structures
 - **Data integrity** - Detects corrupted or tampered SCTE-35 messages
 
@@ -54,7 +56,7 @@ cargo install scte35-parsing --features cli
 ### Library Usage
 
 ```rust
-use scte35_parsing::{parse_splice_info_section, SpliceCommand};
+use scte35_parsing::{parse_splice_info_section, SpliceCommand, SpliceDescriptor};
 use std::time::Duration;
 
 fn main() {
@@ -89,6 +91,18 @@ fn main() {
                     }
                 }
                 _ => println!("Other command type"),
+            }
+            
+            // Parse segmentation descriptors with UPID information
+            for descriptor in &section.splice_descriptors {
+                if let SpliceDescriptor::Segmentation(seg_desc) = descriptor {
+                    println!("Segmentation Event ID: 0x{:08x}", seg_desc.segmentation_event_id);
+                    println!("UPID Type: {}", seg_desc.upid_type_description());
+                    
+                    if let Some(upid_str) = seg_desc.upid_as_string() {
+                        println!("UPID: {}", upid_str);
+                    }
+                }
             }
         }
         Err(e) => eprintln!("Error parsing SCTE-35: {}", e),
@@ -173,33 +187,30 @@ cargo run --features cli -- "/DAvAAAAAAAA///wFAVIAACPf+/+c2nALv4AUsz1AAAAAAAKAAh
 scte35-parsing "/DAvAAAAAAAA///wFAVIAACPf+/+c2nALv4AUsz1AAAAAAAKAAhDVUVJAAABNWLbowo="
 ```
 
-Example output:
+Example output with segmentation descriptor and UPID information:
 ```
 Successfully parsed SpliceInfoSection:
   Table ID: 252
-  Section Length: 47
+  Section Length: 67
   Protocol Version: 0
-  Splice Command Type: 5
-  Splice Command Length: 20
-  Splice Command: SpliceInsert
-    Splice Event ID: 0x4800008f
-    Splice Event Cancel: 0
-    Out of Network: 1
-    Program Splice Flag: 1
-    Duration Flag: 1
-    Splice Immediate Flag: 0
-    Splice Time PTS: 0x07369c02e (21514.559089 seconds)
-    Break Duration:
-      Auto Return: 1
-      Duration: 0x00052ccf5 (60.293567 seconds)
-    Unique Program ID: 0
-    Avail Num: 0
-    Avails Expected: 0
-  Descriptor Loop Length: 10
+  Splice Command Type: 6
+  Splice Command Length: 5
+  Splice Command: TimeSignal
+    PTS Time: 888889
+  Descriptor Loop Length: 45
   Number of Descriptors: 1
-    Descriptor Tag: 0
-    Descriptor Length: 8
-  CRC-32: 0x62D2952A ✓ (Valid)
+    Segmentation Descriptor:
+      Event ID: 0x00000003
+      Cancel Indicator: false
+      Program Segmentation: true
+      Duration Flag: false
+      UPID Type: UMID (Unique Material Identifier) (0x04)
+      UPID Length: 28 bytes
+      UPID: MDYwYTJiMzQuMDEwMTAxMDUuMDEwMTBkMjAuMQ==
+      Segmentation Type ID: 0x10
+      Segment Number: 1
+      Segments Expected: 1
+  CRC-32: 0x44A237BE ✓ (Valid)
 ```
 
 ## Supported SCTE-35 Commands
