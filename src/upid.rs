@@ -12,10 +12,11 @@ use std::fmt;
 ///
 /// Each UPID type corresponds to a specific identifier format as defined in the SCTE-35 standard.
 /// The numeric values represent the `segmentation_upid_type` field in segmentation descriptors.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 #[non_exhaustive]
 pub enum SegmentationUpidType {
     /// No UPID is used (0x00)
+    #[default]
     NotUsed,
     /// User-defined UPID (deprecated) (0x01)
     UserDefinedDeprecated,
@@ -53,12 +54,6 @@ pub enum SegmentationUpidType {
     SCR,
     /// Reserved or unknown UPID type
     Reserved(u8),
-}
-
-impl Default for SegmentationUpidType {
-    fn default() -> Self {
-        SegmentationUpidType::NotUsed
-    }
 }
 
 impl From<SegmentationUpidType> for u8 {

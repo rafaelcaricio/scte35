@@ -8,7 +8,7 @@ use std::time::Duration;
 /// Represents a splice time with optional PTS (Presentation Time Stamp).
 ///
 /// Used to indicate when a splice should occur, either immediately or at a specific time.
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Default)]
 pub struct SpliceTime {
     /// Indicates whether a specific time is provided (1 = time specified, 0 = immediate)
     pub time_specified_flag: u8,
@@ -54,7 +54,7 @@ impl SpliceTime {
 ///
 /// This structure provides precise timing information for scheduled splice events,
 /// including support for both UTC and local time zones.
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Default)]
 pub struct DateTime {
     /// Indicates if the time is in UTC (1) or local time (0)
     pub utc_flag: u8,
@@ -80,7 +80,7 @@ pub struct DateTime {
 ///
 /// The duration is specified in 90kHz ticks and can optionally indicate
 /// whether the break should automatically return to normal programming.
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Default)]
 pub struct BreakDuration {
     /// Indicates if the break should automatically return to network programming (1 = auto return, 0 = no auto return)
     pub auto_return: u8,

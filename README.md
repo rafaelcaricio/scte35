@@ -60,58 +60,56 @@ cargo install scte35-parsing --features cli
 use scte35_parsing::{parse_splice_info_section, SpliceCommand, SpliceDescriptor};
 use std::time::Duration;
 
-fn main() {
-    // Your SCTE-35 message as bytes (example message)
-    let scte35_bytes = vec![
-        0xFC, 0x30, 0x16, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xF0, 0x05, 0x06, 0xFE, 
-        0x42, 0x3A, 0x35, 0xBD, 0x00, 0x00, 0xBB, 0x0C, 0x73, 0xF4
-    ];
-    
-    match parse_splice_info_section(&scte35_bytes) {
-        Ok(section) => {
-            println!("Table ID: {}", section.table_id);
-            println!("Command Type: {}", section.splice_command_type);
-            
-            match section.splice_command {
-                SpliceCommand::SpliceInsert(insert) => {
-                    println!("Splice Event ID: 0x{:08x}", insert.splice_event_id);
-                    
-                    // Convert break duration to std::time::Duration
-                    if let Some(break_duration) = &insert.break_duration {
-                        let duration: Duration = break_duration.into();
-                        println!("Break Duration: {:?}", duration);
-                        println!("Break Duration: {:.3} seconds", duration.as_secs_f64());
-                    }
-                    
-                    // Convert splice time to Duration
-                    if let Some(duration) = insert.splice_time.as_ref()
-                        .and_then(|st| st.to_duration()) {
-                        println!("Splice Time: {:?}", duration);
-                    }
+// Your SCTE-35 message as bytes (example message)
+let scte35_bytes = vec![
+    0xFC, 0x30, 0x16, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xF0, 0x05, 0x06, 0xFE, 
+    0x42, 0x3A, 0x35, 0xBD, 0x00, 0x00, 0xBB, 0x0C, 0x73, 0xF4
+];
+
+match parse_splice_info_section(&scte35_bytes) {
+    Ok(section) => {
+        println!("Table ID: {}", section.table_id);
+        println!("Command Type: {}", section.splice_command_type);
+        
+        match section.splice_command {
+            SpliceCommand::SpliceInsert(insert) => {
+                println!("Splice Event ID: 0x{:08x}", insert.splice_event_id);
+                
+                // Convert break duration to std::time::Duration
+                if let Some(break_duration) = &insert.break_duration {
+                    let duration: Duration = break_duration.into();
+                    println!("Break Duration: {:?}", duration);
+                    println!("Break Duration: {:.3} seconds", duration.as_secs_f64());
                 }
-                SpliceCommand::TimeSignal(signal) => {
-                    if let Some(duration) = signal.splice_time.to_duration() {
-                        println!("Time Signal: {:?}", duration);
-                    }
+                
+                // Convert splice time to Duration
+                if let Some(duration) = insert.splice_time.as_ref()
+                    .and_then(|st| st.to_duration()) {
+                    println!("Splice Time: {:?}", duration);
                 }
-                _ => println!("Other command type"),
             }
-            
-            // Parse segmentation descriptors with UPID information
-            for descriptor in &section.splice_descriptors {
-                if let SpliceDescriptor::Segmentation(seg_desc) = descriptor {
-                    println!("Segmentation Event ID: 0x{:08x}", seg_desc.segmentation_event_id);
-                    println!("UPID Type: {}", seg_desc.upid_type_description());
-                    println!("Segmentation Type: {}", seg_desc.segmentation_type_description());
-                    
-                    if let Some(upid_str) = seg_desc.upid_as_string() {
-                        println!("UPID: {}", upid_str);
-                    }
+            SpliceCommand::TimeSignal(signal) => {
+                if let Some(duration) = signal.splice_time.to_duration() {
+                    println!("Time Signal: {:?}", duration);
+                }
+            }
+            _ => println!("Other command type"),
+        }
+        
+        // Parse segmentation descriptors with UPID information
+        for descriptor in &section.splice_descriptors {
+            if let SpliceDescriptor::Segmentation(seg_desc) = descriptor {
+                println!("Segmentation Event ID: 0x{:08x}", seg_desc.segmentation_event_id);
+                println!("UPID Type: {}", seg_desc.upid_type_description());
+                println!("Segmentation Type: {}", seg_desc.segmentation_type_description());
+                
+                if let Some(upid_str) = seg_desc.upid_as_string() {
+                    println!("UPID: {}", upid_str);
                 }
             }
         }
-        Err(e) => eprintln!("Error parsing SCTE-35: {}", e),
     }
+    Err(e) => eprintln!("Error parsing SCTE-35: {}", e),
 }
 ```
 

@@ -62,7 +62,7 @@ pub fn parse_splice_info_section(buffer: &[u8]) -> Result<SpliceInfoSection, io:
     let protocol_version = reader.read_uimsbf(8)? as u8;
     let encrypted_packet = reader.read_bslbf(1)? as u8;
     let encryption_algorithm = reader.read_bslbf(6)? as u8;
-    let pts_adjustment = reader.read_uimsbf(33)? as u64;
+    let pts_adjustment = reader.read_uimsbf(33)?;
     let cw_index = reader.read_uimsbf(8)? as u8;
     let tier = reader.read_bslbf(12)? as u16;
     let splice_command_length = reader.read_uimsbf(12)? as u16;
@@ -320,7 +320,7 @@ pub(crate) fn parse_segmentation_descriptor(
                 "Segmentation descriptor too short for duration",
             ));
         }
-        Some(reader.read_uimsbf(40)? as u64)
+        Some(reader.read_uimsbf(40)?)
     } else {
         None
     };
@@ -341,11 +341,7 @@ pub(crate) fn parse_segmentation_descriptor(
     let current_bits_used = reader.get_offset() - start_offset;
     let remaining_bits = max_bits - current_bits_used;
     let min_bits_after_upid = 24; // 3 bytes for segmentation_type_id, segment_num, segments_expected
-    let max_upid_bits = if remaining_bits > min_bits_after_upid {
-        remaining_bits - min_bits_after_upid
-    } else {
-        0
-    };
+    let max_upid_bits = remaining_bits.saturating_sub(min_bits_after_upid);
     let max_upid_bytes = max_upid_bits / 8;
     let actual_upid_length = std::cmp::min(segmentation_upid_length as usize, max_upid_bytes);
 
