@@ -5,6 +5,7 @@
 
 use crate::descriptors::SpliceDescriptor;
 use crate::time::{BreakDuration, DateTime, SpliceTime};
+use std::fmt;
 
 /// Represents a complete SCTE-35 splice information section.
 ///
@@ -483,23 +484,12 @@ impl SegmentationType {
             _ => NotIndicated, // Default for unknown values
         }
     }
+}
 
-    /// Returns a human-readable description of the segmentation type.
-    ///
-    /// This method provides descriptive text for each segmentation type that can be
-    /// used in user interfaces or logging to make SCTE-35 data more understandable.
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// use scte35_parsing::SegmentationType;
-    ///
-    /// let seg_type = SegmentationType::ProviderAdvertisementStart;
-    /// println!("{}", seg_type.description()); // "Provider Advertisement Start"
-    /// ```
-    pub fn description(&self) -> &'static str {
+impl fmt::Display for SegmentationType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         use SegmentationType::*;
-        match self {
+        let description = match self {
             NotIndicated => "Not Indicated",
             ContentIdentification => "Content Identification",
             ProgramStart => "Program Start",
@@ -552,6 +542,7 @@ impl SegmentationType {
             DistributorAdBlockEnd => "Distributor Ad Block End",
             NetworkStart => "Network Start",
             NetworkEnd => "Network End",
-        }
+        };
+        write!(f, "{}", description)
     }
 }

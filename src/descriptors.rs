@@ -211,9 +211,9 @@ impl SegmentationDescriptor {
 
     /// Returns a description of the UPID type.
     ///
-    /// This is a convenience method that delegates to the UPID type's description method.
-    pub fn upid_type_description(&self) -> &'static str {
-        self.segmentation_upid_type.description()
+    /// This is a convenience method that returns the string representation of the UPID type.
+    pub fn upid_type_description(&self) -> String {
+        self.segmentation_upid_type.to_string()
     }
 
     /// Converts the segmentation duration to a [`std::time::Duration`] if present.
@@ -235,7 +235,7 @@ impl SegmentationDescriptor {
 
     /// Returns a human-readable description of the segmentation type.
     ///
-    /// This is a convenience method that delegates to the segmentation type's description method.
+    /// This is a convenience method that returns the string representation of the segmentation type.
     ///
     /// # Example
     ///
@@ -266,8 +266,8 @@ impl SegmentationDescriptor {
     ///
     /// assert_eq!(descriptor.segmentation_type_description(), "Provider Advertisement Start");
     /// ```
-    pub fn segmentation_type_description(&self) -> &'static str {
-        self.segmentation_type.description()
+    pub fn segmentation_type_description(&self) -> String {
+        self.segmentation_type.to_string()
     }
 
     /// Creates a new SegmentationDescriptor with the segmentation_type field automatically

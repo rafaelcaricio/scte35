@@ -677,71 +677,71 @@ fn test_segmentation_upid_type_conversions() {
 
 #[test]
 fn test_segmentation_upid_type_descriptions() {
-    assert_eq!(SegmentationUpidType::NotUsed.description(), "Not Used");
+    assert_eq!(SegmentationUpidType::NotUsed.to_string(), "Not Used");
     assert_eq!(
-        SegmentationUpidType::UserDefinedDeprecated.description(),
+        SegmentationUpidType::UserDefinedDeprecated.to_string(),
         "User Defined (Deprecated)"
     );
     assert_eq!(
-        SegmentationUpidType::ISCI.description(),
+        SegmentationUpidType::ISCI.to_string(),
         "ISCI (Industry Standard Commercial Identifier)"
     );
-    assert_eq!(SegmentationUpidType::AdID.description(), "Ad Identifier");
+    assert_eq!(SegmentationUpidType::AdID.to_string(), "Ad Identifier");
     assert_eq!(
-        SegmentationUpidType::UMID.description(),
+        SegmentationUpidType::UMID.to_string(),
         "UMID (Unique Material Identifier)"
     );
     assert_eq!(
-        SegmentationUpidType::ISANDeprecated.description(),
+        SegmentationUpidType::ISANDeprecated.to_string(),
         "ISAN (Deprecated)"
     );
     assert_eq!(
-        SegmentationUpidType::ISAN.description(),
+        SegmentationUpidType::ISAN.to_string(),
         "ISAN (International Standard Audiovisual Number)"
     );
     assert_eq!(
-        SegmentationUpidType::TID.description(),
+        SegmentationUpidType::TID.to_string(),
         "TID (Turner Identifier)"
     );
-    assert_eq!(SegmentationUpidType::AiringID.description(), "Airing ID");
+    assert_eq!(SegmentationUpidType::AiringID.to_string(), "Airing ID");
     assert_eq!(
-        SegmentationUpidType::ADI.description(),
+        SegmentationUpidType::ADI.to_string(),
         "ADI (Advertising Digital Identification)"
     );
     assert_eq!(
-        SegmentationUpidType::EIDR.description(),
+        SegmentationUpidType::EIDR.to_string(),
         "EIDR (Entertainment Identifier Registry)"
     );
     assert_eq!(
-        SegmentationUpidType::ATSCContentIdentifier.description(),
+        SegmentationUpidType::ATSCContentIdentifier.to_string(),
         "ATSC Content Identifier"
     );
     assert_eq!(
-        SegmentationUpidType::MPU.description(),
+        SegmentationUpidType::MPU.to_string(),
         "MPU (Media Processing Unit)"
     );
     assert_eq!(
-        SegmentationUpidType::MID.description(),
+        SegmentationUpidType::MID.to_string(),
         "MID (Media Identifier)"
     );
     assert_eq!(
-        SegmentationUpidType::ADSInformation.description(),
+        SegmentationUpidType::ADSInformation.to_string(),
         "ADS Information"
     );
     assert_eq!(
-        SegmentationUpidType::URI.description(),
+        SegmentationUpidType::URI.to_string(),
         "URI (Uniform Resource Identifier)"
     );
     assert_eq!(
-        SegmentationUpidType::UUID.description(),
+        SegmentationUpidType::UUID.to_string(),
         "UUID (Universally Unique Identifier)"
     );
     assert_eq!(
-        SegmentationUpidType::SCR.description(),
+        SegmentationUpidType::SCR.to_string(),
         "SCR (Subscriber Company Reporting)"
     );
     assert_eq!(
-        SegmentationUpidType::Reserved(0x99).description(),
+        SegmentationUpidType::Reserved(0x99).to_string(),
         "Reserved/Unknown"
     );
 }

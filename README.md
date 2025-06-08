@@ -193,12 +193,12 @@ use scte35_parsing::{SegmentationType, parse_splice_info_section, SpliceDescript
 
 // Work with segmentation types directly
 let seg_type = SegmentationType::ProviderAdvertisementStart;
-println!("Type: {} (ID: 0x{:02X})", seg_type.description(), seg_type.id());
+println!("Type: {} (ID: 0x{:02X})", seg_type, seg_type.id());
 
 // Convert from numeric ID (useful when parsing)
 let seg_type = SegmentationType::from_id(0x30);
 assert_eq!(seg_type, SegmentationType::ProviderAdvertisementStart);
-assert_eq!(seg_type.description(), "Provider Advertisement Start");
+assert_eq!(seg_type.to_string(), "Provider Advertisement Start");
 
 // Example: Parse a message and check segmentation descriptors
 let scte35_bytes = vec![

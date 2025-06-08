@@ -3,6 +3,8 @@
 //! This module contains types and functions related to UPIDs used in
 //! segmentation descriptors for content identification.
 
+use std::fmt;
+
 /// Represents the different types of UPIDs (Unique Program Identifiers) used in segmentation descriptors.
 ///
 /// UPIDs provide standardized ways to identify content segments for various purposes
@@ -113,20 +115,10 @@ impl From<u8> for SegmentationUpidType {
     }
 }
 
-impl SegmentationUpidType {
-    /// Returns a human-readable description of the UPID type.
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// use scte35_parsing::SegmentationUpidType;
-    ///
-    /// let upid_type = SegmentationUpidType::AdID;
-    /// assert_eq!(upid_type.description(), "Ad Identifier");
-    /// ```
-    pub fn description(&self) -> &'static str {
+impl fmt::Display for SegmentationUpidType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         use SegmentationUpidType::*;
-        match self {
+        let description = match self {
             NotUsed => "Not Used",
             UserDefinedDeprecated => "User Defined (Deprecated)",
             ISCI => "ISCI (Industry Standard Commercial Identifier)",
@@ -146,7 +138,8 @@ impl SegmentationUpidType {
             UUID => "UUID (Universally Unique Identifier)",
             SCR => "SCR (Subscriber Company Reporting)",
             Reserved(_) => "Reserved/Unknown",
-        }
+        };
+        write!(f, "{}", description)
     }
 }
 
@@ -230,9 +223,9 @@ mod tests {
 
     #[test]
     fn test_upid_type_description() {
-        assert_eq!(SegmentationUpidType::AdID.description(), "Ad Identifier");
+        assert_eq!(SegmentationUpidType::AdID.to_string(), "Ad Identifier");
         assert_eq!(
-            SegmentationUpidType::UUID.description(),
+            SegmentationUpidType::UUID.to_string(),
             "UUID (Universally Unique Identifier)"
         );
     }
