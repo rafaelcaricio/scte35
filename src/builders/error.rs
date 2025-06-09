@@ -14,44 +14,53 @@ pub enum BuilderError {
         /// The name of the field that had an invalid value.
         field: &'static str,
         /// A description of why the value is invalid.
-        reason: String
+        reason: String,
     },
     /// A duration value is too large to fit in the SCTE-35 format.
     DurationTooLarge {
         /// The name of the field that had a duration that was too large.
         field: &'static str,
         /// The duration that was too large.
-        duration: Duration
+        duration: Duration,
     },
     /// A UPID has an invalid length for its type.
     InvalidUpidLength {
         /// The expected length for this UPID type.
         expected: usize,
         /// The actual length provided.
-        actual: usize
+        actual: usize,
     },
     /// Too many components were specified.
     InvalidComponentCount {
         /// The maximum number of components allowed.
         max: usize,
         /// The actual number of components provided.
-        actual: usize
+        actual: usize,
     },
 }
 
 impl fmt::Display for BuilderError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            BuilderError::MissingRequiredField(field) => 
-                write!(f, "Required field '{}' is missing", field),
-            BuilderError::InvalidValue { field, reason } => 
-                write!(f, "Invalid value for field '{}': {}", field, reason),
-            BuilderError::DurationTooLarge { field, duration } => 
-                write!(f, "Duration for field '{}' is too large: {:?} exceeds 33-bit PTS limit", field, duration),
-            BuilderError::InvalidUpidLength { expected, actual } => 
-                write!(f, "Invalid UPID length: expected {} bytes, got {}", expected, actual),
-            BuilderError::InvalidComponentCount { max, actual } => 
-                write!(f, "Too many components: maximum {}, got {}", max, actual),
+            BuilderError::MissingRequiredField(field) => {
+                write!(f, "Required field '{}' is missing", field)
+            }
+            BuilderError::InvalidValue { field, reason } => {
+                write!(f, "Invalid value for field '{}': {}", field, reason)
+            }
+            BuilderError::DurationTooLarge { field, duration } => write!(
+                f,
+                "Duration for field '{}' is too large: {:?} exceeds 33-bit PTS limit",
+                field, duration
+            ),
+            BuilderError::InvalidUpidLength { expected, actual } => write!(
+                f,
+                "Invalid UPID length: expected {} bytes, got {}",
+                expected, actual
+            ),
+            BuilderError::InvalidComponentCount { max, actual } => {
+                write!(f, "Too many components: maximum {}, got {}", max, actual)
+            }
         }
     }
 }

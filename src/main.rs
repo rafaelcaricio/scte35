@@ -1,6 +1,6 @@
 use base64::{engine::general_purpose, Engine};
 use clap::{Parser, ValueEnum};
-use scte35_parsing::{
+use scte35::{
     parse_splice_info_section, validate_scte35_crc, SpliceCommand, SpliceDescriptor,
     SpliceInfoSection,
 };
@@ -14,7 +14,7 @@ enum OutputFormat {
 }
 
 #[derive(Parser)]
-#[command(name = "scte35-parsing")]
+#[command(name = "scte35")]
 #[command(about = "Parse SCTE-35 messages from base64-encoded payloads")]
 #[command(version)]
 struct Arguments {
@@ -188,14 +188,19 @@ fn print_text_output(section: &SpliceInfoSection, buffer: &[u8]) {
             SpliceDescriptor::Avail(avail_desc) => {
                 println!("    Avail Descriptor:");
                 println!("      Identifier: 0x{:08x}", avail_desc.identifier);
-                println!("      Provider Avail ID: {} bytes", avail_desc.provider_avail_id.len());
+                println!(
+                    "      Provider Avail ID: {} bytes",
+                    avail_desc.provider_avail_id.len()
+                );
             }
             SpliceDescriptor::Dtmf(dtmf_desc) => {
                 println!("    DTMF Descriptor:");
                 println!("      Identifier: 0x{:08x}", dtmf_desc.identifier);
                 println!("      Preroll: {}", dtmf_desc.preroll);
                 println!("      DTMF Count: {}", dtmf_desc.dtmf_count);
-                let dtmf_chars: String = dtmf_desc.dtmf_chars.iter()
+                let dtmf_chars: String = dtmf_desc
+                    .dtmf_chars
+                    .iter()
                     .map(|&c| if c.is_ascii_graphic() { c as char } else { '?' })
                     .collect();
                 println!("      DTMF Characters: \"{}\"", dtmf_chars);
@@ -210,7 +215,10 @@ fn print_text_output(section: &SpliceInfoSection, buffer: &[u8]) {
             SpliceDescriptor::Audio(audio_desc) => {
                 println!("    Audio Descriptor:");
                 println!("      Identifier: 0x{:08x}", audio_desc.identifier);
-                println!("      Audio Components: {} bytes", audio_desc.audio_components.len());
+                println!(
+                    "      Audio Components: {} bytes",
+                    audio_desc.audio_components.len()
+                );
             }
             SpliceDescriptor::Unknown { tag, length, data } => {
                 println!("    Unknown Descriptor:");

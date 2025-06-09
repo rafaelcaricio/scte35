@@ -261,7 +261,7 @@ pub struct SpliceInsertComponent {
 /// human-readable context for splice operations:
 ///
 /// ```rust
-/// use scte35_parsing::SegmentationType;
+/// use scte35::SegmentationType;
 ///
 /// let seg_type = SegmentationType::ProviderAdvertisementStart;
 /// println!("Segmentation type: {:?} (ID: 0x{:02X})", seg_type, seg_type.id());
@@ -373,7 +373,7 @@ impl SegmentationType {
     /// # Example
     ///
     /// ```rust
-    /// use scte35_parsing::SegmentationType;
+    /// use scte35::SegmentationType;
     ///
     /// assert_eq!(SegmentationType::ProviderAdvertisementStart.id(), 0x30);
     /// assert_eq!(SegmentationType::ProgramStart.id(), 0x10);
@@ -446,7 +446,7 @@ impl SegmentationType {
     /// # Example
     ///
     /// ```rust
-    /// use scte35_parsing::SegmentationType;
+    /// use scte35::SegmentationType;
     ///
     /// assert_eq!(SegmentationType::from_id(0x30), SegmentationType::ProviderAdvertisementStart);
     /// assert_eq!(SegmentationType::from_id(0x10), SegmentationType::ProgramStart);

@@ -1,8 +1,8 @@
 //! Builder for creating SCTE-35 splice information sections.
 
-use crate::types::{SpliceInfoSection, SpliceCommand};
-use crate::descriptors::{SegmentationDescriptor, SpliceDescriptor};
 use super::error::{BuilderError, BuilderResult};
+use crate::descriptors::{SegmentationDescriptor, SpliceDescriptor};
+use crate::types::{SpliceCommand, SpliceInfoSection};
 
 /// Builder for creating a complete SCTE-35 splice information section.
 ///
@@ -22,7 +22,7 @@ impl SpliceInfoSectionBuilder {
     pub fn new() -> Self {
         Self {
             pts_adjustment: 0,
-            tier: 0xFFF, // Default "all tiers"
+            tier: 0xFFF,    // Default "all tiers"
             cw_index: 0x00, // No control word
             splice_command: None,
             descriptors: Vec::new(),
@@ -87,7 +87,8 @@ impl SpliceInfoSectionBuilder {
 
     /// Add a segmentation descriptor to the message.
     pub fn add_segmentation_descriptor(mut self, descriptor: SegmentationDescriptor) -> Self {
-        self.descriptors.push(SpliceDescriptor::Segmentation(descriptor));
+        self.descriptors
+            .push(SpliceDescriptor::Segmentation(descriptor));
         self
     }
 
@@ -97,15 +98,16 @@ impl SpliceInfoSectionBuilder {
     ///
     /// Returns an error if no splice command has been set.
     pub fn build(self) -> BuilderResult<SpliceInfoSection> {
-        let splice_command = self.splice_command
+        let splice_command = self
+            .splice_command
             .ok_or(BuilderError::MissingRequiredField("splice_command"))?;
 
         // Get the actual command type
         let splice_command_type: u8 = (&splice_command).into();
-        
+
         // Import the Encodable trait to get access to encoded sizes
         use crate::encoding::Encodable;
-        
+
         // Calculate descriptor_loop_length correctly
         let mut descriptor_loop_length = 0u16;
         for descriptor in &self.descriptors {
@@ -115,35 +117,35 @@ impl SpliceInfoSectionBuilder {
 
         // Build the section with proper defaults
         let mut section = SpliceInfoSection {
-            table_id: 0xFC,  // Fixed per spec
-            section_syntax_indicator: 0,  // Fixed per spec  
-            private_indicator: 0,  // Fixed per spec
-            sap_type: 0x3,  // Fixed per spec (undefined)
-            section_length: 0,  // Will be calculated during encoding
-            protocol_version: 0,  // Current version
-            encrypted_packet: 0,  // Not encrypted
-            encryption_algorithm: 0,  // No encryption
+            table_id: 0xFC,              // Fixed per spec
+            section_syntax_indicator: 0, // Fixed per spec
+            private_indicator: 0,        // Fixed per spec
+            sap_type: 0x3,               // Fixed per spec (undefined)
+            section_length: 0,           // Will be calculated during encoding
+            protocol_version: 0,         // Current version
+            encrypted_packet: 0,         // Not encrypted
+            encryption_algorithm: 0,     // No encryption
             pts_adjustment: self.pts_adjustment,
             cw_index: self.cw_index,
             tier: self.tier,
-            splice_command_length: 0,  // Will be calculated during encoding
+            splice_command_length: 0, // Will be calculated during encoding
             splice_command_type,
             splice_command,
-            descriptor_loop_length: 0,  // Will be calculated during encoding
+            descriptor_loop_length: 0, // Will be calculated during encoding
             splice_descriptors: self.descriptors,
-            alignment_stuffing_bits: Vec::new(),  // No stuffing by default
-            e_crc_32: None,  // Not encrypted
-            crc_32: 0,  // Will be calculated during encoding
+            alignment_stuffing_bits: Vec::new(), // No stuffing by default
+            e_crc_32: None,                      // Not encrypted
+            crc_32: 0,                           // Will be calculated during encoding
         };
-        
+
         // Calculate the actual lengths now that we have the full structure
         section.splice_command_length = section.splice_command.encoded_size() as u16;
         section.descriptor_loop_length = descriptor_loop_length;
-        
+
         // Section length is the total size minus the first 3 bytes
         // (table_id + section_syntax_indicator/private_indicator/sap_type + section_length itself)
         section.section_length = (section.encoded_size() - 3) as u16;
-        
+
         Ok(section)
     }
 }

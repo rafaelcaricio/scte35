@@ -4,7 +4,7 @@
 #[cfg(test)]
 mod tests {
     use base64::{engine::general_purpose, Engine};
-    use scte35_parsing::*;
+    use scte35::*;
 
     #[test]
     fn test_complete_message_serialization() {
@@ -75,7 +75,7 @@ mod tests {
 
     #[test]
     fn test_binary_fields_base64() {
-        use scte35_parsing::types::PrivateCommand;
+        use scte35::types::PrivateCommand;
 
         let private_cmd = PrivateCommand {
             private_command_id: 0xABCD,
@@ -139,7 +139,7 @@ mod tests {
         assert!(json.contains("\"description\": \"Break Start\""));
 
         // Verify round-trip
-        let deserialized: scte35_parsing::SpliceInfoSection = serde_json::from_str(&json).unwrap();
+        let deserialized: scte35::SpliceInfoSection = serde_json::from_str(&json).unwrap();
         assert_eq!(section.crc_32, deserialized.crc_32);
     }
 }

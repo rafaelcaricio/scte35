@@ -97,7 +97,7 @@ impl SpliceDescriptor {
     /// # Example
     ///
     /// ```rust
-    /// use scte35_parsing::SpliceDescriptor;
+    /// use scte35::SpliceDescriptor;
     ///
     /// // For an unknown descriptor with raw bytes
     /// let descriptor = SpliceDescriptor::Unknown {
@@ -112,11 +112,13 @@ impl SpliceDescriptor {
         match self {
             SpliceDescriptor::Segmentation(seg_desc) => seg_desc.upid_as_string(),
             SpliceDescriptor::Avail(avail_desc) => {
-                std::str::from_utf8(&avail_desc.provider_avail_id).ok().map(|s| s.to_string())
+                std::str::from_utf8(&avail_desc.provider_avail_id)
+                    .ok()
+                    .map(|s| s.to_string())
             }
-            SpliceDescriptor::Dtmf(dtmf_desc) => {
-                std::str::from_utf8(&dtmf_desc.dtmf_chars).ok().map(|s| s.to_string())
-            }
+            SpliceDescriptor::Dtmf(dtmf_desc) => std::str::from_utf8(&dtmf_desc.dtmf_chars)
+                .ok()
+                .map(|s| s.to_string()),
             SpliceDescriptor::Time(_) => None, // Time data not interpretable as string
             SpliceDescriptor::Audio(_) => None, // Audio data not interpretable as string
             SpliceDescriptor::Unknown { data, .. } => {
@@ -195,7 +197,7 @@ impl SegmentationDescriptor {
     /// # Example
     ///
     /// ```rust
-    /// use scte35_parsing::{SegmentationDescriptor, SegmentationUpidType, SegmentationType};
+    /// use scte35::{SegmentationDescriptor, SegmentationUpidType, SegmentationType};
     ///
     /// let descriptor = SegmentationDescriptor {
     ///     segmentation_event_id: 1,
@@ -285,7 +287,7 @@ impl SegmentationDescriptor {
     /// # Example
     ///
     /// ```rust
-    /// use scte35_parsing::{SegmentationDescriptor, SegmentationUpidType, SegmentationType};
+    /// use scte35::{SegmentationDescriptor, SegmentationUpidType, SegmentationType};
     ///
     /// let descriptor = SegmentationDescriptor {
     ///     segmentation_event_id: 1,
@@ -329,7 +331,7 @@ impl SegmentationDescriptor {
     /// # Example
     ///
     /// ```rust
-    /// use scte35_parsing::{SegmentationDescriptor, SegmentationUpidType, SegmentationType};
+    /// use scte35::{SegmentationDescriptor, SegmentationUpidType, SegmentationType};
     ///
     /// let descriptor = SegmentationDescriptor::new(
     ///     1,                                    // segmentation_event_id

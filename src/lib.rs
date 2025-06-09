@@ -66,7 +66,7 @@ pub use descriptors::{SegmentationDescriptor, SpliceDescriptor};
 /// # Example
 ///
 /// ```rust
-/// use scte35_parsing::validate_scte35_crc;
+/// use scte35::validate_scte35_crc;
 /// use base64::{Engine, engine::general_purpose};
 ///
 /// let base64_message = "/DAWAAAAAAAAAP/wBQb+Qjo1vQAAuwxz9A==";

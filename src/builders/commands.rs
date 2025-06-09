@@ -1,8 +1,8 @@
 //! Builders for SCTE-35 splice commands.
 
-use crate::types::{SpliceInsert, TimeSignal, SpliceInsertComponent};
-use crate::time::{SpliceTime, BreakDuration};
 use super::error::{BuilderError, BuilderResult, DurationExt};
+use crate::time::{BreakDuration, SpliceTime};
+use crate::types::{SpliceInsert, SpliceInsertComponent, TimeSignal};
 use std::time::Duration;
 
 /// Builder for creating splice insert commands.
@@ -34,8 +34,8 @@ impl SpliceInsertBuilder {
     pub fn new(splice_event_id: u32) -> Self {
         Self {
             splice_event_id: Some(splice_event_id),
-            out_of_network: true,  // Most common case
-            program_splice: true,  // Most common case
+            out_of_network: true, // Most common case
+            program_splice: true, // Most common case
             splice_immediate: false,
             splice_time: None,
             components: Vec::new(),
@@ -49,7 +49,7 @@ impl SpliceInsertBuilder {
 
     /// Mark this event as cancelled.
     pub fn cancel_event(mut self) -> Self {
-        self.splice_event_id = None;  // Indicates cancellation
+        self.splice_event_id = None; // Indicates cancellation
         self
     }
 
@@ -74,13 +74,23 @@ impl SpliceInsertBuilder {
     }
 
     /// Configure component-level splice timing.
-    pub fn component_splice(mut self, components: Vec<(u8, Option<Duration>)>) -> BuilderResult<Self> {
+    pub fn component_splice(
+        mut self,
+        components: Vec<(u8, Option<Duration>)>,
+    ) -> BuilderResult<Self> {
         if components.len() > 255 {
-            return Err(BuilderError::InvalidComponentCount { max: 255, actual: components.len() });
+            return Err(BuilderError::InvalidComponentCount {
+                max: 255,
+                actual: components.len(),
+            });
         }
         self.program_splice = false;
-        self.components = components.into_iter()
-            .map(|(tag, time)| ComponentTiming { component_tag: tag, splice_time: time })
+        self.components = components
+            .into_iter()
+            .map(|(tag, time)| ComponentTiming {
+                component_tag: tag,
+                splice_time: time,
+            })
             .collect();
         Ok(self)
     }
@@ -114,7 +124,7 @@ impl SpliceInsertBuilder {
     pub fn build(self) -> BuilderResult<SpliceInsert> {
         let (splice_event_id, cancel) = match self.splice_event_id {
             Some(id) => (id, 0),
-            None => (0, 1),  // Cancellation
+            None => (0, 1), // Cancellation
         };
 
         let splice_time = if self.program_splice && !self.splice_immediate {
@@ -122,7 +132,10 @@ impl SpliceInsertBuilder {
                 Some(duration) => {
                     let ticks = duration.to_pts_ticks();
                     if ticks > 0x1_FFFF_FFFF {
-                        return Err(BuilderError::DurationTooLarge { field: "splice_time", duration });
+                        return Err(BuilderError::DurationTooLarge {
+                            field: "splice_time",
+                            duration,
+                        });
                     }
                     Some(ticks)
                 }
@@ -144,7 +157,10 @@ impl SpliceInsertBuilder {
                         Some(duration) => {
                             let ticks = duration.to_pts_ticks();
                             if ticks > 0x1_FFFF_FFFF {
-                                return Err(BuilderError::DurationTooLarge { field: "component_splice_time", duration });
+                                return Err(BuilderError::DurationTooLarge {
+                                    field: "component_splice_time",
+                                    duration,
+                                });
                             }
                             Some(ticks)
                         }
@@ -168,11 +184,14 @@ impl SpliceInsertBuilder {
             Some(duration) => {
                 let ticks = duration.to_pts_ticks();
                 if ticks > 0x1_FFFF_FFFF {
-                    return Err(BuilderError::DurationTooLarge { field: "duration", duration });
+                    return Err(BuilderError::DurationTooLarge {
+                        field: "duration",
+                        duration,
+                    });
                 }
                 Some(BreakDuration {
                     auto_return: self.auto_return as u8,
-                    reserved: 0x3F,  // All 1s for 6-bit reserved field
+                    reserved: 0x3F, // All 1s for 6-bit reserved field
                     duration: ticks,
                 })
             }
@@ -182,12 +201,12 @@ impl SpliceInsertBuilder {
         Ok(SpliceInsert {
             splice_event_id,
             splice_event_cancel_indicator: cancel,
-            reserved: 0x7F,  // All 1s for 7-bit reserved field
+            reserved: 0x7F, // All 1s for 7-bit reserved field
             out_of_network_indicator: self.out_of_network as u8,
             program_splice_flag: self.program_splice as u8,
             duration_flag: self.duration.is_some() as u8,
             splice_immediate_flag: self.splice_immediate as u8,
-            reserved2: 0x0F,  // All 1s for 4-bit reserved field
+            reserved2: 0x0F, // All 1s for 4-bit reserved field
             splice_time,
             component_count: components.len() as u8,
             components,
@@ -213,7 +232,7 @@ impl TimeSignalBuilder {
 
     /// Set the time signal to occur immediately.
     pub fn immediate(self) -> Self {
-        self  // No time specified
+        self // No time specified
     }
 
     /// Set the time signal to occur at a specific PTS time.
@@ -228,7 +247,10 @@ impl TimeSignalBuilder {
             Some(duration) => {
                 let ticks = duration.to_pts_ticks();
                 if ticks > 0x1_FFFF_FFFF {
-                    return Err(BuilderError::DurationTooLarge { field: "pts_time", duration });
+                    return Err(BuilderError::DurationTooLarge {
+                        field: "pts_time",
+                        duration,
+                    });
                 }
                 Some(ticks)
             }

@@ -1,6 +1,6 @@
-# SCTE-35 Parsing Library
+# SCTE-35 Library
 
-A Rust library for parsing SCTE-35 (Society of Cable Telecommunications Engineers) messages with built-in CRC validation. SCTE-35 is a standard for inserting cue messages into video streams, commonly used for ad insertion points in broadcast television.
+A Rust library for creating and parsing SCTE-35 (Society of Cable Telecommunications Engineers) messages with built-in CRC validation. SCTE-35 is a standard for inserting cue messages into video streams, commonly used for ad insertion points in broadcast television.
 
 ## Features
 
@@ -25,7 +25,7 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-scte35-parsing = "0.1.0"
+scte35 = "0.1.0"
 ```
 
 This includes both CRC validation and serde support.
@@ -36,7 +36,7 @@ If you don't need JSON serialization:
 
 ```toml
 [dependencies]
-scte35-parsing = { version = "0.1.0", default-features = false, features = ["crc-validation"] }
+scte35 = { version = "0.1.0", default-features = false, features = ["crc-validation"] }
 ```
 
 ### Minimal (No CRC or Serde)
@@ -45,7 +45,7 @@ For a minimal library without CRC validation or serde:
 
 ```toml
 [dependencies]
-scte35-parsing = { version = "0.1.0", default-features = false }
+scte35 = { version = "0.1.0", default-features = false }
 ```
 
 ### With CLI Tool (Automatically includes CRC validation)
@@ -54,13 +54,13 @@ To include the command-line tool, enable the `cli` feature:
 
 ```toml
 [dependencies]
-scte35-parsing = { version = "0.1.0", features = ["cli"] }
+scte35 = { version = "0.1.0", features = ["cli"] }
 ```
 
 Or install the CLI tool directly:
 
 ```bash
-cargo install scte35-parsing --features cli
+cargo install scte35 --features cli
 ```
 
 **Note**: The CLI feature automatically enables CRC validation to provide complete message diagnostics.
@@ -70,7 +70,7 @@ cargo install scte35-parsing --features cli
 ### Library Usage
 
 ```rust
-use scte35_parsing::{parse_splice_info_section, SpliceCommand, SpliceDescriptor};
+use scte35::{parse_splice_info_section, SpliceCommand, SpliceDescriptor};
 use std::time::Duration;
 
 // Your SCTE-35 message as bytes (example message)
@@ -131,7 +131,7 @@ Err(e) => eprintln!("Error parsing SCTE-35: {}", e),
 By default, the library validates CRC-32 checksums in SCTE-35 messages to ensure data integrity:
 
 ```rust
-use scte35_parsing::{parse_splice_info_section, validate_scte35_crc, CrcValidatable};
+use scte35::{parse_splice_info_section, validate_scte35_crc, CrcValidatable};
 
 // Example SCTE-35 message bytes
 let scte35_bytes = vec![
@@ -176,7 +176,7 @@ if let Ok(section) = parse_splice_info_section(&scte35_bytes) {
 SCTE-35 time values are represented as 90kHz clock ticks. This library provides convenient conversion to Rust's `std::time::Duration`:
 
 ```rust
-use scte35_parsing::BreakDuration;
+use scte35::BreakDuration;
 use std::time::Duration;
 
 // Create a break duration of 30 seconds (30 * 90000 ticks)
@@ -200,7 +200,7 @@ assert_eq!(duration2.as_secs(), 30);
 The library includes built-in serde support for serializing/deserializing SCTE-35 messages:
 
 ```rust
-use scte35_parsing::parse_splice_info_section;
+use scte35::parse_splice_info_section;
 use serde_json;
 
 // Parse SCTE-35 message
@@ -215,7 +215,7 @@ if let Ok(section) = parse_splice_info_section(&scte35_bytes) {
     println!("{}", json);
     
     // Deserialize from JSON
-    let deserialized: scte35_parsing::SpliceInfoSection = 
+    let deserialized: scte35::SpliceInfoSection = 
         serde_json::from_str(&json).unwrap();
     assert_eq!(section, deserialized);
 }
@@ -268,7 +268,7 @@ Example JSON output:
 The library provides human-readable segmentation types that correspond to the numeric IDs in SCTE-35 messages:
 
 ```rust
-use scte35_parsing::{SegmentationType, parse_splice_info_section, SpliceDescriptor};
+use scte35::{SegmentationType, parse_splice_info_section, SpliceDescriptor};
 
 // Work with segmentation types directly
 let seg_type = SegmentationType::ProviderAdvertisementStart;
@@ -333,8 +333,8 @@ The library supports all standard SCTE-35 segmentation types including:
 The library includes a comprehensive builder pattern API for creating SCTE-35 messages from scratch with type safety and validation:
 
 ```rust
-# use scte35_parsing::builders::*;
-# use scte35_parsing::types::SegmentationType;
+# use scte35::builders::*;
+# use scte35::types::SegmentationType;
 # use std::time::Duration;
 # fn main() -> BuilderResult<()> {
 // Example 1: Creating a 30-second ad break starting at 20 seconds
@@ -358,8 +358,8 @@ println!("Created SCTE-35 message with {} byte payload", section.section_length)
 #### Creating Time Signals with Segmentation Descriptors
 
 ```rust
-# use scte35_parsing::builders::*;
-# use scte35_parsing::types::SegmentationType;
+# use scte35::builders::*;
+# use scte35::types::SegmentationType;
 # use std::time::Duration;
 # fn example() -> BuilderResult<()> {
 // Example 2: Program start boundary with UPID
@@ -382,7 +382,7 @@ let section = SpliceInfoSectionBuilder::new()
 #### Component-Level Splice Operations
 
 ```rust
-# use scte35_parsing::builders::*;
+# use scte35::builders::*;
 # use std::time::Duration;
 # fn example() -> BuilderResult<()> {
 // Example 3: Component-level splice for specific audio/video streams
@@ -401,8 +401,8 @@ let splice_insert = SpliceInsertBuilder::new(3333)
 #### Advanced Segmentation with Delivery Restrictions
 
 ```rust
-# use scte35_parsing::builders::*;
-# use scte35_parsing::types::SegmentationType;
+# use scte35::builders::*;
+# use scte35::types::SegmentationType;
 # fn example() -> BuilderResult<()> {
 // Example 4: Complex segmentation with delivery restrictions
 let restrictions = DeliveryRestrictions {
@@ -432,9 +432,9 @@ let segmentation = SegmentationDescriptorBuilder::new(
 The builder API supports all SCTE-35 UPID types with validation:
 
 ```rust
-# use scte35_parsing::builders::*;
+# use scte35::builders::*;
 # fn example() -> BuilderResult<()> {
-# let mut builder = SegmentationDescriptorBuilder::new(1, scte35_parsing::types::SegmentationType::ProgramStart);
+# let mut builder = SegmentationDescriptorBuilder::new(1, scte35::types::SegmentationType::ProgramStart);
 // Ad ID (12 ASCII characters)
 builder = builder.upid(Upid::AdId("ABC123456789".to_string()))?;
 
@@ -460,8 +460,8 @@ builder = builder.upid(Upid::Isan(isan_bytes))?;
 The builder API provides comprehensive validation with clear error messages:
 
 ```rust
-# use scte35_parsing::builders::*;
-# use scte35_parsing::types::SegmentationType;
+# use scte35::builders::*;
+# use scte35::types::SegmentationType;
 # use std::time::Duration;
 # fn example() -> BuilderResult<()> {
 // Invalid UPID length
@@ -636,19 +636,19 @@ By default, the library validates CRC-32 checksums in SCTE-35 messages to ensure
 ### With CRC Validation (Default)
 ```toml
 [dependencies]
-scte35-parsing = "0.1.0"
+scte35 = "0.1.0"
 ```
 
 ### Without CRC Validation (Library only)
 ```toml
 [dependencies]
-scte35-parsing = { version = "0.1.0", default-features = false }
+scte35 = { version = "0.1.0", default-features = false }
 ```
 
 ### With CLI Tool (Automatically includes CRC validation)
 ```toml
 [dependencies]
-scte35-parsing = { version = "0.1.0", features = ["cli"] }
+scte35 = { version = "0.1.0", features = ["cli"] }
 ```
 
 **Note**: The CLI feature automatically enables CRC validation to provide complete message diagnostics.
@@ -663,7 +663,7 @@ scte35-parsing = { version = "0.1.0", features = ["cli"] }
 
 ## API Documentation
 
-Full API documentation is available at [docs.rs](https://docs.rs/scte35-parsing) or can be generated locally:
+Full API documentation is available at [docs.rs](https://docs.rs/scte35) or can be generated locally:
 
 ```bash
 cargo doc --no-deps --open
@@ -706,8 +706,8 @@ An enum representing different SCTE-35 command types:
 
 ### Build Library Only
 ```bash
-git clone https://github.com/yourusername/scte35-parsing
-cd scte35-parsing
+git clone https://github.com/yourusername/scte35
+cd scte35
 cargo build --release
 ```
 

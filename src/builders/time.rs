@@ -1,7 +1,7 @@
 //! Time-related builder utilities for SCTE-35 messages.
 
-use crate::time::{SpliceTime, BreakDuration};
 use super::error::{BuilderError, BuilderResult, DurationExt};
+use crate::time::{BreakDuration, SpliceTime};
 use std::time::Duration;
 
 /// Builder for creating splice time structures.
@@ -34,7 +34,10 @@ impl SpliceTimeBuilder {
             Some(duration) => {
                 let ticks = duration.to_pts_ticks();
                 if ticks > 0x1_FFFF_FFFF {
-                    return Err(BuilderError::DurationTooLarge { field: "pts_time", duration });
+                    return Err(BuilderError::DurationTooLarge {
+                        field: "pts_time",
+                        duration,
+                    });
                 }
                 Some(ticks)
             }
@@ -80,7 +83,10 @@ impl BreakDurationBuilder {
     pub fn build(self) -> BuilderResult<BreakDuration> {
         let ticks = self.duration.to_pts_ticks();
         if ticks > 0x1_FFFF_FFFF {
-            return Err(BuilderError::DurationTooLarge { field: "duration", duration: self.duration });
+            return Err(BuilderError::DurationTooLarge {
+                field: "duration",
+                duration: self.duration,
+            });
         }
 
         Ok(BreakDuration {

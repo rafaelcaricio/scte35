@@ -37,7 +37,7 @@ use std::io::{self, ErrorKind};
 /// # Example
 ///
 /// ```rust
-/// use scte35_parsing::parse_splice_info_section;
+/// use scte35::parse_splice_info_section;
 /// use base64::{Engine, engine::general_purpose};
 ///
 /// let base64_message = "/DAWAAAAAAAAAP/wBQb+Qjo1vQAAuwxz9A==";

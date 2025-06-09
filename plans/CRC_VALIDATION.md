@@ -109,7 +109,7 @@ pub fn calculate_crc(_data: &[u8]) -> Option<u32> {
 /// # Example
 ///
 /// ```rust
-/// use scte35_parsing::crc::validate_message_crc;
+/// use scte35::crc::validate_message_crc;
 /// use base64::{Engine, engine::general_purpose};
 ///
 /// let base64_message = "/DAWAAAAAAAAAP/wBQb+Qjo1vQAAuwxz9A==";
@@ -295,7 +295,7 @@ Add top-level convenience functions with simple feature gating:
 /// # Example
 ///
 /// ```rust
-/// use scte35_parsing::validate_scte35_crc;
+/// use scte35::validate_scte35_crc;
 /// use base64::{Engine, engine::general_purpose};
 ///
 /// let base64_message = "/DAWAAAAAAAAAP/wBQb+Qjo1vQAAuwxz9A==";
@@ -442,19 +442,19 @@ By default, the library validates CRC-32 checksums in SCTE-35 messages to ensure
 ### With CRC Validation (Default)
 ```toml
 [dependencies]
-scte35-parsing = "0.1.0"
+scte35 = "0.1.0"
 ```
 
 ### Without CRC Validation (Library only)
 ```toml
 [dependencies]
-scte35-parsing = { version = "0.1.0", default-features = false }
+scte35 = { version = "0.1.0", default-features = false }
 ```
 
 ### With CLI Tool (Automatically includes CRC validation)
 ```toml
 [dependencies]
-scte35-parsing = { version = "0.1.0", features = ["cli"] }
+scte35 = { version = "0.1.0", features = ["cli"] }
 ```
 
 **Note**: The CLI feature automatically enables CRC validation to provide complete message diagnostics.
@@ -546,19 +546,19 @@ src/
 
 ```rust
 // Top-level convenience function (always available, returns false when disabled)
-use scte35_parsing::validate_scte35_crc;
+use scte35::validate_scte35_crc;
 let is_valid = validate_scte35_crc(&buffer)?;
 
 // Direct module access (only available when feature enabled)
 #[cfg(feature = "crc-validation")]
-use scte35_parsing::crc::{validate_crc, calculate_crc, validate_message_crc};
+use scte35::crc::{validate_crc, calculate_crc, validate_message_crc};
 
 // Method-based validation (always available, returns false when disabled)
 let is_valid = section.validate_crc(&buffer)?;
 
 // Trait-based validation (only available when feature enabled)
 #[cfg(feature = "crc-validation")]
-use scte35_parsing::CrcValidatable;
+use scte35::CrcValidatable;
 ```
 
 ### Benefits of This Approach

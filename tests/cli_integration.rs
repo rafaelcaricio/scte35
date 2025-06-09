@@ -12,7 +12,7 @@ mod tests {
 
     #[test]
     fn test_cli_text_output_works() {
-        let mut cmd = Command::cargo_bin("scte35-parsing").unwrap();
+        let mut cmd = Command::cargo_bin("scte35").unwrap();
         let output = cmd
             .arg(README_EXAMPLE_PAYLOAD)
             .output()
@@ -33,7 +33,7 @@ mod tests {
 
     #[test]
     fn test_cli_json_output_works() {
-        let mut cmd = Command::cargo_bin("scte35-parsing").unwrap();
+        let mut cmd = Command::cargo_bin("scte35").unwrap();
         let output = cmd
             .args(&["-o", "json", README_EXAMPLE_PAYLOAD])
             .output()
@@ -49,13 +49,16 @@ mod tests {
         assert_eq!(json["status"], "success");
         assert_eq!(json["data"]["table_id"], 252);
         assert_eq!(json["data"]["splice_command"]["type"], "SpliceInsert");
-        assert_eq!(json["data"]["splice_command"]["splice_event_id"], 1207959695);
+        assert_eq!(
+            json["data"]["splice_command"]["splice_event_id"],
+            1207959695
+        );
         assert!(json["crc_validation"]["valid"].as_bool().unwrap());
     }
 
     #[test]
     fn test_cli_json_output_long_flag() {
-        let mut cmd = Command::cargo_bin("scte35-parsing").unwrap();
+        let mut cmd = Command::cargo_bin("scte35").unwrap();
         let output = cmd
             .args(&["--output", "json", README_EXAMPLE_PAYLOAD])
             .output()
@@ -70,7 +73,7 @@ mod tests {
 
     #[test]
     fn test_cli_help_contains_expected_text() {
-        let mut cmd = Command::cargo_bin("scte35-parsing").unwrap();
+        let mut cmd = Command::cargo_bin("scte35").unwrap();
         cmd.arg("--help")
             .assert()
             .success()
@@ -83,17 +86,17 @@ mod tests {
 
     #[test]
     fn test_cli_version_works() {
-        let mut cmd = Command::cargo_bin("scte35-parsing").unwrap();
+        let mut cmd = Command::cargo_bin("scte35").unwrap();
         cmd.arg("--version")
             .assert()
             .success()
-            .stdout(predicate::str::starts_with("scte35-parsing"))
+            .stdout(predicate::str::starts_with("scte35"))
             .stderr("");
     }
 
     #[test]
     fn test_cli_handles_invalid_base64() {
-        let mut cmd = Command::cargo_bin("scte35-parsing").unwrap();
+        let mut cmd = Command::cargo_bin("scte35").unwrap();
         cmd.arg("invalid_base64!")
             .assert()
             .failure()
@@ -102,7 +105,7 @@ mod tests {
 
     #[test]
     fn test_cli_handles_invalid_base64_json() {
-        let mut cmd = Command::cargo_bin("scte35-parsing").unwrap();
+        let mut cmd = Command::cargo_bin("scte35").unwrap();
         let output = cmd
             .args(&["-o", "json", "invalid_base64!"])
             .output()
