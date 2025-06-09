@@ -4,7 +4,7 @@
 //! which provide additional metadata about splice operations.
 
 use crate::types::SegmentationType;
-use crate::upid::{format_base64, format_isan, format_uuid, SegmentationUpidType};
+use crate::upid::{SegmentationUpidType, format_base64, format_isan, format_uuid};
 use std::time::Duration;
 
 /// Represents different types of splice descriptors with parsed content.

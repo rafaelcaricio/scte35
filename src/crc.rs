@@ -6,7 +6,7 @@
 use std::io::{self, ErrorKind};
 
 #[cfg(feature = "crc-validation")]
-use crc::{Crc, CRC_32_MPEG_2};
+use crc::{CRC_32_MPEG_2, Crc};
 
 /// MPEG-2 CRC-32 algorithm instance for SCTE-35 validation
 #[cfg(feature = "crc-validation")]

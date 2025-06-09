@@ -119,9 +119,11 @@ mod tests {
 
         // Verify error structure
         assert_eq!(json["status"], "error");
-        assert!(json["error"]
-            .as_str()
-            .unwrap()
-            .contains("Error decoding base64 string"));
+        assert!(
+            json["error"]
+                .as_str()
+                .unwrap()
+                .contains("Error decoding base64 string")
+        );
     }
 }
