@@ -172,7 +172,7 @@ impl SpliceInsertBuilder {
                 }
                 Some(BreakDuration {
                     auto_return: self.auto_return as u8,
-                    reserved: 0,
+                    reserved: 0x3F,  // All 1s for 6-bit reserved field
                     duration: ticks,
                 })
             }
@@ -182,12 +182,12 @@ impl SpliceInsertBuilder {
         Ok(SpliceInsert {
             splice_event_id,
             splice_event_cancel_indicator: cancel,
-            reserved: 0,
+            reserved: 0x7F,  // All 1s for 7-bit reserved field
             out_of_network_indicator: self.out_of_network as u8,
             program_splice_flag: self.program_splice as u8,
             duration_flag: self.duration.is_some() as u8,
             splice_immediate_flag: self.splice_immediate as u8,
-            reserved2: 0,
+            reserved2: 0x0F,  // All 1s for 4-bit reserved field
             splice_time,
             component_count: components.len() as u8,
             components,

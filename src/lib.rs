@@ -11,6 +11,8 @@ mod commands;
 /// Builder pattern API for creating SCTE-35 messages from scratch.
 pub mod builders;
 pub mod descriptors;
+/// Binary encoding support for SCTE-35 messages.
+pub mod encoding;
 pub mod parser;
 pub mod time;
 pub mod types;
@@ -38,7 +40,7 @@ pub use types::{
 };
 
 // Re-export time types
-pub use time::{BreakDuration, DateTime, SpliceTime};
+pub use time::{BreakDuration, SpliceTime};
 
 // Re-export UPID types
 pub use upid::SegmentationUpidType;

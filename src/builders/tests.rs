@@ -5,7 +5,7 @@ use crate::types::SegmentationType;
 use std::time::Duration;
 
 #[cfg(test)]
-mod tests {
+mod builder_tests {
     use super::*;
 
     #[test]
@@ -135,9 +135,9 @@ mod tests {
             .unwrap();
 
         assert_eq!(descriptor.segmentation_event_id, 5678);
-        assert_eq!(descriptor.segmentation_event_cancel_indicator, false);
+        assert!(!descriptor.segmentation_event_cancel_indicator);
         assert_eq!(descriptor.segmentation_type, SegmentationType::ProgramStart);
-        assert_eq!(descriptor.segmentation_duration_flag, true);
+        assert!(descriptor.segmentation_duration_flag);
         assert_eq!(descriptor.segment_num, 1);
         assert_eq!(descriptor.segments_expected, 1);
         assert_eq!(descriptor.segmentation_duration, Some(1800 * 90_000));
@@ -188,7 +188,7 @@ mod tests {
             .build()
             .unwrap();
 
-        assert_eq!(descriptor.delivery_not_restricted_flag, false);
+        assert!(!descriptor.delivery_not_restricted_flag);
         assert_eq!(descriptor.web_delivery_allowed_flag, Some(false));
         assert_eq!(descriptor.no_regional_blackout_flag, Some(false));
         assert_eq!(descriptor.archive_allowed_flag, Some(true));
@@ -203,7 +203,7 @@ mod tests {
             .unwrap();
 
         assert_eq!(descriptor.segmentation_event_id, 0);
-        assert_eq!(descriptor.segmentation_event_cancel_indicator, true);
+        assert!(descriptor.segmentation_event_cancel_indicator);
     }
 
     #[test]
@@ -376,46 +376,6 @@ mod tests {
         assert_eq!(splice_time.pts_time, Some(10 * 90_000));
     }
 
-    #[test]
-    fn test_datetime_builder() {
-        let datetime = DateTimeBuilder::new(2023, 12, 25, 14, 30, 45)
-            .unwrap()
-            .utc(true)
-            .build();
-
-        assert_eq!(datetime.year, 2023);
-        assert_eq!(datetime.month, 12);
-        assert_eq!(datetime.day, 25);
-        assert_eq!(datetime.hour, 14);
-        assert_eq!(datetime.minute, 30);
-        assert_eq!(datetime.second, 45);
-        assert_eq!(datetime.utc_flag, 1);
-        assert_eq!(datetime.frames, 0);
-        assert_eq!(datetime.milliseconds, 0);
-    }
-
-    #[test]
-    fn test_datetime_builder_validation() {
-        // Test invalid month
-        let result = DateTimeBuilder::new(2023, 13, 1, 0, 0, 0);
-        assert!(result.is_err());
-
-        // Test invalid day
-        let result = DateTimeBuilder::new(2023, 1, 32, 0, 0, 0);
-        assert!(result.is_err());
-
-        // Test invalid hour
-        let result = DateTimeBuilder::new(2023, 1, 1, 24, 0, 0);
-        assert!(result.is_err());
-
-        // Test invalid minute
-        let result = DateTimeBuilder::new(2023, 1, 1, 0, 60, 0);
-        assert!(result.is_err());
-
-        // Test invalid second
-        let result = DateTimeBuilder::new(2023, 1, 1, 0, 0, 60);
-        assert!(result.is_err());
-    }
 
     #[test]
     fn test_upid_validation() {

@@ -3,7 +3,6 @@
 use crate::types::{SpliceInfoSection, SpliceCommand};
 use crate::descriptors::{SegmentationDescriptor, SpliceDescriptor};
 use super::error::{BuilderError, BuilderResult};
-use super::extensions::SpliceCommandExt;
 
 /// Builder for creating a complete SCTE-35 splice information section.
 ///
@@ -90,34 +89,51 @@ impl SpliceInfoSectionBuilder {
         let splice_command = self.splice_command
             .ok_or(BuilderError::MissingRequiredField("splice_command"))?;
 
-        // Calculate section_length and other derived fields
-        let splice_command_length = splice_command.encoded_length();
-        let descriptor_loop_length = self.descriptors.iter()
-            .map(|d| 2 + d.length() as u16)
-            .sum::<u16>();
-        let section_length = 11 + splice_command_length + 2 + descriptor_loop_length + 4;
+        // Get the actual command type
+        let splice_command_type: u8 = (&splice_command).into();
+        
+        // Import the Encodable trait to get access to encoded sizes
+        use crate::encoding::Encodable;
+        
+        // Calculate descriptor_loop_length correctly
+        let mut descriptor_loop_length = 0u16;
+        for descriptor in &self.descriptors {
+            // Each descriptor contributes its full encoded size
+            descriptor_loop_length += descriptor.encoded_size() as u16;
+        }
 
-        Ok(SpliceInfoSection {
+        // Build the section with proper defaults
+        let mut section = SpliceInfoSection {
             table_id: 0xFC,  // Fixed per spec
-            section_syntax_indicator: 0,  // Fixed per spec
+            section_syntax_indicator: 0,  // Fixed per spec  
             private_indicator: 0,  // Fixed per spec
             sap_type: 0x3,  // Fixed per spec (undefined)
-            section_length,
+            section_length: 0,  // Will be calculated during encoding
             protocol_version: 0,  // Current version
-            encrypted_packet: 0,  // Not exposing encryption in builder
-            encryption_algorithm: 0,
+            encrypted_packet: 0,  // Not encrypted
+            encryption_algorithm: 0,  // No encryption
             pts_adjustment: self.pts_adjustment,
-            cw_index: 0,  // Not exposing encryption
+            cw_index: 0xFF,  // No control word (all 1s)
             tier: self.tier,
-            splice_command_length,
-            splice_command_type: (&splice_command).into(),
+            splice_command_length: 0,  // Will be calculated during encoding
+            splice_command_type,
             splice_command,
-            descriptor_loop_length,
+            descriptor_loop_length: 0,  // Will be calculated during encoding
             splice_descriptors: self.descriptors,
-            alignment_stuffing_bits: Vec::new(),  // Calculated during serialization
-            e_crc_32: None,  // Not exposing encryption
-            crc_32: 0,  // Calculated during serialization
-        })
+            alignment_stuffing_bits: Vec::new(),  // No stuffing by default
+            e_crc_32: None,  // Not encrypted
+            crc_32: 0,  // Will be calculated during encoding
+        };
+        
+        // Calculate the actual lengths now that we have the full structure
+        section.splice_command_length = section.splice_command.encoded_size() as u16;
+        section.descriptor_loop_length = descriptor_loop_length;
+        
+        // Section length is the total size minus the first 3 bytes
+        // (table_id + section_syntax_indicator/private_indicator/sap_type + section_length itself)
+        section.section_length = (section.encoded_size() - 3) as u16;
+        
+        Ok(section)
     }
 }
 

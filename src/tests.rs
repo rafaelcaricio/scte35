@@ -1059,9 +1059,9 @@ fn test_mpu_upid_example() {
     match &section.splice_descriptors[0] {
         SpliceDescriptor::Segmentation(seg_desc) => {
             assert_eq!(seg_desc.segmentation_event_id, 0x0000dcf1);
-            assert_eq!(seg_desc.segmentation_event_cancel_indicator, false);
-            assert_eq!(seg_desc.program_segmentation_flag, true);
-            assert_eq!(seg_desc.segmentation_duration_flag, false);
+            assert!(!seg_desc.segmentation_event_cancel_indicator);
+            assert!(seg_desc.program_segmentation_flag);
+            assert!(!seg_desc.segmentation_duration_flag);
 
             // Check UPID type and data
             assert_eq!(seg_desc.segmentation_upid_type, SegmentationUpidType::MPU);

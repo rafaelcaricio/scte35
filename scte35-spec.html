@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SCTE 35 2023r1 Syntax and Field Definitions</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            scroll-behavior: smooth;
+        }
+        .table-container {
+            overflow-x: auto;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 12px 16px;
+            text-align: left;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        th {
+            background-color: #f8fafc;
+            font-weight: 600;
+            color: #475569;
+        }
+        tbody tr:nth-child(even) {
+            background-color: #f9fafb;
+        }
+        code {
+            background-color: #e2e8f0;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.9em;
+        }
+        .field-def {
+            margin-top: 1rem;
+            padding-left: 1rem;
+            border-left: 3px solid #cbd5e1;
+        }
+        .field-def strong {
+            font-weight: 600;
+        }
+        .sub-section {
+             border-left: 2px solid #e2e8f0;
+             padding-left: 1.5rem;
+             margin-left: 0.5rem;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800">
+
+    <div class="container mx-auto p-4 sm:p-6 lg:p-8">
+        <header class="mb-8 text-center">
+            <h1 class="text-3xl sm:text-4xl font-bold text-gray-900">SCTE 35 2023r1 Specification</h1>
+            <p class="mt-2 text-lg text-gray-600">Syntax Tables and Field Definitions</p>
+        </header>
+
+        <!-- PMT Descriptors -->
+        <section id="pmt-descriptors" class="mb-12">
+            <h2 class="text-2xl font-bold border-b pb-2 mb-6 text-gray-800">8. PMT Descriptors</h2>
+
+            <!-- registration_descriptor -->
+            <article id="registration-descriptor" class="mb-8">
+                <h3 class="text-xl font-semibold mb-4 text-gray-700">8.1. registration_descriptor()</h3>
+                <p class="mb-4">Used to unambiguously identify programs that comply with the SCTE 35 standard.</p>
+                <div class="table-container bg-white rounded-lg shadow-md">
+                    <table>
+                        <thead>
+                            <tr><th>Syntax</th><th>Bits</th><th>Mnemonic</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td><code>registration_descriptor() {</code></td><td></td><td></td></tr>
+                            <tr><td><code>&nbsp;&nbsp;descriptor_tag</code></td><td>8</td><td>uimsbf</td></tr>
+                            <tr><td><code>&nbsp;&nbsp;descriptor_length</code></td><td>8</td><td>uimsbf</td></tr>
+                            <tr><td><code>&nbsp;&nbsp;SCTE_splice_format_identifier</code></td><td>32</td><td>uimsbf</td></tr>
+                            <tr><td><code>}</code></td><td></td><td></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="field-def mt-4">
+                    <p><strong><code>descriptor_tag</code></strong>: 8 bits. Identifies the descriptor. Shall be <code>0x05</code>.</p>
+                    <p><strong><code>descriptor_length</code></strong>: 8 bits. Number of bytes following this field. Shall be <code>0x04</code>.</p>
+                    <p><strong><code>SCTE_splice_format_identifier</code></strong>: 32 bits. A value of <code>0x43554549</code> (ASCII "CUEI") identifies the program as compliant with this standard.</p>
+                </div>
+            </article>
+
+            <!-- cue_identifier_descriptor -->
+            <article id="cue-identifier-descriptor" class="mb-8">
+                <h3 class="text-xl font-semibold mb-4 text-gray-700">8.2. cue_identifier_descriptor()</h3>
+                <p class="mb-4">Used in the PMT to label PIDs that carry splice commands, differentiating them by the type of commands they carry.</p>
+                <div class="table-container bg-white rounded-lg shadow-md">
+                    <table>
+                         <thead>
+                            <tr><th>Syntax</th><th>Bits</th><th>Mnemonic</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td><code>cue_identifier_descriptor() {</code></td><td></td><td></td></tr>
+                            <tr><td><code>&nbsp;&nbsp;descriptor_tag</code></td><td>8</td><td>uimsbf</td></tr>
+                            <tr><td><code>&nbsp;&nbsp;descriptor_length</code></td><td>8</td><td>uimsbf</td></tr>
+                            <tr><td><code>&nbsp;&nbsp;cue_stream_type</code></td><td>8</td><td>uimsbf</td></tr>
+                            <tr><td><code>}</code></td><td></td><td></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="field-def mt-4">
+                    <p><strong><code>descriptor_tag</code></strong>: 8 bits. Identifies the descriptor. Shall be <code>0x8A</code>.</p>
+                    <p><strong><code>descriptor_length</code></strong>: 8 bits. Number of bytes following this field. Shall be <code>0x01</code>.</p>
+                    <p><strong><code>cue_stream_type</code></strong>: 8 bits. Defines the type of commands carried in the PID stream, as defined in Table 3.</p>
+                </div>
+                <div class="sub-section mt-6">
+                    <h4 class="text-lg font-semibold mb-2 text-gray-600">Table 3: cue_stream_type values</h4>
+                     <div class="table-container bg-white rounded-lg shadow-md">
+                        <table>
+                            <thead>
+                                <tr><th><code>cue_stream_type</code></th><th>PID usage</th></tr>
+                            </thead>
+                            <tbody>
+                                <tr><td><code>0x00</code></td><td><code>splice_insert</code>, <code>splice_null</code>, <code>splice_schedule</code></td></tr>
+                                <tr><td><code>0x01</code></td><td>All Commands</td></tr>
+                                <tr><td><code>0x02</code></td><td>Segmentation</td></tr>
+                                <tr><td><code>0x03</code></td><td>Tiered Splicing</td></tr>
+                                <tr><td><code>0x04</code></td><td>Tiered Segmentation</td></tr>
+                                <tr><td><code>0x05</code>-<code>0x7F</code></td><td>Reserved</td></tr>
+                                <tr><td><code>0x80</code>-<code>0xFF</code></td><td>User Defined</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </article>
+            
+            <!-- stream_identifier_descriptor -->
+            <article id="stream-identifier-descriptor" class="mb-8">
+                <h3 class="text-xl font-semibold mb-4 text-gray-700">8.3. stream_identifier_descriptor()</h3>
+                <p class="mb-4">Used in the PMT to label component streams of a service so they can be differentiated.</p>
+                <div class="table-container bg-white rounded-lg shadow-md">
+                    <table>
+                         <thead>
+                            <tr><th>Syntax</th><th>Bits</th><th>Mnemonic</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td><code>stream_identifier_descriptor() {</code></td><td></td><td></td></tr>
+                            <tr><td><code>&nbsp;&nbsp;descriptor_tag</code></td><td>8</td><td>uimsbf</td></tr>
+                            <tr><td><code>&nbsp;&nbsp;descriptor_length</code></td><td>8</td><td>uimsbf</td></tr>
+                            <tr><td><code>&nbsp;&nbsp;component_tag</code></td><td>8</td><td>uimsbf</td></tr>
+                            <tr><td><code>}</code></td><td></td><td></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="field-def mt-4">
+                    <p><strong><code>descriptor_tag</code></strong>: 8 bits. Identifies the descriptor. Shall be <code>0x52</code>.</p>
+                    <p><strong><code>descriptor_length</code></strong>: 8 bits. Number of bytes following this field. Shall be <code>0x01</code>.</p>
+                    <p><strong><code>component_tag</code></strong>: 8 bits. Identifies the component stream. Each <code>stream_identifier_descriptor</code> within a program map section shall have a unique value for this field.</p>
+                </div>
+            </article>
+
+        </section>
+
+        <!-- Splice Information Table -->
+        <section id="splice-info-table" class="mb-12">
+            <h2 class="text-2xl font-bold border-b pb-2 mb-6 text-gray-800">9. Splice Information Table</h2>
+
+            <!-- splice_info_section -->
+            <article id="splice-info-section" class="mb-8">
+                <h3 class="text-xl font-semibold mb-4 text-gray-700">9.6. splice_info_section()</h3>
+                 <p class="mb-4">The main structure for conveying splice command and control information.</p>
+                <div class="table-container bg-white rounded-lg shadow-md">
+                    <table>
+                        <thead>
+                            <tr><th>Syntax</th><th>Bits</th><th>Mnemonic</th><th>Encrypted</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td><code>splice_info_section() {</code></td><td></td><td></td><td></td></tr>
+                            <tr><td><code>&nbsp;&nbsp;table_id</code></td><td>8</td><td>uimsbf</td><td></td></tr>
+                            <tr><td><code>&nbsp;&nbsp;section_syntax_indicator</code></td><td>1</td><td>bslbf</td><td></td></tr>
+                            <tr><td><code>&nbsp;&nbsp;private_indicator</code></td><td>1</td><td>bslbf</td><td></td></tr>
+                            <tr><td><code>&nbsp;&nbsp;sap_type</code></td><td>2</td><td>bslbf</td><td></td></tr>
+                            <tr><td><code>&nbsp;&nbsp;section_length</code></td><td>12</td><td>uimsbf</td><td></td></tr>
+                            <tr><td><code>&nbsp;&nbsp;protocol_version</code></td><td>8</td><td>uimsbf</td><td></td></tr>
+                            <tr><td><code>&nbsp;&nbsp;encrypted_packet</code></td><td>1</td><td>bslbf</td><td></td></tr>
+                            <tr><td><code>&nbsp;&nbsp;encryption_algorithm</code></td><td>6</td><td>uimsbf</td><td></td></tr>
+                            <tr><td><code>&nbsp;&nbsp;pts_adjustment</code></td><td>33</td><td>uimsbf</td><td></td></tr>
+                            <tr><td><code>&nbsp;&nbsp;cw_index</code></td><td>8</td><td>uimsbf</td><td></td></tr>
+                            <tr><td><code>&nbsp;&nbsp;tier</code></td><td>12</td><td>bslbf</td><td></td></tr>
+                            <tr><td><code>&nbsp;&nbsp;splice_command_length</code></td><td>12</td><td>uimsbf</td><td></td></tr>
+                            <tr><td><code>&nbsp;&nbsp;splice_command_type</code></td><td>8</td><td>uimsbf</td><td>E</td></tr>
+                            <tr><td><code>&nbsp;&nbsp;if(splice_command_type == 0x00) splice_null()</code></td><td></td><td></td><td>E</td></tr>
+                            <tr><td><code>&nbsp;&nbsp;if(splice_command_type == 0x04) splice_schedule()</code></td><td></td><td></td><td>E</td></tr>
+                            <tr><td><code>&nbsp;&nbsp;if(splice_command_type == 0x05) splice_insert()</code></td><td></td><td></td><td>E</td></tr>
+                            <tr><td><code>&nbsp;&nbsp;if(splice_command_type == 0x06) time_signal()</code></td><td></td><td></td><td>E</td></tr>
+                            <tr><td><code>&nbsp;&nbsp;if(splice_command_type == 0x07) bandwidth_reservation()</code></td><td></td><td></td><td>E</td></tr>
+                            <tr><td><code>&nbsp;&nbsp;if(splice_command_type == 0xff) private_command()</code></td><td></td><td></td><td>E</td></tr>
+                            <tr><td><code>&nbsp;&nbsp;descriptor_loop_length</code></td><td>16</td><td>uimsbf</td><td>E</td></tr>
+                            <tr><td><code>&nbsp;&nbsp;for(i=0; i&lt;N1; i++) splice_descriptor()</code></td><td></td><td></td><td>E</td></tr>
+                            <tr><td><code>&nbsp;&nbsp;for(i=0; i&lt;N2; i++) alignment_stuffing</code></td><td>8</td><td>bslbf</td><td>E</td></tr>
+                            <tr><td><code>&nbsp;&nbsp;if(encrypted_packet) E_CRC_32</code></td><td>32</td><td>rpchof</td><td>E</td></tr>
+                            <tr><td><code>&nbsp;&nbsp;CRC_32</code></td><td>32</td><td>rpchof</td><td></td></tr>
+                            <tr><td><code>}</code></td><td></td><td></td><td></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="field-def mt-4">
+                    <p><strong><code>table_id</code></strong>: 8 bits. Shall be <code>0xFC</code>.</p>
+                    <p><strong><code>section_syntax_indicator</code></strong>: 1 bit. Shall be <code>'0'</code>.</p>
+                    <p><strong><code>private_indicator</code></strong>: 1 bit. Shall be <code>'0'</code>.</p>
+                    <p><strong><code>sap_type</code></strong>: 2 bits. Indicates Stream Access Point type.</p>
+                    <p><strong><code>section_length</code></strong>: 12 bits. Number of remaining bytes in the section.</p>
+                    <p><strong><code>protocol_version</code></strong>: 8 bits. Shall be <code>0</code>.</p>
+                    <p><strong><code>encrypted_packet</code></strong>: 1 bit. <code>'1'</code> indicates encryption.</p>
+                    <p><strong><code>encryption_algorithm</code></strong>: 6 bits. Specifies the encryption algorithm used.</p>
+                    <p><strong><code>pts_adjustment</code></strong>: 33 bits. An offset to be added to <code>pts_time</code> fields.</p>
+                    <p><strong><code>cw_index</code></strong>: 8 bits. Index of the control word (key) for decryption.</p>
+                    <p><strong><code>tier</code></strong>: 12 bits. Assigns messages to authorization tiers.</p>
+                    <p><strong><code>splice_command_length</code></strong>: 12 bits. Length of the splice command in bytes.</p>
+                    <p><strong><code>splice_command_type</code></strong>: 8 bits. Specifies the command type.</p>
+                    <p><strong><code>descriptor_loop_length</code></strong>: 16 bits. Length of the descriptor loop in bytes.</p>
+                    <p><strong><code>alignment_stuffing</code></strong>: Stuffing bytes for encryption alignment.</p>
+                    <p><strong><code>E_CRC_32</code></strong>: 32 bits. CRC for the encrypted portion of the message.</p>
+                    <p><strong><code>CRC_32</code></strong>: 32 bits. CRC for the entire section.</p>
+                </div>
+                 <div class="sub-section mt-6">
+                    <h4 class="text-lg font-semibold mb-2 text-gray-600">Table 6: sap_type values</h4>
+                     <div class="table-container bg-white rounded-lg shadow-md">
+                        <table>
+                            <thead>
+                                <tr><th><code>sap_type</code> value</th><th>ISOBMFF SAP type</th><th>Usage Notes</th></tr>
+                            </thead>
+                            <tbody>
+                                <tr><td><code>0x0</code></td><td>Type 1</td><td>Closed GOP with no leading pictures</td></tr>
+                                <tr><td><code>0x1</code></td><td>Type 2</td><td>Closed GOP with leading pictures</td></tr>
+                                <tr><td><code>0x2</code></td><td>Type 3</td><td>Open GOP</td></tr>
+                                <tr><td><code>0x3</code></td><td>SAP type not specified</td><td>The type of SAP, if any, is not signaled</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                 <div class="sub-section mt-6">
+                    <h4 class="text-lg font-semibold mb-2 text-gray-600">Table 7: splice_command_type values</h4>
+                     <div class="table-container bg-white rounded-lg shadow-md">
+                        <table>
+                            <thead>
+                                <tr><th>Command</th><th><code>splice_command_type</code> value</th><th>XML Element</th></tr>
+                            </thead>
+                            <tbody>
+                                <tr><td><code>splice_null</code></td><td><code>0x00</code></td><td><code>SpliceNull</code></td></tr>
+                                <tr><td>Reserved</td><td><code>0x01</code>-<code>0x03</code></td><td></td></tr>
+                                <tr><td><code>splice_schedule</code></td><td><code>0x04</code></td><td><code>SpliceSchedule</code></td></tr>
+                                <tr><td><code>splice_insert</code></td><td><code>0x05</code></td><td><code>SpliceInsert</code></td></tr>
+                                <tr><td><code>time_signal</code></td><td><code>0x06</code></td><td><code>TimeSignal</code></td></tr>
+                                <tr><td><code>bandwidth_reservation</code></td><td><code>0x07</code></td><td><code>BandwidthReservation</code></td></tr>
+                                <tr><td>Reserved</td><td><code>0x08</code>-<code>0xFE</code></td><td></td></tr>
+                                <tr><td><code>private_command</code></td><td><code>0xFF</code></td><td><code>PrivateCommand</code></td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </article>
+
+            <!-- Splice Commands -->
+            <h3 class="text-xl font-semibold mb-4 text-gray-700">9.7. Splice Commands</h3>
+            
+            <!-- splice_null -->
+            <article id="splice-null" class="mb-8 pl-4">
+                <h4 class="text-lg font-semibold mb-2 text-gray-600">9.7.1. splice_null()</h4>
+                <p class="mb-4">Can be used for extensibility or as a heartbeat message.</p>
+                <div class="table-container bg-white rounded-lg shadow-md">
+                     <table>
+                        <thead>
+                            <tr><th>Syntax</th><th>Bits</th><th>Mnemonic</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td><code>splice_null() {</code></td><td></td><td></td></tr>
+                            <tr><td><code>}</code></td><td></td><td></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </article>
+
+            <!-- splice_schedule -->
+            <article id="splice-schedule" class="mb-8 pl-4">
+                <h4 class="text-lg font-semibold mb-2 text-gray-600">9.7.2. splice_schedule()</h4>
+                <p class="mb-4">Allows a schedule of splice events to be conveyed in advance.</p>
+                <div class="table-container bg-white rounded-lg shadow-md">
+                    <table>
+                        <thead>
+                            <tr><th>Syntax</th><th>Bits</th><th>Mnemonic</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td><code>splice_schedule() {</code></td><td></td><td></td></tr>
+                            <tr><td><code>&nbsp;&nbsp;splice_count</code></td><td>8</td><td>uimsbf</td></tr>
+                            <tr><td><code>&nbsp;&nbsp;for (i=0; i&lt;splice_count; i++) {</code></td><td></td><td></td></tr>
+                            <tr><td><code>&nbsp;&nbsp;&nbsp;&nbsp;splice_event_id</code></td><td>32</td><td>uimsbf</td></tr>
+                            <tr><td><code>&nbsp;&nbsp;&nbsp;&nbsp;splice_event_cancel_indicator</code></td><td>1</td><td>bslbf</td></tr>
+                            <tr><td><code>&nbsp;&nbsp;&nbsp;&nbsp;event_id_compliance_flag</code></td><td>1</td><td>bslbf</td></tr>
+                            <tr><td><code>&nbsp;&nbsp;&nbsp;&nbsp;reserved</code></td><td>6</td><td>bslbf</td></tr>
+                            <tr><td><code>&nbsp;&nbsp;&nbsp;&nbsp;if (splice_event_cancel_indicator == '0') {</code></td><td></td><td></td></tr>
+                            <tr><td><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;out_of_network_indicator</code></td><td>1</td><td>bslbf</td></tr>
+                            <tr><td><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;program_splice_flag</code></td><td>1</td><td>bslbf</td></tr>
+                            <tr><td><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;duration_flag</code></td><td>1</td><td>bslbf</td></tr>
+                            <tr><td><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;reserved</code></td><td>5</td><td>bslbf</td></tr>
+                            <tr><td><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (program_splice_flag == '1') utc_splice_time</code></td><td>32</td><td>uimsbf</td></tr>
+                            <tr><td><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (program_splice_flag == '0') {</code></td><td></td><td></td></tr>
+                            <tr><td><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;component_count</code></td><td>8</td><td>uimsbf</td></tr>
+                            <tr><td><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for(j=0; j&lt;component_count; j++) {</code></td><td></td><td></td></tr>
+                            <tr><td><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;component_tag</code></td><td>8</td><td>uimsbf</td></tr>
+                            <tr><td><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;utc_splice_time</code></td><td>32</td><td>uimsbf</td></tr>
+                            <tr><td><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}</code></td><td></td><td></td></tr>
+                            <tr><td><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}</code></td><td></td><td></td></tr>
+                            <tr><td><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (duration_flag) break_duration()</code></td><td></td><td></td></tr>
+                            <tr><td><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;unique_program_id</code></td><td>16</td><td>uimsbf</td></tr>
+                            <tr><td><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;avail_num</code></td><td>8</td><td>uimsbf</td></tr>
+                            <tr><td><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;avails_expected</code></td><td>8</td><td>uimsbf</td></tr>
+                            <tr><td><code>&nbsp;&nbsp;&nbsp;&nbsp;}</code></td><td></td><td></td></tr>
+                            <tr><td><code>&nbsp;&nbsp;}</code></td><td></td><td></td></tr>
+                            <tr><td><code>}</code></td><td></td><td></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </article>
+            
+            <!-- splice_insert -->
+            <article id="splice-insert" class="mb-8 pl-4">
+                <h4 class="text-lg font-semibold mb-2 text-gray-600">9.7.3. splice_insert()</h4>
+                <p class="mb-4">Signals an upcoming splice event.</p>
+                 <div class="table-container bg-white rounded-lg shadow-md">
+                     <table>
+                        <thead>
+                            <tr><th>Syntax</th><th>Bits</th><th>Mnemonic</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td><code>splice_insert() {</code></td><td></td><td></td></tr>
+                            <tr><td><code>&nbsp;&nbsp;splice_event_id</code></td><td>32</td><td>uimsbf</td></tr>
+                            <tr><td><code>&nbsp;&nbsp;splice_event_cancel_indicator</code></td><td>1</td><td>bslbf</td></tr>
+                            <tr><td><code>&nbsp;&nbsp;reserved</code></td><td>7</td><td>bslbf</td></tr>
+                            <tr><td><code>&nbsp;&nbsp;if (splice_event_cancel_indicator == '0') {</code></td><td></td><td></td></tr>
+                            <tr><td><code>&nbsp;&nbsp;&nbsp;&nbsp;out_of_network_indicator</code></td><td>1</td><td>bslbf</td></tr>
+                            <tr><td><code>&nbsp;&nbsp;&nbsp;&nbsp;program_splice_flag</code></td><td>1</td><td>bslbf</td></tr>
+                            <tr><td><code>&nbsp;&nbsp;&nbsp;&nbsp;duration_flag</code></td><td>1</td><td>bslbf</td></tr>
+                            <tr><td><code>&nbsp;&nbsp;&nbsp;&nbsp;splice_immediate_flag</code></td><td>1</td><td>bslbf</td></tr>
+                            <tr><td><code>&nbsp;&nbsp;&nbsp;&nbsp;event_id_compliance_flag</code></td><td>1</td><td>bslbf</td></tr>
+                            <tr><td><code>&nbsp;&nbsp;&nbsp;&nbsp;reserved</code></td><td>3</td><td>bslbf</td></tr>
+                            <tr><td><code>&nbsp;&nbsp;&nbsp;&nbsp;if((program_splice_flag == '1' && splice_immediate_flag == '0')) splice_time()</code></td><td></td><td></td></tr>
+                            <tr><td><code>&nbsp;&nbsp;&nbsp;&nbsp;if(program_splice_flag == '0') {</code></td><td></td><td></td></tr>
+                            <tr><td><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;component_count</code></td><td>8</td><td>uimsbf</td></tr>
+                            <tr><td><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for(i=0; i&lt;component_count; i++) {</code></td><td></td><td></td></tr>
+                            <tr><td><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;component_tag</code></td><td>8</td><td>uimsbf</td></tr>
+                            <tr><td><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if(splice_immediate_flag == '0') splice_time()</code></td><td></td><td></td></tr>
+                            <tr><td><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}</code></td><td></td><td></td></tr>
+                            <tr><td><code>&nbsp;&nbsp;&nbsp;&nbsp;}</code></td><td></td><td></td></tr>
+                            <tr><td><code>&nbsp;&nbsp;&nbsp;&nbsp;if(duration_flag == '1') break_duration()</code></td><td></td><td></td></tr>
+                            <tr><td><code>&nbsp;&nbsp;&nbsp;&nbsp;unique_program_id</code></td><td>16</td><td>uimsbf</td></tr>
+                            <tr><td><code>&nbsp;&nbsp;&nbsp;&nbsp;avail_num</code></td><td>8</td><td>uimsbf</td></tr>
+                            <tr><td><code>&nbsp;&nbsp;&nbsp;&nbsp;avails_expected</code></td><td>8</td><td>uimsbf</td></tr>
+                            <tr><td><code>&nbsp;&nbsp;}</code></td><td></td><td></td></tr>
+                             <tr><td><code>}</code></td><td></td><td></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </article>
+
+        </section>
+
+        <!-- Splice Descriptors -->
+        <section id="splice-descriptors" class="mb-12">
+            <h2 class="text-2xl font-bold border-b pb-2 mb-6 text-gray-800">10. Splice Descriptors</h2>
+            
+            <!-- segmentation_descriptor -->
+            <article id="segmentation-descriptor" class="mb-8">
+                <h3 class="text-xl font-semibold mb-4 text-gray-700">10.3.3. segmentation_descriptor()</h3>
+                <p class="mb-4">Provides an optional extension to the <code>time_signal()</code> and <code>splice_insert()</code> commands that allows for segmentation messages to be sent in a time/video accurate method.</p>
+                <div class="table-container bg-white rounded-lg shadow-md">
+                    <table>
+                        <thead>
+                           <tr><th>Syntax</th><th>Bits</th><th>Mnemonic</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td><code>segmentation_descriptor() {</code></td><td></td><td></td></tr>
+                            <tr><td><code>&nbsp;&nbsp;splice_descriptor_tag</code></td><td>8</td><td>uimsbf</td></tr>
+                            <tr><td><code>&nbsp;&nbsp;descriptor_length</code></td><td>8</td><td>uimsbf</td></tr>
+                            <tr><td><code>&nbsp;&nbsp;identifier</code></td><td>32</td><td>uimsbf</td></tr>
+                            <tr><td><code>&nbsp;&nbsp;segmentation_event_id</code></td><td>32</td><td>uimsbf</td></tr>
+                            <tr><td><code>&nbsp;&nbsp;segmentation_event_cancel_indicator</code></td><td>1</td><td>bslbf</td></tr>
+                             <tr><td><code>&nbsp;&nbsp;segmentation_event_id_compliance_indicator</code></td><td>1</td><td>bslbf</td></tr>
+                            <tr><td><code>&nbsp;&nbsp;reserved</code></td><td>6</td><td>bslbf</td></tr>
+                            <tr><td><code>&nbsp;&nbsp;if(segmentation_event_cancel_indicator == '0') {</code></td><td></td><td></td></tr>
+                            <tr><td><code>&nbsp;&nbsp;&nbsp;&nbsp;program_segmentation_flag</code></td><td>1</td><td>bslbf</td></tr>
+                            <tr><td><code>&nbsp;&nbsp;&nbsp;&nbsp;segmentation_duration_flag</code></td><td>1</td><td>bslbf</td></tr>
+                            <tr><td><code>&nbsp;&nbsp;&nbsp;&nbsp;delivery_not_restricted_flag</code></td><td>1</td><td>bslbf</td></tr>
+                            <tr><td><code>&nbsp;&nbsp;&nbsp;&nbsp;if(delivery_not_restricted_flag == '0') {</code></td><td></td><td></td></tr>
+                            <tr><td><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;web_delivery_allowed_flag</code></td><td>1</td><td>bslbf</td></tr>
+                            <tr><td><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;no_regional_blackout_flag</code></td><td>1</td><td>bslbf</td></tr>
+                            <tr><td><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;archive_allowed_flag</code></td><td>1</td><td>bslbf</td></tr>
+                            <tr><td><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;device_restrictions</code></td><td>2</td><td>bslbf</td></tr>
+                            <tr><td><code>&nbsp;&nbsp;&nbsp;&nbsp;} else {</code></td><td></td><td></td></tr>
+                            <tr><td><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;reserved</code></td><td>5</td><td>bslbf</td></tr>
+                            <tr><td><code>&nbsp;&nbsp;&nbsp;&nbsp;}</code></td><td></td><td></td></tr>
+                            <tr><td><code>&nbsp;&nbsp;&nbsp;&nbsp;if(program_segmentation_flag == '0') {</code></td><td></td><td></td></tr>
+                            <tr><td><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;component_count</code></td><td>8</td><td>uimsbf</td></tr>
+                            <tr><td><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for(i=0; i&lt;component_count; i++) {</code></td><td></td><td></td></tr>
+                            <tr><td><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;component_tag</code></td><td>8</td><td>uimsbf</td></tr>
+                            <tr><td><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;reserved</code></td><td>7</td><td>bslbf</td></tr>
+                            <tr><td><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;pts_offset</code></td><td>33</td><td>uimsbf</td></tr>
+                            <tr><td><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}</code></td><td></td><td></td></tr>
+                            <tr><td><code>&nbsp;&nbsp;&nbsp;&nbsp;}</code></td><td></td><td></td></tr>
+                            <tr><td><code>&nbsp;&nbsp;&nbsp;&nbsp;if(segmentation_duration_flag == '1') segmentation_duration</code></td><td>40</td><td>uimsbf</td></tr>
+                            <tr><td><code>&nbsp;&nbsp;&nbsp;&nbsp;segmentation_upid_type</code></td><td>8</td><td>uimsbf</td></tr>
+                            <tr><td><code>&nbsp;&nbsp;&nbsp;&nbsp;segmentation_upid_length</code></td><td>8</td><td>uimsbf</td></tr>
+                            <tr><td><code>&nbsp;&nbsp;&nbsp;&nbsp;segmentation_upid()</code></td><td></td><td></td></tr>
+                            <tr><td><code>&nbsp;&nbsp;&nbsp;&nbsp;segmentation_type_id</code></td><td>8</td><td>uimsbf</td></tr>
+                            <tr><td><code>&nbsp;&nbsp;&nbsp;&nbsp;segment_num</code></td><td>8</td><td>uimsbf</td></tr>
+                            <tr><td><code>&nbsp;&nbsp;&nbsp;&nbsp;segments_expected</code></td><td>8</td><td>uimsbf</td></tr>
+                            <tr><td><code>&nbsp;&nbsp;&nbsp;&nbsp;if(segmentation_type_id == 0x34 || 0x36 || 0x38 || 0x3A || 0x44 || 0x46) {</code></td><td></td><td></td></tr>
+                            <tr><td><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sub_segment_num</code></td><td>8</td><td>uimsbf</td></tr>
+                            <tr><td><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sub_segments_expected</code></td><td>8</td><td>uimsbf</td></tr>
+                            <tr><td><code>&nbsp;&nbsp;&nbsp;&nbsp;}</code></td><td></td><td></td></tr>
+                            <tr><td><code>&nbsp;&nbsp;}</code></td><td></td><td></td></tr>
+                             <tr><td><code>}</code></td><td></td><td></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                 <div class="sub-section mt-6">
+                    <h4 class="text-lg font-semibold mb-2 text-gray-600">Table 22: segmentation_upid_type values</h4>
+                     <div class="table-container bg-white rounded-lg shadow-md">
+                        <table class="min-w-full">
+                            <thead>
+                                <tr><th><code>segmentation_upid_type</code></th><th>Description</th></tr>
+                            </thead>
+                            <tbody>
+                                <tr><td>0x00</td><td>Not Used</td></tr>
+                                <tr><td>0x01</td><td>User Defined (deprecated)</td></tr>
+                                <tr><td>0x02</td><td>ISCI (deprecated)</td></tr>
+                                <tr><td>0x03</td><td>Ad-ID</td></tr>
+                                <tr><td>0x04</td><td>UMID</td></tr>
+                                <tr><td>0x05</td><td>ISAN (deprecated)</td></tr>
+                                <tr><td>0x06</td><td>ISAN (V-ISAN)</td></tr>
+                                <tr><td>0x07</td><td>TID</td></tr>
+                                <tr><td>0x08</td><td>TI (AiringID)</td></tr>
+                                <tr><td>0x09</td><td>ADI</td></tr>
+                                <tr><td>0x0A</td><td>EIDR</td></tr>
+                                <tr><td>0x0B</td><td>ATSC Content Identifier</td></tr>
+                                <tr><td>0x0C</td><td>MPU()</td></tr>
+                                <tr><td>0x0D</td><td>MID()</td></tr>
+                                <tr><td>0x0E</td><td>ADS Information</td></tr>
+                                <tr><td>0x0F</td><td>URI</td></tr>
+                                <tr><td>0x10</td><td>UUID</td></tr>
+                                <tr><td>0x11</td><td>SCR</td></tr>
+                                <tr><td>0x12 - 0xFF</td><td>Reserved</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="sub-section mt-6">
+                    <h4 class="text-lg font-semibold mb-2 text-gray-600">Table 23: segmentation_type_id values</h4>
+                     <div class="table-container bg-white rounded-lg shadow-md">
+                        <table class="min-w-full">
+                            <thead>
+                                <tr><th>Value (Hex)</th><th>Segmentation Message</th></tr>
+                            </thead>
+                            <tbody>
+                                <tr><td>0x00</td><td>Not Indicated</td></tr>
+                                <tr><td>0x01</td><td>Content Identification</td></tr>
+                                <tr><td>0x10</td><td>Program Start</td></tr>
+                                <tr><td>0x11</td><td>Program End</td></tr>
+                                <tr><td>0x12</td><td>Program Early Termination</td></tr>
+                                <tr><td>0x13</td><td>Program Breakaway</td></tr>
+                                <tr><td>0x14</td><td>Program Resumption</td></tr>
+                                <tr><td>0x17</td><td>Program Overlap Start</td></tr>
+                                <tr><td>0x20</td><td>Chapter Start</td></tr>
+                                <tr><td>0x21</td><td>Chapter End</td></tr>
+                                <tr><td>0x30</td><td>Provider Advertisement Start</td></tr>
+                                <tr><td>0x31</td><td>Provider Advertisement End</td></tr>
+                                <tr><td>0x32</td><td>Distributor Advertisement Start</td></tr>
+                                <tr><td>0x33</td><td>Distributor Advertisement End</td></tr>
+                                <tr><td>0x34</td><td>Provider Placement Opportunity Start</td></tr>
+                                <tr><td>0x35</td><td>Provider Placement Opportunity End</td></tr>
+                                <tr><td>0x36</td><td>Distributor Placement Opportunity Start</td></tr>
+                                <tr><td>0x37</td><td>Distributor Placement Opportunity End</td></tr>
+                                <tr><td>0x40</td><td>Unscheduled Event Start</td></tr>
+                                <tr><td>0x41</td><td>Unscheduled Event End</td></tr>
+                                <tr><td>0x50</td><td>Network Start</td></tr>
+                                <tr><td>0x51</td><td>Network End</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </article>
+
+        </section>
+
+    </div>
+
+</body>
+</html>

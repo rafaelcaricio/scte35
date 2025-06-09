@@ -46,8 +46,8 @@ fn print_text_output(section: &SpliceInfoSection, buffer: &[u8]) {
             if let Some(duration) = cmd.splice_duration {
                 println!("    Splice Duration: {}", duration);
             }
-            if let Some(time) = &cmd.scheduled_splice_time {
-                println!("    Scheduled Splice Time: {:?}", time);
+            if let Some(time) = cmd.utc_splice_time {
+                println!("    UTC Splice Time: {} (seconds since epoch)", time);
             }
         }
         SpliceCommand::SpliceInsert(cmd) => {
@@ -184,6 +184,33 @@ fn print_text_output(section: &SpliceInfoSection, buffer: &[u8]) {
                 if let Some(sub_expected) = seg_desc.sub_segments_expected {
                     println!("      Sub-segments Expected: {}", sub_expected);
                 }
+            }
+            SpliceDescriptor::Avail(avail_desc) => {
+                println!("    Avail Descriptor:");
+                println!("      Identifier: 0x{:08x}", avail_desc.identifier);
+                println!("      Provider Avail ID: {} bytes", avail_desc.provider_avail_id.len());
+            }
+            SpliceDescriptor::Dtmf(dtmf_desc) => {
+                println!("    DTMF Descriptor:");
+                println!("      Identifier: 0x{:08x}", dtmf_desc.identifier);
+                println!("      Preroll: {}", dtmf_desc.preroll);
+                println!("      DTMF Count: {}", dtmf_desc.dtmf_count);
+                let dtmf_chars: String = dtmf_desc.dtmf_chars.iter()
+                    .map(|&c| if c.is_ascii_graphic() { c as char } else { '?' })
+                    .collect();
+                println!("      DTMF Characters: \"{}\"", dtmf_chars);
+            }
+            SpliceDescriptor::Time(time_desc) => {
+                println!("    Time Descriptor:");
+                println!("      Identifier: 0x{:08x}", time_desc.identifier);
+                println!("      TAI Seconds: {} bytes", time_desc.tai_seconds.len());
+                println!("      TAI Nanoseconds: {} bytes", time_desc.tai_ns.len());
+                println!("      UTC Offset: {} bytes", time_desc.utc_offset.len());
+            }
+            SpliceDescriptor::Audio(audio_desc) => {
+                println!("    Audio Descriptor:");
+                println!("      Identifier: 0x{:08x}", audio_desc.identifier);
+                println!("      Audio Components: {} bytes", audio_desc.audio_components.len());
             }
             SpliceDescriptor::Unknown { tag, length, data } => {
                 println!("    Unknown Descriptor:");

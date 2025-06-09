@@ -5,7 +5,6 @@
 mod tests {
     use base64::{engine::general_purpose, Engine};
     use scte35_parsing::*;
-    use serde_json;
 
     #[test]
     fn test_complete_message_serialization() {

@@ -17,6 +17,14 @@ use std::time::Duration;
 pub enum SpliceDescriptor {
     /// Segmentation descriptor (tag 0x02) - fully parsed
     Segmentation(SegmentationDescriptor),
+    /// Avail descriptor (tag 0x00) - for ad availability
+    Avail(AvailDescriptor),
+    /// DTMF descriptor (tag 0x01) - for DTMF signaling
+    Dtmf(DtmfDescriptor),
+    /// Time descriptor (tag 0x03) - for time synchronization
+    Time(TimeDescriptor),
+    /// Audio descriptor (tag 0x04) - for audio component information
+    Audio(AudioDescriptor),
     /// Unknown or unsupported descriptor type with raw bytes
     Unknown {
         /// Descriptor tag
@@ -40,6 +48,10 @@ impl SpliceDescriptor {
     pub fn tag(&self) -> u8 {
         match self {
             SpliceDescriptor::Segmentation(_) => 0x02,
+            SpliceDescriptor::Avail(_) => 0x00,
+            SpliceDescriptor::Dtmf(_) => 0x01,
+            SpliceDescriptor::Time(_) => 0x03,
+            SpliceDescriptor::Audio(_) => 0x04,
             SpliceDescriptor::Unknown { tag, .. } => *tag,
         }
     }
@@ -52,6 +64,10 @@ impl SpliceDescriptor {
                 // This is a simplified calculation - real implementation would serialize back
                 33 // Minimum segmentation descriptor length
             }
+            SpliceDescriptor::Avail(desc) => 4 + desc.provider_avail_id.len() as u8,
+            SpliceDescriptor::Dtmf(desc) => 4 + desc.dtmf_chars.len() as u8,
+            SpliceDescriptor::Time(_) => 4 + 6 + 4 + 2, // identifier + tai_seconds + tai_ns + utc_offset
+            SpliceDescriptor::Audio(desc) => 4 + desc.audio_components.len() as u8,
             SpliceDescriptor::Unknown { length, .. } => *length,
         }
     }
@@ -60,6 +76,10 @@ impl SpliceDescriptor {
     pub fn raw_bytes(&self) -> Option<&[u8]> {
         match self {
             SpliceDescriptor::Segmentation(_) => None,
+            SpliceDescriptor::Avail(_) => None,
+            SpliceDescriptor::Dtmf(_) => None,
+            SpliceDescriptor::Time(_) => None,
+            SpliceDescriptor::Audio(_) => None,
             SpliceDescriptor::Unknown { data, .. } => Some(data),
         }
     }
@@ -91,6 +111,14 @@ impl SpliceDescriptor {
     pub fn as_str(&self) -> Option<String> {
         match self {
             SpliceDescriptor::Segmentation(seg_desc) => seg_desc.upid_as_string(),
+            SpliceDescriptor::Avail(avail_desc) => {
+                std::str::from_utf8(&avail_desc.provider_avail_id).ok().map(|s| s.to_string())
+            }
+            SpliceDescriptor::Dtmf(dtmf_desc) => {
+                std::str::from_utf8(&dtmf_desc.dtmf_chars).ok().map(|s| s.to_string())
+            }
+            SpliceDescriptor::Time(_) => None, // Time data not interpretable as string
+            SpliceDescriptor::Audio(_) => None, // Audio data not interpretable as string
             SpliceDescriptor::Unknown { data, .. } => {
                 std::str::from_utf8(data).ok().map(|s| s.to_string())
             }
@@ -460,4 +488,87 @@ mod tests {
         };
         assert_eq!(desc_no_duration.duration(), None);
     }
+}
+
+/// Avail descriptor for ad availability information.
+#[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub struct AvailDescriptor {
+    /// Descriptor identifier (typically 0x43554549 "CUEI")
+    pub identifier: u32,
+    /// Provider-specific avail identifier
+    #[cfg_attr(
+        feature = "serde",
+        serde(
+            serialize_with = "crate::serde::serialize_bytes",
+            deserialize_with = "crate::serde::deserialize_bytes"
+        )
+    )]
+    pub provider_avail_id: Vec<u8>,
+}
+
+/// DTMF descriptor for DTMF tone signaling.
+#[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub struct DtmfDescriptor {
+    /// Descriptor identifier (typically 0x43554549 "CUEI")
+    pub identifier: u32,
+    /// Preroll duration in 90kHz ticks
+    pub preroll: u8,
+    /// DTMF character count
+    pub dtmf_count: u8,
+    /// DTMF characters
+    pub dtmf_chars: Vec<u8>,
+}
+
+/// Time descriptor for time synchronization.
+#[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub struct TimeDescriptor {
+    /// Descriptor identifier (typically 0x43554549 "CUEI")
+    pub identifier: u32,
+    /// TAI seconds (6 bytes)
+    #[cfg_attr(
+        feature = "serde",
+        serde(
+            serialize_with = "crate::serde::serialize_bytes",
+            deserialize_with = "crate::serde::deserialize_bytes"
+        )
+    )]
+    pub tai_seconds: Vec<u8>,
+    /// TAI nanoseconds (4 bytes)
+    #[cfg_attr(
+        feature = "serde",
+        serde(
+            serialize_with = "crate::serde::serialize_bytes",
+            deserialize_with = "crate::serde::deserialize_bytes"
+        )
+    )]
+    pub tai_ns: Vec<u8>,
+    /// UTC offset (2 bytes)
+    #[cfg_attr(
+        feature = "serde",
+        serde(
+            serialize_with = "crate::serde::serialize_bytes",
+            deserialize_with = "crate::serde::deserialize_bytes"
+        )
+    )]
+    pub utc_offset: Vec<u8>,
+}
+
+/// Audio descriptor for audio component information.
+#[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub struct AudioDescriptor {
+    /// Descriptor identifier (typically 0x43554549 "CUEI")
+    pub identifier: u32,
+    /// Audio component data
+    #[cfg_attr(
+        feature = "serde",
+        serde(
+            serialize_with = "crate::serde::serialize_bytes",
+            deserialize_with = "crate::serde::deserialize_bytes"
+        )
+    )]
+    pub audio_components: Vec<u8>,
 }

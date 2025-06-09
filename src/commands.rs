@@ -4,7 +4,7 @@
 //! from binary data.
 
 use crate::bit_reader::BitReader;
-use crate::time::{BreakDuration, DateTime, SpliceTime};
+use crate::time::{BreakDuration, SpliceTime};
 use crate::types::{
     BandwidthReservation, ComponentSplice, PrivateCommand, SpliceCommand, SpliceInsert,
     SpliceInsertComponent, SpliceSchedule, TimeSignal,
@@ -55,9 +55,9 @@ pub(crate) fn parse_splice_schedule(reader: &mut BitReader) -> Result<SpliceSche
         None
     };
 
-    let scheduled_splice_time = if duration_flag == 0 {
-        let _reserved = reader.read_bslbf(5)? as u8;
-        Some(parse_date_time(reader)?)
+    let utc_splice_time = if duration_flag == 0 {
+        // According to SCTE-35 spec: if (program_splice_flag == '1') utc_splice_time (32 bits)
+        Some(reader.read_uimsbf(32)? as u32)
     } else {
         None
     };
@@ -76,7 +76,7 @@ pub(crate) fn parse_splice_schedule(reader: &mut BitReader) -> Result<SpliceSche
         out_of_network_indicator,
         duration_flag,
         splice_duration,
-        scheduled_splice_time,
+        utc_splice_time,
         unique_program_id,
         num_splice,
         component_list,
@@ -234,30 +234,6 @@ pub(crate) fn parse_break_duration(reader: &mut BitReader) -> Result<BreakDurati
     })
 }
 
-/// Parses a date/time structure.
-pub(crate) fn parse_date_time(reader: &mut BitReader) -> Result<DateTime, io::Error> {
-    let utc_flag = reader.read_bslbf(1)? as u8;
-    let year = reader.read_uimsbf(12)? as u16;
-    let month = reader.read_uimsbf(4)? as u8;
-    let day = reader.read_uimsbf(5)? as u8;
-    let hour = reader.read_uimsbf(5)? as u8;
-    let minute = reader.read_uimsbf(6)? as u8;
-    let second = reader.read_uimsbf(6)? as u8;
-    let frames = reader.read_uimsbf(6)? as u8;
-    let milliseconds = reader.read_uimsbf(3)? as u8;
-    Ok(DateTime {
-        utc_flag,
-        year,
-        month,
-        day,
-        hour,
-        minute,
-        second,
-        frames,
-        milliseconds,
-    })
-}
-
 /// Parses a component splice structure.
 pub(crate) fn parse_component_splice(reader: &mut BitReader) -> Result<ComponentSplice, io::Error> {
     let component_tag = reader.read_uimsbf(8)? as u8;
@@ -271,9 +247,9 @@ pub(crate) fn parse_component_splice(reader: &mut BitReader) -> Result<Component
         None
     };
 
-    let scheduled_splice_time = if duration_flag == 0 {
-        let _reserved = reader.read_bslbf(5)? as u8;
-        Some(parse_date_time(reader)?)
+    let utc_splice_time = if duration_flag == 0 {
+        // According to SCTE-35 spec: utc_splice_time (32 bits)
+        Some(reader.read_uimsbf(32)? as u32)
     } else {
         None
     };
@@ -284,6 +260,6 @@ pub(crate) fn parse_component_splice(reader: &mut BitReader) -> Result<Component
         splice_mode_indicator,
         duration_flag,
         splice_duration,
-        scheduled_splice_time,
+        utc_splice_time,
     })
 }
