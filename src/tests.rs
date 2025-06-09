@@ -780,8 +780,7 @@ fn test_segmentation_upid_type_roundtrip() {
         let back_to_type = SegmentationUpidType::from(byte_value);
         assert_eq!(
             upid_type, back_to_type,
-            "Round-trip failed for {:?}",
-            upid_type
+            "Round-trip failed for {upid_type:?}"
         );
     }
 }

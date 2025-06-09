@@ -49,17 +49,13 @@ impl fmt::Display for EncodingError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             EncodingError::BufferOverflow { needed, available } => {
-                write!(
-                    f,
-                    "Buffer overflow: needed {} bytes, had {}",
-                    needed, available
-                )
+                write!(f, "Buffer overflow: needed {needed} bytes, had {available}")
             }
             EncodingError::InvalidFieldValue { field, value } => {
-                write!(f, "Invalid field value: {} = {}", field, value)
+                write!(f, "Invalid field value: {field} = {value}")
             }
             EncodingError::MissingRequiredField { field } => {
-                write!(f, "Missing required field: {}", field)
+                write!(f, "Missing required field: {field}")
             }
             EncodingError::ValueTooLarge {
                 field,
@@ -68,12 +64,11 @@ impl fmt::Display for EncodingError {
             } => {
                 write!(
                     f,
-                    "Value too large for field {}: {} > {} (max)",
-                    field, actual_value, max_value
+                    "Value too large for field {field}: {actual_value} > {max_value} (max)"
                 )
             }
             EncodingError::IoError(msg) => {
-                write!(f, "IO error: {}", msg)
+                write!(f, "IO error: {msg}")
             }
         }
     }

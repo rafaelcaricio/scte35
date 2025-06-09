@@ -134,7 +134,7 @@ impl fmt::Display for SegmentationUpidType {
             SCR => "SCR (Subscriber Company Reporting)",
             Reserved(_) => "Reserved/Unknown",
         };
-        write!(f, "{}", description)
+        write!(f, "{description}")
     }
 }
 

@@ -37,7 +37,7 @@ where
         {
             BASE64
                 .decode(value.as_bytes())
-                .map_err(|e| E::custom(format!("invalid base64: {}", e)))
+                .map_err(|e| E::custom(format!("invalid base64: {e}")))
         }
     }
 
@@ -72,7 +72,7 @@ where
         Some(s) => BASE64
             .decode(s.as_bytes())
             .map(Some)
-            .map_err(|e| de::Error::custom(format!("invalid base64: {}", e))),
+            .map_err(|e| de::Error::custom(format!("invalid base64: {e}"))),
         None => Ok(None),
     }
 }
@@ -104,9 +104,9 @@ impl DurationInfo {
 /// Format duration in seconds to human-readable string.
 fn format_duration_seconds(seconds: f64) -> String {
     if seconds < 1.0 {
-        format!("{:.3}s", seconds)
+        format!("{seconds:.3}s")
     } else if seconds < 60.0 {
-        format!("{:.1}s", seconds)
+        format!("{seconds:.1}s")
     } else if seconds < 3600.0 {
         let minutes = (seconds / 60.0).floor();
         let secs = seconds % 60.0;

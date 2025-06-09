@@ -13,7 +13,7 @@ fn main() {
     // Serialize to JSON
     let json = serde_json::to_string_pretty(&section).unwrap();
     println!("JSON representation:");
-    println!("{}", json);
+    println!("{json}");
 
     // Demonstrate that we can deserialize back
     let deserialized: scte35::SpliceInfoSection = serde_json::from_str(&json).unwrap();

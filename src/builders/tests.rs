@@ -654,7 +654,7 @@ mod builder_tests {
         }
 
         // Print the generated payload for verification
-        println!("Generated TimeSignal immediate payload: {}", encoded_base64);
+        println!("Generated TimeSignal immediate payload: {encoded_base64}");
     }
 
     #[test]
@@ -716,10 +716,7 @@ mod builder_tests {
         }
 
         // Print the generated payload for verification
-        println!(
-            "Generated SpliceInsert immediate payload: {}",
-            encoded_base64
-        );
+        println!("Generated SpliceInsert immediate payload: {encoded_base64}");
     }
 
     #[test]
@@ -763,7 +760,7 @@ mod builder_tests {
         }
 
         // Print the generated payload for verification
-        println!("Generated SpliceNull payload: {}", encoded_base64);
+        println!("Generated SpliceNull payload: {encoded_base64}");
     }
 
     #[test]
@@ -827,7 +824,7 @@ mod builder_tests {
         }
 
         // Print the generated payload for verification
-        println!("Generated TimeSignal with PTS payload: {}", encoded_base64);
+        println!("Generated TimeSignal with PTS payload: {encoded_base64}");
     }
 
     #[test]
@@ -913,10 +910,7 @@ mod builder_tests {
         }
 
         // Print the generated payload for verification
-        println!(
-            "Generated SpliceInsert with SegmentationDescriptor payload: {}",
-            encoded_base64
-        );
+        println!("Generated SpliceInsert with SegmentationDescriptor payload: {encoded_base64}");
     }
 
     #[test]
