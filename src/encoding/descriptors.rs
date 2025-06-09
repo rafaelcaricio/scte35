@@ -101,6 +101,7 @@ impl Encodable for SegmentationDescriptor {
             }
 
             // segmentation_duration if segmentation_duration_flag == true
+            #[allow(clippy::collapsible_if)]
             if self.segmentation_duration_flag {
                 if let Some(duration) = self.segmentation_duration {
                     writer.write_bits(duration & 0xFFFFFFFFFF, 40)?; // 40 bits
