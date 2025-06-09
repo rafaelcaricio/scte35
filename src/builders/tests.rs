@@ -1006,7 +1006,7 @@ mod builder_tests {
         // - device_restrictions = 3 (bits 1-0 = 11)
         use crate::builders::{DeliveryRestrictions, DeviceRestrictions};
 
-        let airing_id_bytes = vec![0x00, 0x00, 0x00, 0x00, 0x2C, 0xA0, 0xA1, 0x8A];
+        let airing_id_bytes = [0x00, 0x00, 0x00, 0x00, 0x2C, 0xA0, 0xA1, 0x8A];
         let restrictions = DeliveryRestrictions {
             web_delivery_allowed: false,
             no_regional_blackout: true,
@@ -1115,7 +1115,7 @@ mod builder_tests {
 
         // Build the segmentation descriptor with Airing ID UPID (no duration for End event)
         // Need to check delivery restrictions - let's assume similar to the Start event
-        let airing_id_bytes = vec![0x00, 0x00, 0x00, 0x00, 0x2C, 0xA0, 0xA1, 0x8A];
+        let airing_id_bytes = [0x00, 0x00, 0x00, 0x00, 0x2C, 0xA0, 0xA1, 0x8A];
         let restrictions = DeliveryRestrictions {
             web_delivery_allowed: true, // Different from Start event
             no_regional_blackout: true,

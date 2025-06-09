@@ -154,7 +154,7 @@ mod tests {
         let base64_payload = BASE64.encode(&encoded_bytes);
 
         // Now test the round-trip
-        test_round_trip_payload(&base64_payload, "TimeSignal immediate");
+        test_round_trip_payload(base64_payload.as_str(), "TimeSignal immediate");
     }
 
     #[test]
@@ -174,7 +174,7 @@ mod tests {
         let base64_payload = BASE64.encode(&encoded_bytes);
 
         // Now test the round-trip
-        test_round_trip_payload(&base64_payload, "SpliceInsert immediate");
+        test_round_trip_payload(base64_payload.as_str(), "SpliceInsert immediate");
     }
 
     #[test]
@@ -192,7 +192,7 @@ mod tests {
         let base64_payload = BASE64.encode(&encoded_bytes);
 
         // Now test the round-trip
-        test_round_trip_payload(&base64_payload, "SpliceNull command");
+        test_round_trip_payload(base64_payload.as_str(), "SpliceNull command");
     }
 
     #[test]
@@ -217,7 +217,7 @@ mod tests {
         let base64_payload = BASE64.encode(&encoded_bytes);
 
         // Now test the round-trip
-        test_round_trip_payload(&base64_payload, "TimeSignal with PTS");
+        test_round_trip_payload(base64_payload.as_str(), "TimeSignal with PTS");
     }
 
     #[test]
@@ -251,7 +251,10 @@ mod tests {
         println!("Encoded bytes: {:02X?}", encoded_bytes);
 
         // Now test the round-trip
-        test_round_trip_payload(&base64_payload, "Message with segmentation descriptor");
+        test_round_trip_payload(
+            base64_payload.as_str(),
+            "Message with segmentation descriptor",
+        );
     }
 
     #[test]
@@ -296,7 +299,7 @@ mod tests {
         let base64_payload = BASE64.encode(&encoded_bytes);
 
         // Now test the round-trip
-        test_round_trip_payload(&base64_payload, "BandwidthReservation command");
+        test_round_trip_payload(base64_payload.as_str(), "BandwidthReservation command");
     }
 
     #[test]
@@ -337,7 +340,7 @@ mod tests {
         let base64_payload = BASE64.encode(&encoded_bytes);
 
         // Now test the round-trip
-        test_round_trip_payload(&base64_payload, "PrivateCommand with custom data");
+        test_round_trip_payload(base64_payload.as_str(), "PrivateCommand with custom data");
     }
 
     #[test]
@@ -370,7 +373,10 @@ mod tests {
         let base64_payload = BASE64.encode(&encoded_bytes);
 
         // Now test the round-trip
-        test_round_trip_payload(&base64_payload, "Complex message with multiple descriptors");
+        test_round_trip_payload(
+            base64_payload.as_str(),
+            "Complex message with multiple descriptors",
+        );
     }
 
     #[test]
@@ -404,7 +410,10 @@ mod tests {
         let base64_payload = BASE64.encode(&encoded_bytes);
 
         // Now test the round-trip
-        test_round_trip_payload(&base64_payload, "Long segmentation descriptor with UPID");
+        test_round_trip_payload(
+            base64_payload.as_str(),
+            "Long segmentation descriptor with UPID",
+        );
     }
 
     /// Integration test that validates encoding with CRC recalculation
@@ -512,7 +521,7 @@ mod tests {
         // TimeSignal with segmentation descriptor (Provider Placement Opportunity Start)
         // This is a real-world example from SCTE-35 specification
         let base64_payload = "/DAnAAAAAAAAAP/wBQb+AA27oAARAg9DVUVJAAAAAX+HCQA0AAE0xUZn";
-        test_round_trip_payload(&base64_payload, "TimeSignal with segmentation descriptor");
+        test_round_trip_payload(base64_payload, "TimeSignal with segmentation descriptor");
     }
 
     #[test]
@@ -521,7 +530,7 @@ mod tests {
         let base64_payload =
             "/DA0AAAAAAAA///wBQb+cr0AUAAeAhxDVUVJSAAAjn/PAAGlmbAICAAAAAAsoKGKNAIAmsnRfg==";
         test_round_trip_payload(
-            &base64_payload,
+            base64_payload,
             "Sample 14.1 time_signal - Placement Opportunity Start",
         );
     }
@@ -530,7 +539,7 @@ mod tests {
     fn test_sample_14_2_splice_insert() {
         // Sample 14.2 splice_insert with break duration and avail descriptor
         let base64_payload = "/DAvAAAAAAAA///wFAVIAACPf+/+c2nALv4AUsz1AAAAAAAKAAhDVUVJAAABNWLbowo=";
-        test_round_trip_payload(&base64_payload, "Sample 14.2 splice_insert");
+        test_round_trip_payload(base64_payload, "Sample 14.2 splice_insert");
     }
 
     #[test]
@@ -538,7 +547,7 @@ mod tests {
         // Sample 14.3 time_signal - Placement Opportunity End
         let base64_payload = "/DAvAAAAAAAA///wBQb+dGKQoAAZAhdDVUVJSAAAjn+fCAgAAAAALKChijUCAKnMZ1g=";
         test_round_trip_payload(
-            &base64_payload,
+            base64_payload,
             "Sample 14.3 time_signal - Placement Opportunity End",
         );
     }
@@ -548,7 +557,7 @@ mod tests {
         // Sample 14.4 time_signal - Program Start/End (multiple descriptors)
         let base64_payload = "/DBIAAAAAAAA///wBQb+ek2ItgAyAhdDVUVJSAAAGH+fCAgAAAAALMvDRBEAAAIXQ1VFSUgAABl/nwgIAAAAACyk26AQAACZcuND";
         test_round_trip_payload(
-            &base64_payload,
+            base64_payload,
             "Sample 14.4 time_signal - Program Start/End",
         );
     }
@@ -558,7 +567,7 @@ mod tests {
         // Sample 14.5 time_signal - Program Overlap Start
         let base64_payload = "/DAvAAAAAAAA///wBQb+rr//ZAAZAhdDVUVJSAAACH+fCAgAAAAALKVs9RcAAJUdsKg=";
         test_round_trip_payload(
-            &base64_payload,
+            base64_payload,
             "Sample 14.5 time_signal - Program Overlap Start",
         );
     }
@@ -567,14 +576,14 @@ mod tests {
     fn test_splice_null_heartbeat() {
         // Splice Null - Heartbeat (minimal message)
         let base64_payload = "/DARAAAAAAAAAP/wAAAAAHpPv/8=";
-        test_round_trip_payload(&base64_payload, "Splice Null - Heartbeat");
+        test_round_trip_payload(base64_payload, "Splice Null - Heartbeat");
     }
 
     #[test]
     fn test_splice_insert_with_avail_descriptor() {
         // Splice Insert with Avail Descriptor
         let base64_payload = "/DAqAAAAAAAAAP/wDwUAAHn+f8/+QubGOQAAAAAACgAIQ1VFSQAAAADizteX";
-        test_round_trip_payload(&base64_payload, "Splice Insert with Avail Descriptor");
+        test_round_trip_payload(base64_payload, "Splice Insert with Avail Descriptor");
     }
 
     #[test]
@@ -582,7 +591,7 @@ mod tests {
         // Time Signal with multiple Segmentation Descriptors
         let base64_payload = "/DBIAAAAAAAAAP/wBQb/tB67hgAyAhdDVUVJQAABEn+fCAgAAAAALzE8BTUAAAIXQ1VFSUAAAEV/nwgIAAAAAC8xPN4jAAAfiOPE";
         test_round_trip_payload(
-            &base64_payload,
+            base64_payload,
             "Time Signal with multiple Segmentation Descriptors",
         );
     }

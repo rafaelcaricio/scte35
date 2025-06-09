@@ -70,7 +70,7 @@ cargo install scte35 --features cli
 ### Library Usage
 
 ```rust
-use scte35::{parse_splice_info_section, SpliceCommand, SpliceDescriptor};
+use scte35::{SpliceCommand, SpliceDescriptor};
 use std::time::Duration;
 
 // Your SCTE-35 message as bytes (example message)
@@ -79,7 +79,7 @@ let scte35_bytes = vec![
     0x42, 0x3A, 0x35, 0xBD, 0x00, 0x00, 0xBB, 0x0C, 0x73, 0xF4
 ];
 
-match parse_splice_info_section(&scte35_bytes) {
+match scte35::parse(&scte35_bytes) {
 Ok(section) => {
     println!("Table ID: {}", section.table_id);
     println!("Command Type: {}", section.splice_command_type);
@@ -671,9 +671,25 @@ cargo doc --no-deps --open
 
 ### Main Functions
 
+#### `parse(buffer: &[u8]) -> Result<SpliceInfoSection, io::Error>`
+
+Convenient alias for parsing SCTE-35 messages. This is the recommended function for most use cases, providing a clean and ergonomic API.
+
+```rust
+use scte35;
+# use data_encoding::BASE64;
+# fn main() -> Result<(), Box<dyn std::error::Error>> {
+# let base64_message = "/DAWAAAAAAAAAP/wBQb+Qjo1vQAAuwxz9A==";
+# let buffer = BASE64.decode(base64_message.as_bytes())?;
+
+let section = scte35::parse(&buffer)?;
+# Ok(())
+# }
+```
+
 #### `parse_splice_info_section(buffer: &[u8]) -> Result<SpliceInfoSection, io::Error>`
 
-Parses a complete SCTE-35 splice information section from a byte buffer. Automatically validates CRC-32 when the `crc-validation` feature is enabled.
+Parses a complete SCTE-35 splice information section from a byte buffer. Automatically validates CRC-32 when the `crc-validation` feature is enabled. The original function behind `parse`.
 
 #### `validate_scte35_crc(buffer: &[u8]) -> Result<bool, io::Error>`
 

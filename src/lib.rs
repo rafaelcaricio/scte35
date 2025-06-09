@@ -33,6 +33,37 @@ pub use crc::{CrcValidatable, validate_message_crc};
 // Re-export main types and functions for ease of use
 pub use parser::parse_splice_info_section;
 
+/// Convenient alias for [`parse_splice_info_section`].
+///
+/// This provides a shorter, more ergonomic way to parse SCTE-35 messages.
+///
+/// # Arguments
+///
+/// * `buffer` - A byte slice containing the complete SCTE-35 message
+///
+/// # Returns
+///
+/// * `Ok(SpliceInfoSection)` - Successfully parsed SCTE-35 message
+/// * `Err(io::Error)` - Parse error (malformed data, buffer underflow, etc.)
+///
+/// # Example
+///
+/// ```rust
+/// use data_encoding::BASE64;
+///
+/// let base64_message = "/DAWAAAAAAAAAP/wBQb+Qjo1vQAAuwxz9A==";
+/// let buffer = BASE64.decode(base64_message.as_bytes()).unwrap();
+///
+/// let section = scte35::parse(&buffer).unwrap();
+/// println!("Successfully parsed SCTE-35 message");
+/// println!("Command type: 0x{:02X}", section.splice_command_type);
+/// # assert_eq!(section.table_id, 252);
+/// # assert_eq!(section.splice_command_type, 6);
+/// ```
+pub fn parse(buffer: &[u8]) -> Result<types::SpliceInfoSection, io::Error> {
+    parse_splice_info_section(buffer)
+}
+
 // Re-export main types
 pub use types::{
     BandwidthReservation, ComponentSplice, PrivateCommand, SegmentationType, SpliceCommand,
