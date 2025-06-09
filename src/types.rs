@@ -563,6 +563,6 @@ impl fmt::Display for SegmentationType {
             NetworkStart => "Network Start",
             NetworkEnd => "Network End",
         };
-        write!(f, "{}", description)
+        write!(f, "{description}")
     }
 }

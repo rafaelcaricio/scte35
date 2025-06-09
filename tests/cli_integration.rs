@@ -35,7 +35,7 @@ mod tests {
     fn test_cli_json_output_works() {
         let mut cmd = Command::cargo_bin("scte35").unwrap();
         let output = cmd
-            .args(&["-o", "json", README_EXAMPLE_PAYLOAD])
+            .args(["-o", "json", README_EXAMPLE_PAYLOAD])
             .output()
             .expect("Failed to execute CLI command");
 
@@ -60,7 +60,7 @@ mod tests {
     fn test_cli_json_output_long_flag() {
         let mut cmd = Command::cargo_bin("scte35").unwrap();
         let output = cmd
-            .args(&["--output", "json", README_EXAMPLE_PAYLOAD])
+            .args(["--output", "json", README_EXAMPLE_PAYLOAD])
             .output()
             .expect("Failed to execute CLI command");
 
@@ -107,7 +107,7 @@ mod tests {
     fn test_cli_handles_invalid_base64_json() {
         let mut cmd = Command::cargo_bin("scte35").unwrap();
         let output = cmd
-            .args(&["-o", "json", "invalid_base64!"])
+            .args(["-o", "json", "invalid_base64!"])
             .output()
             .expect("Failed to execute CLI command");
 

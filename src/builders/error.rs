@@ -43,23 +43,21 @@ impl fmt::Display for BuilderError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             BuilderError::MissingRequiredField(field) => {
-                write!(f, "Required field '{}' is missing", field)
+                write!(f, "Required field '{field}' is missing")
             }
             BuilderError::InvalidValue { field, reason } => {
-                write!(f, "Invalid value for field '{}': {}", field, reason)
+                write!(f, "Invalid value for field '{field}': {reason}")
             }
             BuilderError::DurationTooLarge { field, duration } => write!(
                 f,
-                "Duration for field '{}' is too large: {:?} exceeds 33-bit PTS limit",
-                field, duration
+                "Duration for field '{field}' is too large: {duration:?} exceeds 33-bit PTS limit"
             ),
             BuilderError::InvalidUpidLength { expected, actual } => write!(
                 f,
-                "Invalid UPID length: expected {} bytes, got {}",
-                expected, actual
+                "Invalid UPID length: expected {expected} bytes, got {actual}"
             ),
             BuilderError::InvalidComponentCount { max, actual } => {
-                write!(f, "Too many components: maximum {}, got {}", max, actual)
+                write!(f, "Too many components: maximum {max}, got {actual}")
             }
         }
     }

@@ -18,7 +18,7 @@ mod tests {
         let json = serde_json::to_string_pretty(&section).unwrap();
 
         // Print for debugging
-        println!("JSON: {}", json);
+        println!("JSON: {json}");
 
         // Basic structure checks
         assert!(json.contains("\"table_id\": 252"));
@@ -57,7 +57,7 @@ mod tests {
         let json = serde_json::to_string_pretty(&section).unwrap();
 
         // Print JSON for debugging
-        println!("Segmentation JSON: {}", json);
+        println!("Segmentation JSON: {json}");
 
         // Check segmentation descriptor fields
         assert!(json.contains("\"splice_descriptors\""));
@@ -121,7 +121,7 @@ mod tests {
         let json = serde_json::to_string_pretty(&section).unwrap();
 
         // Print JSON for debugging
-        println!("MPU UPID JSON: {}", json);
+        println!("MPU UPID JSON: {json}");
 
         // Check that MPU UPID is properly serialized
         assert!(json.contains("\"segmentation_upid_type\": {"));

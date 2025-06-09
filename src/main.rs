@@ -44,10 +44,10 @@ fn print_text_output(section: &SpliceInfoSection, buffer: &[u8]) {
             println!("    Splice Event ID: {}", cmd.splice_event_id);
             println!("    Duration Flag: {}", cmd.duration_flag);
             if let Some(duration) = cmd.splice_duration {
-                println!("    Splice Duration: {}", duration);
+                println!("    Splice Duration: {duration}");
             }
             if let Some(time) = cmd.utc_splice_time {
-                println!("    UTC Splice Time: {} (seconds since epoch)", time);
+                println!("    UTC Splice Time: {time} (seconds since epoch)");
             }
         }
         SpliceCommand::SpliceInsert(cmd) => {
@@ -64,7 +64,7 @@ fn print_text_output(section: &SpliceInfoSection, buffer: &[u8]) {
 
             if let Some(splice_time) = &cmd.splice_time {
                 if let Some(pts) = splice_time.pts_time {
-                    println!("    Splice Time PTS: 0x{:09x}", pts);
+                    println!("    Splice Time PTS: 0x{pts:09x}");
                     if let Some(duration) = splice_time.to_duration() {
                         println!("    Splice Time: {:.6} seconds", duration.as_secs_f64());
                     }
@@ -89,7 +89,7 @@ fn print_text_output(section: &SpliceInfoSection, buffer: &[u8]) {
         SpliceCommand::TimeSignal(cmd) => {
             println!("  Splice Command: TimeSignal");
             if let Some(pts) = cmd.splice_time.pts_time {
-                println!("    PTS Time: {}", pts);
+                println!("    PTS Time: {pts}");
             }
         }
         SpliceCommand::BandwidthReservation(cmd) => {
@@ -147,7 +147,7 @@ fn print_text_output(section: &SpliceInfoSection, buffer: &[u8]) {
                 );
 
                 if let Some(upid_str) = seg_desc.upid_as_string() {
-                    println!("      UPID: {}", upid_str);
+                    println!("      UPID: {upid_str}");
                 } else if !seg_desc.segmentation_upid.is_empty() {
                     // Show base64 for binary data when base64 is available
                     #[cfg(feature = "base64")]
@@ -179,10 +179,10 @@ fn print_text_output(section: &SpliceInfoSection, buffer: &[u8]) {
                 println!("      Segments Expected: {}", seg_desc.segments_expected);
 
                 if let Some(sub_num) = seg_desc.sub_segment_num {
-                    println!("      Sub-segment Number: {}", sub_num);
+                    println!("      Sub-segment Number: {sub_num}");
                 }
                 if let Some(sub_expected) = seg_desc.sub_segments_expected {
-                    println!("      Sub-segments Expected: {}", sub_expected);
+                    println!("      Sub-segments Expected: {sub_expected}");
                 }
             }
             SpliceDescriptor::Avail(avail_desc) => {
@@ -203,7 +203,7 @@ fn print_text_output(section: &SpliceInfoSection, buffer: &[u8]) {
                     .iter()
                     .map(|&c| if c.is_ascii_graphic() { c as char } else { '?' })
                     .collect();
-                println!("      DTMF Characters: \"{}\"", dtmf_chars);
+                println!("      DTMF Characters: \"{dtmf_chars}\"");
             }
             SpliceDescriptor::Time(time_desc) => {
                 println!("    Time Descriptor:");
@@ -222,10 +222,10 @@ fn print_text_output(section: &SpliceInfoSection, buffer: &[u8]) {
             }
             SpliceDescriptor::Unknown { tag, length, data } => {
                 println!("    Unknown Descriptor:");
-                println!("      Tag: 0x{:02x}", tag);
-                println!("      Length: {}", length);
+                println!("      Tag: 0x{tag:02x}");
+                println!("      Length: {length}");
                 if let Some(text) = descriptor.as_str() {
-                    println!("      Content: \"{}\"", text);
+                    println!("      Content: \"{text}\"");
                 } else {
                     println!("      Data: {} bytes", data.len());
                 }
@@ -234,7 +234,7 @@ fn print_text_output(section: &SpliceInfoSection, buffer: &[u8]) {
     }
 
     if let Some(crc) = section.e_crc_32 {
-        println!("  Encrypted CRC-32: 0x{:08X}", crc);
+        println!("  Encrypted CRC-32: 0x{crc:08X}");
     }
 
     // CRC validation is always available when CLI feature is enabled
@@ -267,9 +267,9 @@ fn print_json_output(section: &SpliceInfoSection, buffer: &[u8]) {
     });
 
     match serde_json::to_string_pretty(&output) {
-        Ok(json_str) => println!("{}", json_str),
+        Ok(json_str) => println!("{json_str}"),
         Err(e) => {
-            eprintln!("Error serializing to JSON: {}", e);
+            eprintln!("Error serializing to JSON: {e}");
             process::exit(1);
         }
     }
@@ -284,19 +284,19 @@ fn main() {
         Ok(data) => data,
         Err(e) => match args.output {
             OutputFormat::Text => {
-                eprintln!("Error decoding base64 string: {}", e);
+                eprintln!("Error decoding base64 string: {e}");
                 process::exit(1);
             }
             OutputFormat::Json => {
                 use serde_json::json;
                 let output = json!({
                     "status": "error",
-                    "error": format!("Error decoding base64 string: {}", e)
+                    "error": format!("Error decoding base64 string: {e}")
                 });
                 match serde_json::to_string_pretty(&output) {
-                    Ok(json_str) => println!("{}", json_str),
+                    Ok(json_str) => println!("{json_str}"),
                     Err(json_err) => {
-                        eprintln!("Error serializing error to JSON: {}", json_err);
+                        eprintln!("Error serializing error to JSON: {json_err}");
                         process::exit(1);
                     }
                 }
@@ -312,7 +312,7 @@ fn main() {
         },
         Err(e) => match args.output {
             OutputFormat::Text => {
-                eprintln!("Error parsing SpliceInfoSection: {}", e);
+                eprintln!("Error parsing SpliceInfoSection: {e}");
                 process::exit(1);
             }
             OutputFormat::Json => {
@@ -322,9 +322,9 @@ fn main() {
                     "error": e.to_string()
                 });
                 match serde_json::to_string_pretty(&output) {
-                    Ok(json_str) => println!("{}", json_str),
+                    Ok(json_str) => println!("{json_str}"),
                     Err(json_err) => {
-                        eprintln!("Error serializing error to JSON: {}", json_err);
+                        eprintln!("Error serializing error to JSON: {json_err}");
                         process::exit(1);
                     }
                 }

@@ -28,7 +28,7 @@ mod tests {
 
     /// Test round-trip encoding/decoding with a real SCTE-35 payload
     fn test_round_trip_payload(base64_payload: &str, description: &str) {
-        println!("Testing payload: {}", description);
+        println!("Testing payload: {description}");
 
         // Decode the base64 payload
         let original_bytes = BASE64
@@ -47,8 +47,7 @@ mod tests {
         assert_eq!(
             original_bytes,
             encoded_bytes,
-            "Round-trip failed for {}: original {} bytes, encoded {} bytes",
-            description,
+            "Round-trip failed for {description}: original {} bytes, encoded {} bytes",
             original_bytes.len(),
             encoded_bytes.len()
         );
@@ -57,11 +56,10 @@ mod tests {
         let encoded_base64 = BASE64.encode(&encoded_bytes);
         assert_eq!(
             base64_payload, encoded_base64,
-            "Base64 round-trip failed for {}",
-            description
+            "Base64 round-trip failed for {description}"
         );
 
-        println!("✓ Round-trip successful for {}", description);
+        println!("✓ Round-trip successful for {description}");
     }
 
     #[test]
@@ -114,19 +112,14 @@ mod tests {
         // Compare byte by byte
         for (i, (orig, enc)) in original_bytes.iter().zip(encoded_bytes.iter()).enumerate() {
             if orig != enc {
-                println!(
-                    "Difference at byte {}: original=0x{:02X}, encoded=0x{:02X}",
-                    i, orig, enc
-                );
+                println!("Difference at byte {i}: original=0x{orig:02X}, encoded=0x{enc:02X}");
             }
         }
 
         if original_bytes.len() != encoded_bytes.len() {
-            println!(
-                "Length mismatch: original={}, encoded={}",
-                original_bytes.len(),
-                encoded_bytes.len()
-            );
+            let orig_len = original_bytes.len();
+            let enc_len = encoded_bytes.len();
+            println!("Length mismatch: original={orig_len}, encoded={enc_len}");
         }
 
         // Verify the round-trip matches
@@ -244,11 +237,8 @@ mod tests {
         let encoded_bytes = encode_section_with_crc(&section).unwrap();
         let base64_payload = BASE64.encode(&encoded_bytes);
 
-        println!(
-            "Generated payload for segmentation descriptor: {}",
-            base64_payload
-        );
-        println!("Encoded bytes: {:02X?}", encoded_bytes);
+        println!("Generated payload for segmentation descriptor: {base64_payload}");
+        println!("Encoded bytes: {encoded_bytes:02X?}");
 
         // Now test the round-trip
         test_round_trip_payload(
@@ -267,10 +257,8 @@ mod tests {
             dwbw_reservation: 1000000,
         };
 
-        println!(
-            "BandwidthReservation encoded_size: {}",
-            bandwidth_reservation.encoded_size()
-        );
+        let encoded_size = bandwidth_reservation.encoded_size();
+        println!("BandwidthReservation encoded_size: {encoded_size}");
 
         let section = SpliceInfoSection {
             table_id: 252,
@@ -471,15 +459,15 @@ mod tests {
             let encoded = encode_section_with_crc(&section).expect("Failed to encode");
             let duration = start.elapsed();
 
-            println!("Encoding took: {:?} for {} bytes", duration, encoded.len());
+            let encoded_len = encoded.len();
+            println!("Encoding took: {duration:?} for {encoded_len} bytes");
 
             // Verify size prediction matches actual size
             let predicted_size = section.encoded_size();
             assert_eq!(
                 predicted_size,
                 encoded.len(),
-                "Size prediction mismatch: predicted {}, actual {}",
-                predicted_size,
+                "Size prediction mismatch: predicted {predicted_size}, actual {}",
                 encoded.len()
             );
         }
@@ -511,8 +499,8 @@ mod tests {
         assert_eq!(section.splice_command_type, reparsed.splice_command_type);
         assert_eq!(section.section_length, reparsed.section_length);
 
-        println!("Original:  {}", original_payload);
-        println!("Re-encoded: {}", encoded_base64);
+        println!("Original:  {original_payload}");
+        println!("Re-encoded: {encoded_base64}");
         println!("✓ External tool compatibility verified");
     }
 

@@ -76,8 +76,7 @@ pub fn parse_splice_info_section(buffer: &[u8]) -> Result<SpliceInfoSection, io:
     let command_expected_bits = splice_command_length as usize * 8;
     if command_bits_read < command_expected_bits {
         eprintln!(
-            "Warning: Splice command length mismatch. Expected {} bits, read {} bits.",
-            command_expected_bits, command_bits_read
+            "Warning: Splice command length mismatch. Expected {command_expected_bits} bits, read {command_bits_read} bits."
         );
         reader.skip_bits(command_expected_bits - command_bits_read)?;
     }
@@ -132,7 +131,7 @@ pub fn parse_splice_info_section(buffer: &[u8]) -> Result<SpliceInfoSection, io:
         if !crate::crc::validate_crc(&buffer[0..buffer.len() - 4], crc_32) {
             return Err(io::Error::new(
                 ErrorKind::InvalidData,
-                format!("CRC validation failed. Expected: 0x{:08X}", crc_32),
+                format!("CRC validation failed. Expected: 0x{crc_32:08X}"),
             ));
         }
     }
@@ -214,8 +213,7 @@ pub(crate) fn parse_segmentation_descriptor(
         return Err(io::Error::new(
             ErrorKind::InvalidData,
             format!(
-                "Invalid segmentation descriptor identifier: expected 0x43554549 (CUEI), got 0x{:08x}",
-                identifier
+                "Invalid segmentation descriptor identifier: expected 0x43554549 (CUEI), got 0x{identifier:08x}"
             ),
         ));
     }

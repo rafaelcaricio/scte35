@@ -174,12 +174,9 @@ fn main() -> BuilderResult<()> {
     match result {
         Ok(_) => println!("   Unexpected success"),
         Err(BuilderError::InvalidUpidLength { expected, actual }) => {
-            println!(
-                "   ✓ Caught invalid UPID length: expected {}, got {}",
-                expected, actual
-            );
+            println!("   ✓ Caught invalid UPID length: expected {expected}, got {actual}");
         }
-        Err(e) => println!("   Unexpected error: {}", e),
+        Err(e) => println!("   Unexpected error: {e}"),
     }
 
     // Try to create a message without a command
@@ -187,9 +184,9 @@ fn main() -> BuilderResult<()> {
     match result {
         Ok(_) => println!("   Unexpected success"),
         Err(BuilderError::MissingRequiredField(field)) => {
-            println!("   ✓ Caught missing field: {}", field);
+            println!("   ✓ Caught missing field: {field}");
         }
-        Err(e) => println!("   Unexpected error: {}", e),
+        Err(e) => println!("   Unexpected error: {e}"),
     }
 
     println!("\n=== Demo completed successfully! ===");
