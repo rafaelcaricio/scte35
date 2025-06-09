@@ -25,7 +25,7 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-scte35 = "0.1.0"
+scte35 = "0.2.0"
 ```
 
 This includes both CRC validation and serde support.
@@ -36,7 +36,7 @@ If you don't need JSON serialization:
 
 ```toml
 [dependencies]
-scte35 = { version = "0.1.0", default-features = false, features = ["crc-validation"] }
+scte35 = { version = "0.2.0", default-features = false, features = ["crc-validation"] }
 ```
 
 ### Minimal (No CRC or Serde)
@@ -45,7 +45,7 @@ For a minimal library without CRC validation or serde:
 
 ```toml
 [dependencies]
-scte35 = { version = "0.1.0", default-features = false }
+scte35 = { version = "0.2.0", default-features = false }
 ```
 
 ### With CLI Tool (Automatically includes CRC validation)
@@ -54,7 +54,7 @@ To include the command-line tool, enable the `cli` feature:
 
 ```toml
 [dependencies]
-scte35 = { version = "0.1.0", features = ["cli"] }
+scte35 = { version = "0.2.0", features = ["cli"] }
 ```
 
 Or install the CLI tool directly:
@@ -636,19 +636,19 @@ By default, the library validates CRC-32 checksums in SCTE-35 messages to ensure
 ### With CRC Validation (Default)
 ```toml
 [dependencies]
-scte35 = "0.1.0"
+scte35 = "0.2.0"
 ```
 
 ### Without CRC Validation (Library only)
 ```toml
 [dependencies]
-scte35 = { version = "0.1.0", default-features = false }
+scte35 = { version = "0.2.0", default-features = false }
 ```
 
 ### With CLI Tool (Automatically includes CRC validation)
 ```toml
 [dependencies]
-scte35 = { version = "0.1.0", features = ["cli"] }
+scte35 = { version = "0.2.0", features = ["cli"] }
 ```
 
 **Note**: The CLI feature automatically enables CRC validation to provide complete message diagnostics.
