@@ -131,7 +131,7 @@ Err(e) => eprintln!("Error parsing SCTE-35: {}", e),
 By default, the library validates CRC-32 checksums in SCTE-35 messages to ensure data integrity:
 
 ```rust
-use scte35::{parse_splice_info_section, validate_scte35_crc, CrcValidatable};
+use scte35::parse_splice_info_section;
 
 // Example SCTE-35 message bytes
 let scte35_bytes = vec![
@@ -143,7 +143,11 @@ let scte35_bytes = vec![
 match parse_splice_info_section(&scte35_bytes) {
 Ok(section) => {
     println!("Valid SCTE-35 message parsed successfully");
-    println!("CRC-32: 0x{:08X}", section.get_crc());
+    #[cfg(feature = "crc-validation")]
+    {
+        use scte35::CrcValidatable;
+        println!("CRC-32: 0x{:08X}", section.get_crc());
+    }
 }
 Err(e) => {
     if e.to_string().contains("CRC validation failed") {
@@ -154,19 +158,24 @@ Err(e) => {
 }
 }
 
-// Validate CRC independently
-match validate_scte35_crc(&scte35_bytes) {
-    Ok(true) => println!("CRC validation passed"),
-    Ok(false) => println!("CRC validation failed or not available"),
-    Err(e) => eprintln!("Validation error: {}", e),
-}
-
-// Validate using the parsed section
-if let Ok(section) = parse_splice_info_section(&scte35_bytes) {
-    match section.validate_crc(&scte35_bytes) {
-        Ok(true) => println!("Message integrity verified"),
-        Ok(false) => println!("Message integrity check failed"),
+#[cfg(feature = "crc-validation")]
+{
+    use scte35::{validate_scte35_crc, CrcValidatable};
+    
+    // Validate CRC independently
+    match validate_scte35_crc(&scte35_bytes) {
+        Ok(true) => println!("CRC validation passed"),
+        Ok(false) => println!("CRC validation failed or not available"),
         Err(e) => eprintln!("Validation error: {}", e),
+    }
+
+    // Validate using the parsed section
+    if let Ok(section) = parse_splice_info_section(&scte35_bytes) {
+        match section.validate_crc(&scte35_bytes) {
+            Ok(true) => println!("Message integrity verified"),
+            Ok(false) => println!("Message integrity check failed"),
+            Err(e) => eprintln!("Validation error: {}", e),
+        }
     }
 }
 ```
@@ -201,7 +210,6 @@ The library includes built-in serde support for serializing/deserializing SCTE-3
 
 ```rust
 use scte35::parse_splice_info_section;
-use serde_json;
 
 // Parse SCTE-35 message
 let scte35_bytes = vec![
@@ -210,14 +218,19 @@ let scte35_bytes = vec![
 ];
 
 if let Ok(section) = parse_splice_info_section(&scte35_bytes) {
-    // Serialize to JSON
-    let json = serde_json::to_string_pretty(&section).unwrap();
-    println!("{}", json);
-    
-    // Deserialize from JSON
-    let deserialized: scte35::SpliceInfoSection = 
-        serde_json::from_str(&json).unwrap();
-    assert_eq!(section, deserialized);
+    #[cfg(feature = "serde")]
+    {
+        use serde_json;
+        
+        // Serialize to JSON
+        let json = serde_json::to_string_pretty(&section).unwrap();
+        println!("{}", json);
+        
+        // Deserialize from JSON
+        let deserialized: scte35::SpliceInfoSection = 
+            serde_json::from_str(&json).unwrap();
+        assert_eq!(section, deserialized);
+    }
 }
 ```
 
@@ -676,12 +689,22 @@ cargo doc --no-deps --open
 Convenient alias for parsing SCTE-35 messages. This is the recommended function for most use cases, providing a clean and ergonomic API.
 
 ```rust
-use scte35;
-# use data_encoding::BASE64;
+# use scte35;
 # fn main() -> Result<(), Box<dyn std::error::Error>> {
-# let base64_message = "/DAWAAAAAAAAAP/wBQb+Qjo1vQAAuwxz9A==";
-# let buffer = BASE64.decode(base64_message.as_bytes())?;
-
+# #[cfg(feature = "cli")]
+# {
+#     use data_encoding::BASE64;
+#     let base64_message = "/DAWAAAAAAAAAP/wBQb+Qjo1vQAAuwxz9A==";
+#     let buffer = BASE64.decode(base64_message.as_bytes())?;
+#     let section = scte35::parse(&buffer)?;
+# }
+#
+# // For doctests without the cli feature, use a direct byte array
+# let buffer = vec![
+#     0xfc, 0x30, 0x16, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xf0,
+#     0x05, 0x06, 0xfe, 0x42, 0x3a, 0x35, 0xbd, 0x00, 0x00, 0xbb, 0x0c, 0x73,
+#     0xf4
+# ];
 let section = scte35::parse(&buffer)?;
 # Ok(())
 # }

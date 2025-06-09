@@ -5,6 +5,7 @@
 
 #[cfg(test)]
 mod tests {
+    #[cfg(feature = "crc-validation")]
     use crate::crc::CrcValidatable;
     use crate::encoding::Encodable;
     use crate::parser::parse_splice_info_section;

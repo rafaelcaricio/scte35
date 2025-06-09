@@ -3,6 +3,7 @@
 #[cfg(test)]
 mod encoding_tests {
     use crate::builders::*;
+    #[cfg(feature = "crc-validation")]
     use crate::crc::CrcValidatable;
     use crate::encoding::{BitWriter, Encodable};
     use crate::time::*;

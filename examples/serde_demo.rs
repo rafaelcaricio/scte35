@@ -1,8 +1,11 @@
 //! Example demonstrating serde serialization of SCTE-35 messages
 
+#[cfg(feature = "serde")]
 use data_encoding::BASE64;
+#[cfg(feature = "serde")]
 use scte35::parse_splice_info_section;
 
+#[cfg(feature = "serde")]
 fn main() {
     // Example SCTE-35 message with segmentation descriptor
     let base64_message = "/DAvAAAAAAAA///wBQb+dGKQoAAZAhdDVUVJSAAAjn+fCAgAAAAALKChijUCAKnMZ1g=";
@@ -27,4 +30,10 @@ fn main() {
     assert_eq!(section.crc_32, deserialized.crc_32);
 
     println!("\nSuccessfully round-tripped through JSON!");
+}
+
+#[cfg(not(feature = "serde"))]
+fn main() {
+    println!("This example requires the 'serde' feature to be enabled.");
+    println!("Run with: cargo run --example serde_demo --features serde");
 }

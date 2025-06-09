@@ -48,26 +48,65 @@ jobs:
     - name: Build (default features)
       run: cargo build --verbose
 
-    - name: Build (no default features)
-      run: cargo build --verbose --no-default-features
-
-    - name: Build (CLI features)
-      run: cargo build --verbose --features cli
-
     - name: Test (default features)
       run: cargo test --verbose
-
-    - name: Test (no default features)
-      run: cargo test --verbose --no-default-features
-
-    - name: Test (CLI features)
-      run: cargo test --verbose --features cli
 
     - name: Build release
       run: cargo build --release
 
     - name: Generate documentation
       run: cargo doc --no-deps --verbose
+
+  feature-matrix:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        features:
+          - name: "No features"
+            flags: "--no-default-features"
+          - name: "Only CRC validation"
+            flags: "--features crc-validation --no-default-features"
+          - name: "Only serde"
+            flags: "--features serde --no-default-features"
+          - name: "Only CLI"
+            flags: "--features cli --no-default-features"
+          - name: "CRC + serde"
+            flags: "--features \"crc-validation,serde\" --no-default-features"
+          - name: "CRC + CLI"
+            flags: "--features \"crc-validation,cli\" --no-default-features"
+          - name: "serde + CLI"
+            flags: "--features \"serde,cli\" --no-default-features"
+          - name: "All features"
+            flags: "--all-features"
+          - name: "Default features"
+            flags: ""
+
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install Rust
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+        profile: minimal
+        override: true
+
+    - name: Cache cargo registry
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          target
+        key: ${{ runner.os }}-cargo-features-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-cargo-
+
+    - name: Build (${{ matrix.features.name }})
+      run: cargo build --verbose ${{ matrix.features.flags }}
+
+    - name: Test (${{ matrix.features.name }})
+      run: cargo test --verbose ${{ matrix.features.flags }}
 
   coverage:
     runs-on: ubuntu-latest
