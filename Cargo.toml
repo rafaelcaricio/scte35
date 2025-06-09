@@ -14,7 +14,7 @@ license = "MIT"
 default = ["crc-validation", "serde"]
 crc-validation = ["crc"]
 base64 = ["data-encoding"]
-cli = ["base64", "crc-validation", "clap"]
+cli = ["base64", "crc-validation", "clap", "serde"]
 serde = ["dep:serde", "dep:serde_json", "base64"]
 
 [dependencies]
