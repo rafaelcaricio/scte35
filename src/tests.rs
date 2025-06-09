@@ -1,13 +1,13 @@
 use super::*;
-use base64::{engine::general_purpose, Engine};
+use data_encoding::BASE64;
 use std::time::Duration;
 
 #[test]
 fn test_time_signal_command() {
     // Time Signal example from threefive: '/DAWAAAAAAAAAP/wBQb+Qjo1vQAAuwxz9A=='
     let time_signal_base64 = "/DAWAAAAAAAAAP/wBQb+Qjo1vQAAuwxz9A==";
-    let buffer = general_purpose::STANDARD
-        .decode(time_signal_base64)
+    let buffer = BASE64
+        .decode(time_signal_base64.as_bytes())
         .expect("Failed to decode base64 string");
 
     let section =
@@ -46,8 +46,8 @@ fn test_time_signal_command() {
 fn test_time_signal_with_descriptors() {
     // Time Signal with descriptors: '/DAgAAAAAAAAAP/wBQb+Qjo1vQAKAAhDVUVJAAAE0iVuWvA='
     let time_signal_desc_base64 = "/DAgAAAAAAAAAP/wBQb+Qjo1vQAKAAhDVUVJAAAE0iVuWvA=";
-    let buffer = general_purpose::STANDARD
-        .decode(time_signal_desc_base64)
+    let buffer = BASE64
+        .decode(time_signal_desc_base64.as_bytes())
         .expect("Failed to decode base64 string");
 
     let section =
@@ -77,8 +77,8 @@ fn test_upid_adid_example_invalid_crc() {
     // ADID example with invalid CRC: "/DA4AAAAAAAA///wBQb+AKpFLgAiAiBDVUVJAAAAA3//AAApPWwDDEFCQ0QwMTIzNDU2SHAAAFkTm+A="
     let adid_base64 =
         "/DA4AAAAAAAA///wBQb+AKpFLgAiAiBDVUVJAAAAA3//AAApPWwDDEFCQ0QwMTIzNDU2SHAAAFkTm+A=";
-    let buffer = general_purpose::STANDARD
-        .decode(adid_base64)
+    let buffer = BASE64
+        .decode(adid_base64.as_bytes())
         .expect("Failed to decode ADID base64 string");
 
     // Should fail to parse due to invalid CRC when CRC validation is enabled
@@ -95,7 +95,7 @@ fn test_upid_adid_example_no_crc_validation() {
     // ADID example (CRC validation disabled): "/DA4AAAAAAAA///wBQb+AKpFLgAiAiBDVUVJAAAAA3//AAApPWwDDEFCQ0QwMTIzNDU2SHAAAFkTm+A="
     let adid_base64 =
         "/DA4AAAAAAAA///wBQb+AKpFLgAiAiBDVUVJAAAAA3//AAApPWwDDEFCQ0QwMTIzNDU2SHAAAFkTm+A=";
-    let buffer = general_purpose::STANDARD
+    let buffer = BASE64
         .decode(adid_base64)
         .expect("Failed to decode ADID base64 string");
 
@@ -130,8 +130,8 @@ fn test_upid_adid_example_no_crc_validation() {
 fn test_upid_umid_example() {
     // UMID example: "/DBDAAAAAAAA///wBQb+AA2QOQAtAitDVUVJAAAAA3+/BCAwNjBhMmIzNC4wMTAxMDEwNS4wMTAxMGQyMC4xEAEBRKI3vg=="
     let umid_base64 = "/DBDAAAAAAAA///wBQb+AA2QOQAtAitDVUVJAAAAA3+/BCAwNjBhMmIzNC4wMTAxMDEwNS4wMTAxMGQyMC4xEAEBRKI3vg==";
-    let buffer = general_purpose::STANDARD
-        .decode(umid_base64)
+    let buffer = BASE64
+        .decode(umid_base64.as_bytes())
         .expect("Failed to decode UMID base64 string");
 
     let section =
@@ -160,8 +160,8 @@ fn test_upid_isan_example() {
     // ISAN example: "/DA4AAAAAAAA///wBQb+Lom5UgAiAiBDVUVJAAAABn//AAApPWwGDAAAAAA6jQAAAAAAABAAAHGXrpg="
     let isan_base64 =
         "/DA4AAAAAAAA///wBQb+Lom5UgAiAiBDVUVJAAAABn//AAApPWwGDAAAAAA6jQAAAAAAABAAAHGXrpg=";
-    let buffer = general_purpose::STANDARD
-        .decode(isan_base64)
+    let buffer = BASE64
+        .decode(isan_base64.as_bytes())
         .expect("Failed to decode ISAN base64 string");
 
     let section =
@@ -189,8 +189,8 @@ fn test_upid_isan_example() {
 fn test_upid_airid_example() {
     // AIRID example: "/DBhAAAAAAAA///wBQb+qM1E7QBLAhdDVUVJSAAArX+fCAgAAAAALLLXnTUCAAIXQ1VFSUgAACZ/nwgIAAAAACyy150RAAACF0NVRUlIAAAnf58ICAAAAAAsstezEAAAihiGnw=="
     let airid_base64 = "/DBhAAAAAAAA///wBQb+qM1E7QBLAhdDVUVJSAAArX+fCAgAAAAALLLXnTUCAAIXQ1VFSUgAACZ/nwgIAAAAACyy150RAAACF0NVRUlIAAAnf58ICAAAAAAsstezEAAAihiGnw==";
-    let buffer = general_purpose::STANDARD
-        .decode(airid_base64)
+    let buffer = BASE64
+        .decode(airid_base64.as_bytes())
         .expect("Failed to decode AIRID base64 string");
 
     let section =
@@ -223,8 +223,8 @@ fn test_time_signal_placement_opportunity_end() {
     // Time Signal - Placement Opportunity End example
     let placement_end_base64 =
         "/DAvAAAAAAAA///wBQb+dGKQoAAZAhdDVUVJSAAAjn+fCAgAAAAALKChijUCAKnMZ1g=";
-    let buffer = general_purpose::STANDARD
-        .decode(placement_end_base64)
+    let buffer = BASE64
+        .decode(placement_end_base64.as_bytes())
         .expect("Failed to decode placement opportunity end base64 string");
 
     let section = parse_splice_info_section(&buffer)
@@ -283,24 +283,20 @@ fn test_multiple_descriptor_types() {
 
     // Test 1: Simple time signal (already covered above)
     let time_signal_base64 = "/DAWAAAAAAAAAP/wBQb+Qjo1vQAAuwxz9A==";
-    let buffer = general_purpose::STANDARD
-        .decode(time_signal_base64)
-        .unwrap();
+    let buffer = BASE64.decode(time_signal_base64.as_bytes()).unwrap();
     let section = parse_splice_info_section(&buffer).unwrap();
     assert_eq!(section.splice_command_type, 0x06);
 
     // Test 2: Time signal with descriptors (already covered above)
     let time_signal_desc_base64 = "/DAgAAAAAAAAAP/wBQb+Qjo1vQAKAAhDVUVJAAAE0iVuWvA=";
-    let buffer2 = general_purpose::STANDARD
-        .decode(time_signal_desc_base64)
-        .unwrap();
+    let buffer2 = BASE64.decode(time_signal_desc_base64.as_bytes()).unwrap();
     let section2 = parse_splice_info_section(&buffer2).unwrap();
     assert_eq!(section2.splice_command_type, 0x06);
     assert!(section2.descriptor_loop_length > 0);
 
     // Test 3: Complex message with multiple descriptors (AIRID example already covered)
     let complex_base64 = "/DBhAAAAAAAA///wBQb+qM1E7QBLAhdDVUVJSAAArX+fCAgAAAAALLLXnTUCAAIXQ1VFSUgAACZ/nwgIAAAAACyy150RAAACF0NVRUlIAAAnf58ICAAAAAAsstezEAAAihiGnw==";
-    let buffer3 = general_purpose::STANDARD.decode(complex_base64).unwrap();
+    let buffer3 = BASE64.decode(complex_base64.as_bytes()).unwrap();
     let section3 = parse_splice_info_section(&buffer3).unwrap();
     assert_eq!(section3.splice_command_type, 0x06);
     assert!(section3.splice_descriptors.len() >= 3);
@@ -394,8 +390,8 @@ fn test_splice_descriptor_as_str() {
 fn test_parse_splice_info_section() {
     let example_buffer_base64 =
         "/DAvAAAAAAAA///wFAVIAACPf+/+c2nALv4AUsz1AAAAAAAKAAhDVUVJAAABNWLbowo=";
-    let example_buffer = general_purpose::STANDARD
-        .decode(example_buffer_base64)
+    let example_buffer = BASE64
+        .decode(example_buffer_base64.as_bytes())
         .expect("Failed to decode base64 string");
 
     let section =
@@ -526,7 +522,7 @@ fn test_parse_splice_info_section() {
 #[cfg(feature = "crc-validation")]
 fn test_valid_crc() {
     let valid_message = "/DAWAAAAAAAAAP/wBQb+Qjo1vQAAuwxz9A==";
-    let buffer = general_purpose::STANDARD.decode(valid_message).unwrap();
+    let buffer = BASE64.decode(valid_message.as_bytes()).unwrap();
 
     let result = validate_scte35_crc(&buffer);
     assert!(result.is_ok());
@@ -536,8 +532,8 @@ fn test_valid_crc() {
 #[test]
 #[cfg(feature = "crc-validation")]
 fn test_invalid_crc() {
-    let mut buffer = general_purpose::STANDARD
-        .decode("/DAWAAAAAAAAAP/wBQb+Qjo1vQAAuwxz9A==")
+    let mut buffer = BASE64
+        .decode("/DAWAAAAAAAAAP/wBQb+Qjo1vQAAuwxz9A==".as_bytes())
         .unwrap();
 
     // Corrupt the CRC (last 4 bytes)
@@ -553,7 +549,7 @@ fn test_invalid_crc() {
 #[cfg(feature = "crc-validation")]
 fn test_parse_with_crc_validation() {
     let valid_message = "/DAWAAAAAAAAAP/wBQb+Qjo1vQAAuwxz9A==";
-    let buffer = general_purpose::STANDARD.decode(valid_message).unwrap();
+    let buffer = BASE64.decode(valid_message.as_bytes()).unwrap();
 
     // Should parse successfully with valid CRC
     let section = parse_splice_info_section(&buffer);
@@ -563,8 +559,8 @@ fn test_parse_with_crc_validation() {
 #[test]
 #[cfg(feature = "crc-validation")]
 fn test_parse_with_invalid_crc_fails() {
-    let mut buffer = general_purpose::STANDARD
-        .decode("/DAWAAAAAAAAAP/wBQb+Qjo1vQAAuwxz9A==")
+    let mut buffer = BASE64
+        .decode("/DAWAAAAAAAAAP/wBQb+Qjo1vQAAuwxz9A==".as_bytes())
         .unwrap();
 
     // Corrupt the CRC (last 4 bytes)
@@ -583,7 +579,7 @@ fn test_parse_with_invalid_crc_fails() {
 #[cfg(feature = "crc-validation")]
 fn test_splice_info_section_validate_crc() {
     let valid_message = "/DAWAAAAAAAAAP/wBQb+Qjo1vQAAuwxz9A==";
-    let buffer = general_purpose::STANDARD.decode(valid_message).unwrap();
+    let buffer = BASE64.decode(valid_message.as_bytes()).unwrap();
 
     let section = parse_splice_info_section(&buffer).unwrap();
 
@@ -600,7 +596,7 @@ fn test_splice_info_section_validate_crc() {
 #[cfg(feature = "crc-validation")]
 fn test_crc_validatable_trait() {
     let valid_message = "/DAWAAAAAAAAAP/wBQb+Qjo1vQAAuwxz9A==";
-    let buffer = general_purpose::STANDARD.decode(valid_message).unwrap();
+    let buffer = BASE64.decode(valid_message.as_bytes()).unwrap();
 
     let section = parse_splice_info_section(&buffer).unwrap();
 
@@ -617,7 +613,7 @@ fn test_crc_validatable_trait() {
 #[cfg(not(feature = "crc-validation"))]
 fn test_crc_disabled() {
     let valid_message = "/DAWAAAAAAAAAP/wBQb+Qjo1vQAAuwxz9A==";
-    let buffer = general_purpose::STANDARD.decode(valid_message).unwrap();
+    let buffer = BASE64.decode(valid_message).unwrap();
 
     // Should always return false when CRC validation is disabled
     let result = validate_scte35_crc(&buffer);
@@ -991,7 +987,7 @@ fn test_format_helper_functions() {
 fn test_segmentation_type_field_populated_during_parsing() {
     // Test that the segmentation_type field is correctly populated from segmentation_type_id during parsing
     let test_message = "/DAvAAAAAAAA///wBQb+dGKQoAAZAhdDVUVJSAAAjn+fCAgAAAAALKChijUCAKnMZ1g=";
-    let buffer = general_purpose::STANDARD.decode(test_message).unwrap();
+    let buffer = BASE64.decode(test_message.as_bytes()).unwrap();
 
     let section = parse_splice_info_section(&buffer).unwrap();
 
@@ -1031,12 +1027,10 @@ fn test_segmentation_type_field_populated_during_parsing() {
 
 #[test]
 fn test_mpu_upid_example() {
-    use base64::{engine::general_purpose, Engine};
-
     // Example with MPU UPID type
     let base64_message = "/DAsAAAAAAAAAP/wBQb+7YaD1QAWAhRDVUVJAADc8X+/DAVPVkxZSSIAAJ6Gk2Q=";
-    let buffer = general_purpose::STANDARD
-        .decode(base64_message)
+    let buffer = BASE64
+        .decode(base64_message.as_bytes())
         .expect("Failed to decode base64");
 
     let section = parse_splice_info_section(&buffer).expect("Failed to parse SCTE-35 message");

@@ -38,10 +38,10 @@ use std::io::{self, ErrorKind};
 ///
 /// ```rust
 /// use scte35::parse_splice_info_section;
-/// use base64::{Engine, engine::general_purpose};
+/// use data_encoding::BASE64;
 ///
 /// let base64_message = "/DAWAAAAAAAAAP/wBQb+Qjo1vQAAuwxz9A==";
-/// let buffer = general_purpose::STANDARD.decode(base64_message).unwrap();
+/// let buffer = BASE64.decode(base64_message.as_bytes()).unwrap();
 ///
 /// match parse_splice_info_section(&buffer) {
 ///     Ok(section) => {

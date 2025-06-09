@@ -1,5 +1,5 @@
-use base64::{engine::general_purpose, Engine};
 use clap::{Parser, ValueEnum};
+use data_encoding::BASE64;
 use scte35::{
     parse_splice_info_section, validate_scte35_crc, SpliceCommand, SpliceDescriptor,
     SpliceInfoSection,
@@ -154,7 +154,7 @@ fn print_text_output(section: &SpliceInfoSection, buffer: &[u8]) {
                     {
                         println!(
                             "      UPID (base64): {}",
-                            general_purpose::STANDARD.encode(&seg_desc.segmentation_upid)
+                            BASE64.encode(&seg_desc.segmentation_upid)
                         );
                     }
                     #[cfg(not(feature = "base64"))]
@@ -280,7 +280,7 @@ fn main() {
 
     let base64_payload = &args.payload;
 
-    let buffer = match general_purpose::STANDARD.decode(base64_payload) {
+    let buffer = match BASE64.decode(base64_payload.as_bytes()) {
         Ok(data) => data,
         Err(e) => match args.output {
             OutputFormat::Text => {

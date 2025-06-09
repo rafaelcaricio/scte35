@@ -8,7 +8,7 @@ mod tests {
     use crate::crc::CrcValidatable;
     use crate::encoding::Encodable;
     use crate::parser::parse_splice_info_section;
-    use base64::{engine::general_purpose, Engine};
+    use data_encoding::BASE64;
 
     // Helper function to encode with CRC when the feature is enabled
     fn encode_section_with_crc(
@@ -31,8 +31,8 @@ mod tests {
         println!("Testing payload: {}", description);
 
         // Decode the base64 payload
-        let original_bytes = general_purpose::STANDARD
-            .decode(base64_payload)
+        let original_bytes = BASE64
+            .decode(base64_payload.as_bytes())
             .expect("Failed to decode base64 payload");
 
         // Parse the SCTE-35 message
@@ -54,7 +54,7 @@ mod tests {
         );
 
         // Also verify base64 round-trip
-        let encoded_base64 = general_purpose::STANDARD.encode(&encoded_bytes);
+        let encoded_base64 = BASE64.encode(&encoded_bytes);
         assert_eq!(
             base64_payload, encoded_base64,
             "Base64 round-trip failed for {}",
@@ -72,8 +72,8 @@ mod tests {
         println!("Testing payload: SpliceInsert with break duration and avail descriptor");
 
         // Decode the base64 payload
-        let original_bytes = general_purpose::STANDARD
-            .decode(base64_payload)
+        let original_bytes = BASE64
+            .decode(base64_payload.as_bytes())
             .expect("Failed to decode base64 payload");
 
         println!(
@@ -151,7 +151,7 @@ mod tests {
 
         // Encode to get our valid payload
         let encoded_bytes = encode_section_with_crc(&section).unwrap();
-        let base64_payload = base64::engine::general_purpose::STANDARD.encode(&encoded_bytes);
+        let base64_payload = BASE64.encode(&encoded_bytes);
 
         // Now test the round-trip
         test_round_trip_payload(&base64_payload, "TimeSignal immediate");
@@ -171,7 +171,7 @@ mod tests {
 
         // Encode to get our valid payload
         let encoded_bytes = encode_section_with_crc(&section).unwrap();
-        let base64_payload = base64::engine::general_purpose::STANDARD.encode(&encoded_bytes);
+        let base64_payload = BASE64.encode(&encoded_bytes);
 
         // Now test the round-trip
         test_round_trip_payload(&base64_payload, "SpliceInsert immediate");
@@ -189,7 +189,7 @@ mod tests {
 
         // Encode to get our valid payload
         let encoded_bytes = encode_section_with_crc(&section).unwrap();
-        let base64_payload = base64::engine::general_purpose::STANDARD.encode(&encoded_bytes);
+        let base64_payload = BASE64.encode(&encoded_bytes);
 
         // Now test the round-trip
         test_round_trip_payload(&base64_payload, "SpliceNull command");
@@ -214,7 +214,7 @@ mod tests {
 
         // Encode to get our valid payload
         let encoded_bytes = encode_section_with_crc(&section).unwrap();
-        let base64_payload = base64::engine::general_purpose::STANDARD.encode(&encoded_bytes);
+        let base64_payload = BASE64.encode(&encoded_bytes);
 
         // Now test the round-trip
         test_round_trip_payload(&base64_payload, "TimeSignal with PTS");
@@ -242,7 +242,7 @@ mod tests {
 
         // Encode to get our valid payload
         let encoded_bytes = encode_section_with_crc(&section).unwrap();
-        let base64_payload = base64::engine::general_purpose::STANDARD.encode(&encoded_bytes);
+        let base64_payload = BASE64.encode(&encoded_bytes);
 
         println!(
             "Generated payload for segmentation descriptor: {}",
@@ -293,7 +293,7 @@ mod tests {
 
         // Encode to get our valid payload
         let encoded_bytes = encode_section_with_crc(&section).unwrap();
-        let base64_payload = base64::engine::general_purpose::STANDARD.encode(&encoded_bytes);
+        let base64_payload = BASE64.encode(&encoded_bytes);
 
         // Now test the round-trip
         test_round_trip_payload(&base64_payload, "BandwidthReservation command");
@@ -334,7 +334,7 @@ mod tests {
 
         // Encode to get our valid payload
         let encoded_bytes = encode_section_with_crc(&section).unwrap();
-        let base64_payload = base64::engine::general_purpose::STANDARD.encode(&encoded_bytes);
+        let base64_payload = BASE64.encode(&encoded_bytes);
 
         // Now test the round-trip
         test_round_trip_payload(&base64_payload, "PrivateCommand with custom data");
@@ -367,7 +367,7 @@ mod tests {
 
         // Encode to get our valid payload
         let encoded_bytes = encode_section_with_crc(&section).unwrap();
-        let base64_payload = base64::engine::general_purpose::STANDARD.encode(&encoded_bytes);
+        let base64_payload = BASE64.encode(&encoded_bytes);
 
         // Now test the round-trip
         test_round_trip_payload(&base64_payload, "Complex message with multiple descriptors");
@@ -401,7 +401,7 @@ mod tests {
 
         // Encode to get our valid payload
         let encoded_bytes = encode_section_with_crc(&section).unwrap();
-        let base64_payload = base64::engine::general_purpose::STANDARD.encode(&encoded_bytes);
+        let base64_payload = BASE64.encode(&encoded_bytes);
 
         // Now test the round-trip
         test_round_trip_payload(&base64_payload, "Long segmentation descriptor with UPID");
@@ -419,8 +419,8 @@ mod tests {
             println!("Testing CRC recalculation for payload");
 
             // Decode original
-            let original_bytes = general_purpose::STANDARD
-                .decode(payload)
+            let original_bytes = BASE64
+                .decode(payload.as_bytes())
                 .expect("Failed to decode base64");
 
             // Parse
@@ -451,8 +451,8 @@ mod tests {
         let payloads = vec!["/DAvAAAAAAAA///wFAVIAACPf+/+c2nALv4AUsz1AAAAAAAKAAhDVUVJAAABNWLbowo="];
 
         for payload in payloads {
-            let original_bytes = general_purpose::STANDARD
-                .decode(payload)
+            let original_bytes = BASE64
+                .decode(payload.as_bytes())
                 .expect("Failed to decode base64");
 
             let section = parse_splice_info_section(&original_bytes).expect("Failed to parse");
@@ -483,15 +483,15 @@ mod tests {
             "/DAvAAAAAAAA///wFAVIAACPf+/+c2nALv4AUsz1AAAAAAAKAAhDVUVJAAABNWLbowo=";
 
         // Decode and re-encode with our library
-        let original_bytes = general_purpose::STANDARD
-            .decode(original_payload)
+        let original_bytes = BASE64
+            .decode(original_payload.as_bytes())
             .expect("Failed to decode base64");
 
         let section = parse_splice_info_section(&original_bytes).expect("Failed to parse");
 
         let encoded_bytes = encode_section_with_crc(&section).expect("Failed to encode");
 
-        let encoded_base64 = general_purpose::STANDARD.encode(&encoded_bytes);
+        let encoded_base64 = BASE64.encode(&encoded_bytes);
 
         // Verify the re-encoded message can be parsed by our own parser
         let reparsed =

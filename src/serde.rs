@@ -3,7 +3,7 @@
 //! This module provides custom serialization and deserialization implementations
 //! for SCTE-35 types when the `serde` feature is enabled.
 
-use base64::{engine::general_purpose, Engine};
+use data_encoding::BASE64;
 use serde::de::{self, Deserializer, Visitor};
 use serde::ser::SerializeStruct;
 use serde::{Deserialize, Serialize, Serializer};
@@ -14,7 +14,7 @@ pub fn serialize_bytes<S>(bytes: &[u8], serializer: S) -> Result<S::Ok, S::Error
 where
     S: Serializer,
 {
-    serializer.serialize_str(&general_purpose::STANDARD.encode(bytes))
+    serializer.serialize_str(&BASE64.encode(bytes))
 }
 
 /// Deserialize base64-encoded string to bytes.
@@ -35,8 +35,8 @@ where
         where
             E: de::Error,
         {
-            general_purpose::STANDARD
-                .decode(value)
+            BASE64
+                .decode(value.as_bytes())
                 .map_err(|e| E::custom(format!("invalid base64: {}", e)))
         }
     }
@@ -69,8 +69,8 @@ where
 
     let opt = OptionalBytes::deserialize(deserializer)?;
     match opt.0 {
-        Some(s) => general_purpose::STANDARD
-            .decode(s)
+        Some(s) => BASE64
+            .decode(s.as_bytes())
             .map(Some)
             .map_err(|e| de::Error::custom(format!("invalid base64: {}", e))),
         None => Ok(None),
@@ -215,10 +215,7 @@ impl Serialize for SegmentationDescriptor {
         state.serialize_field("segmentation_upid_length", &self.segmentation_upid_length)?;
 
         // Serialize UPID as base64
-        state.serialize_field(
-            "segmentation_upid",
-            &general_purpose::STANDARD.encode(&self.segmentation_upid),
-        )?;
+        state.serialize_field("segmentation_upid", &BASE64.encode(&self.segmentation_upid))?;
 
         state.serialize_field("segmentation_type_id", &self.segmentation_type_id)?;
         state.serialize_field("segmentation_type", &self.segmentation_type)?;

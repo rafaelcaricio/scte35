@@ -180,8 +180,8 @@ pub fn format_isan(bytes: &[u8]) -> String {
 /// Helper function to format bytes as base64 string, with fallback when base64 feature is disabled.
 #[cfg(any(feature = "base64", test))]
 pub fn format_base64(bytes: &[u8]) -> String {
-    use base64::{engine::general_purpose, Engine};
-    general_purpose::STANDARD.encode(bytes)
+    use data_encoding::BASE64;
+    BASE64.encode(bytes)
 }
 
 /// Fallback when base64 feature is disabled - returns empty string.
