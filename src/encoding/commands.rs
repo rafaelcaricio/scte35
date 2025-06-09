@@ -66,6 +66,7 @@ impl Encodable for SpliceInsert {
             writer.write_bits(self.reserved2 as u64 & 0x7, 3)?;
 
             // Encode splice_time if program_splice_flag == 1 and splice_immediate_flag == 0
+            #[allow(clippy::collapsible_if)]
             if self.program_splice_flag == 1 && self.splice_immediate_flag == 0 {
                 if let Some(ref splice_time) = self.splice_time {
                     splice_time.encode(writer)?;
@@ -84,6 +85,7 @@ impl Encodable for SpliceInsert {
         }
 
         // Encode break_duration if duration_flag == 1
+        #[allow(clippy::collapsible_if)]
         if self.duration_flag == 1 {
             if let Some(ref break_duration) = self.break_duration {
                 break_duration.encode(writer)?;
@@ -110,6 +112,7 @@ impl Encodable for SpliceInsert {
             size += 1; // flags byte
 
             // splice_time
+            #[allow(clippy::collapsible_if)]
             if self.program_splice_flag == 1 && self.splice_immediate_flag == 0 {
                 if let Some(ref splice_time) = self.splice_time {
                     size += splice_time.encoded_size();
@@ -126,6 +129,7 @@ impl Encodable for SpliceInsert {
         }
 
         // break_duration
+        #[allow(clippy::collapsible_if)]
         if self.duration_flag == 1 {
             if let Some(ref break_duration) = self.break_duration {
                 size += break_duration.encoded_size();
@@ -186,6 +190,7 @@ impl Encodable for SpliceSchedule {
             }
 
             // break_duration if duration_flag == 1
+            #[allow(clippy::collapsible_if)]
             if self.duration_flag == 1 {
                 if let Some(splice_duration) = self.splice_duration {
                     writer.write_bits(splice_duration as u64, 40)?; // break_duration is 40 bits
