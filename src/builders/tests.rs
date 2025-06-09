@@ -2,7 +2,7 @@
 
 use super::*;
 use crate::types::SegmentationType;
-use base64::Engine;
+use data_encoding::BASE64;
 use std::time::Duration;
 
 #[cfg(test)]
@@ -478,7 +478,7 @@ mod builder_tests {
             section.encode_to_vec().expect("Failed to encode")
         };
 
-        let encoded_base64 = base64::engine::general_purpose::STANDARD.encode(&encoded_bytes);
+        let encoded_base64 = BASE64.encode(&encoded_bytes);
 
         // Validate that our builder-generated payload matches the expected output
         let expected_base64 = "/DAnAAAAAAAAAP/wBQb+AA27oAARAg9DVUVJAAAAAX+HCQA0AAE0xUZn";
@@ -575,7 +575,7 @@ mod builder_tests {
             section.encode_to_vec().expect("Failed to encode")
         };
 
-        let encoded_base64 = base64::engine::general_purpose::STANDARD.encode(&encoded_bytes);
+        let encoded_base64 = BASE64.encode(&encoded_bytes);
 
         // Validate that our builder-generated payload matches the expected output
         let expected_base64 =
@@ -632,7 +632,7 @@ mod builder_tests {
             section.encode_to_vec().expect("Failed to encode")
         };
 
-        let encoded_base64 = base64::engine::general_purpose::STANDARD.encode(&encoded_bytes);
+        let encoded_base64 = BASE64.encode(&encoded_bytes);
 
         // Validate round-trip parsing works
         let reparsed_section = crate::parser::parse_splice_info_section(&encoded_bytes)
@@ -692,7 +692,7 @@ mod builder_tests {
             section.encode_to_vec().expect("Failed to encode")
         };
 
-        let encoded_base64 = base64::engine::general_purpose::STANDARD.encode(&encoded_bytes);
+        let encoded_base64 = BASE64.encode(&encoded_bytes);
 
         // Validate round-trip parsing works
         let reparsed_section = crate::parser::parse_splice_info_section(&encoded_bytes)
@@ -748,7 +748,7 @@ mod builder_tests {
             section.encode_to_vec().expect("Failed to encode")
         };
 
-        let encoded_base64 = base64::engine::general_purpose::STANDARD.encode(&encoded_bytes);
+        let encoded_base64 = BASE64.encode(&encoded_bytes);
 
         // Validate round-trip parsing works
         let reparsed_section = crate::parser::parse_splice_info_section(&encoded_bytes)
@@ -802,7 +802,7 @@ mod builder_tests {
             section.encode_to_vec().expect("Failed to encode")
         };
 
-        let encoded_base64 = base64::engine::general_purpose::STANDARD.encode(&encoded_bytes);
+        let encoded_base64 = BASE64.encode(&encoded_bytes);
 
         // Validate round-trip parsing works
         let reparsed_section = crate::parser::parse_splice_info_section(&encoded_bytes)
@@ -880,7 +880,7 @@ mod builder_tests {
             section.encode_to_vec().expect("Failed to encode")
         };
 
-        let encoded_base64 = base64::engine::general_purpose::STANDARD.encode(&encoded_bytes);
+        let encoded_base64 = BASE64.encode(&encoded_bytes);
 
         // Validate round-trip parsing works
         let reparsed_section = crate::parser::parse_splice_info_section(&encoded_bytes)
@@ -946,7 +946,7 @@ mod builder_tests {
             section.encode_to_vec().expect("Failed to encode")
         };
 
-        let encoded_base64 = base64::engine::general_purpose::STANDARD.encode(&encoded_bytes);
+        let encoded_base64 = BASE64.encode(&encoded_bytes);
 
         // Validate that our builder-generated payload matches the expected output
         let expected_base64 = "/DARAAAAAAAAAP/wAAAAAHpPv/8=";
@@ -1059,7 +1059,7 @@ mod builder_tests {
             section.encode_to_vec().expect("Failed to encode")
         };
 
-        let encoded_base64 = base64::engine::general_purpose::STANDARD.encode(&encoded_bytes);
+        let encoded_base64 = BASE64.encode(&encoded_bytes);
 
         // Validate that our builder-generated payload matches the expected SCTE-35 Sample 14.1
         let expected_base64 =
@@ -1166,7 +1166,7 @@ mod builder_tests {
             section.encode_to_vec().expect("Failed to encode")
         };
 
-        let encoded_base64 = base64::engine::general_purpose::STANDARD.encode(&encoded_bytes);
+        let encoded_base64 = BASE64.encode(&encoded_bytes);
 
         // Validate that our builder-generated payload matches the expected SCTE-35 Sample 14.3
         let expected_base64 =
@@ -1251,7 +1251,7 @@ mod builder_tests {
             section.encode_to_vec().expect("Failed to encode")
         };
 
-        let encoded_base64 = base64::engine::general_purpose::STANDARD.encode(&encoded_bytes);
+        let encoded_base64 = BASE64.encode(&encoded_bytes);
 
         // Validate that our builder-generated payload matches the AWS MediaTailor cue-out
         let expected_base64 = "/DA9AAAAAAAAAP/wBQb+uYbZqwAnAiVDVUVJAAAKqX//AAEjW4AMEU1EU05CMDAxMTMyMjE5M19ONAAAmXz5JA==";
@@ -1333,7 +1333,7 @@ mod builder_tests {
             section.encode_to_vec().expect("Failed to encode")
         };
 
-        let encoded_base64 = base64::engine::general_purpose::STANDARD.encode(&encoded_bytes);
+        let encoded_base64 = BASE64.encode(&encoded_bytes);
 
         // Validate that our builder-generated payload matches the AWS MediaTailor cue-in
         let expected_base64 =
@@ -1413,7 +1413,7 @@ mod builder_tests {
             section.encode_to_vec().expect("Failed to encode")
         };
 
-        let encoded_base64 = base64::engine::general_purpose::STANDARD.encode(&encoded_bytes);
+        let encoded_base64 = BASE64.encode(&encoded_bytes);
 
         // Validate that our builder-generated payload matches the Bitmovin SpliceInsert
         let expected_base64 = "/DAlAAAAAAAAAP/wFAUAAAAEf+/+kybGyP4BSvaQAAEBAQAArky/3g==";

@@ -26,3 +26,9 @@ pub use descriptors::*;
 pub use error::{BuilderError, BuilderResult};
 pub use splice_info_section::SpliceInfoSectionBuilder;
 pub use time::*;
+
+/// Builder for creating SCTE-35 messages.
+///
+/// This type provides a convenient way to create SCTE-35 messages using the builder pattern,
+/// allowing for fluent construction of splice commands, time signals, and segmentation descriptors.
+pub type Scte35Builder = SpliceInfoSectionBuilder;

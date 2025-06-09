@@ -67,10 +67,10 @@ pub use descriptors::{SegmentationDescriptor, SpliceDescriptor};
 ///
 /// ```rust
 /// use scte35::validate_scte35_crc;
-/// use base64::{Engine, engine::general_purpose};
+/// use data_encoding::BASE64;
 ///
 /// let base64_message = "/DAWAAAAAAAAAP/wBQb+Qjo1vQAAuwxz9A==";
-/// let buffer = general_purpose::STANDARD.decode(base64_message).unwrap();
+/// let buffer = BASE64.decode(base64_message.as_bytes()).unwrap();
 ///
 /// match validate_scte35_crc(&buffer) {
 ///     Ok(true) => println!("CRC validation passed"),

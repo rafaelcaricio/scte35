@@ -3,6 +3,9 @@
 use super::error::EncodingResult;
 use super::writer::BitWriter;
 
+#[cfg(feature = "base64")]
+use data_encoding::BASE64;
+
 /// Trait for types that can be encoded to SCTE-35 binary format.
 pub trait Encodable {
     /// Encode the structure to binary SCTE-35 format.
@@ -34,9 +37,8 @@ pub trait CrcEncodable: Encodable {
 pub trait Base64Encodable: Encodable {
     /// Encode to base64 string.
     fn encode_base64(&self) -> EncodingResult<String> {
-        use base64::{engine::general_purpose, Engine};
         let bytes = self.encode_to_vec()?;
-        Ok(general_purpose::STANDARD.encode(bytes))
+        Ok(BASE64.encode(&bytes))
     }
 
     /// Encode with CRC and then to base64.
@@ -45,8 +47,7 @@ pub trait Base64Encodable: Encodable {
     where
         Self: CrcEncodable,
     {
-        use base64::{engine::general_purpose, Engine};
         let bytes = self.encode_with_crc()?;
-        Ok(general_purpose::STANDARD.encode(bytes))
+        Ok(BASE64.encode(&bytes))
     }
 }

@@ -153,8 +153,8 @@ mod encoding_tests {
         assert!(!base64_string.is_empty());
 
         // Should be decodable
-        use base64::{engine::general_purpose, Engine};
-        let decoded = general_purpose::STANDARD.decode(&base64_string).unwrap();
+        use data_encoding::BASE64;
+        let decoded = BASE64.decode(base64_string.as_bytes()).unwrap();
         assert!(decoded.len() > 10);
     }
 

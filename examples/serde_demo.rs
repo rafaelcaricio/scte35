@@ -1,12 +1,12 @@
 //! Example demonstrating serde serialization of SCTE-35 messages
 
-use base64::{engine::general_purpose, Engine};
+use data_encoding::BASE64;
 use scte35::parse_splice_info_section;
 
 fn main() {
     // Example SCTE-35 message with segmentation descriptor
     let base64_message = "/DAvAAAAAAAA///wBQb+dGKQoAAZAhdDVUVJSAAAjn+fCAgAAAAALKChijUCAKnMZ1g=";
-    let buffer = general_purpose::STANDARD.decode(base64_message).unwrap();
+    let buffer = BASE64.decode(base64_message.as_bytes()).unwrap();
 
     let section = parse_splice_info_section(&buffer).unwrap();
 

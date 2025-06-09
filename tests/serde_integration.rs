@@ -3,14 +3,14 @@
 #[cfg(feature = "serde")]
 #[cfg(test)]
 mod tests {
-    use base64::{engine::general_purpose, Engine};
+    use data_encoding::BASE64;
     use scte35::*;
 
     #[test]
     fn test_complete_message_serialization() {
         // Real SCTE-35 message from the existing tests
         let base64_message = "/DAWAAAAAAAAAP/wBQb+Qjo1vQAAuwxz9A==";
-        let buffer = general_purpose::STANDARD.decode(base64_message).unwrap();
+        let buffer = BASE64.decode(base64_message.as_bytes()).unwrap();
 
         let section = parse_splice_info_section(&buffer).unwrap();
 
@@ -50,7 +50,7 @@ mod tests {
     fn test_segmentation_descriptor_json() {
         // Use the placement opportunity end example from our tests
         let base64_message = "/DAvAAAAAAAA///wBQb+dGKQoAAZAhdDVUVJSAAAjn+fCAgAAAAALKChijUCAKnMZ1g=";
-        let buffer = general_purpose::STANDARD.decode(base64_message).unwrap();
+        let buffer = BASE64.decode(base64_message.as_bytes()).unwrap();
 
         let section = parse_splice_info_section(&buffer).unwrap();
 
@@ -115,7 +115,7 @@ mod tests {
     fn test_mpu_upid_serialization() {
         // Test message with MPU UPID type
         let base64_message = "/DAsAAAAAAAAAP/wBQb+7YaD1QAWAhRDVUVJAADc8X+/DAVPVkxZSSIAAJ6Gk2Q=";
-        let buffer = general_purpose::STANDARD.decode(base64_message).unwrap();
+        let buffer = BASE64.decode(base64_message.as_bytes()).unwrap();
 
         let section = parse_splice_info_section(&buffer).unwrap();
         let json = serde_json::to_string_pretty(&section).unwrap();
