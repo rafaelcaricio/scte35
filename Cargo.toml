@@ -4,6 +4,7 @@ authors = ["Rafael Caricio <rafael@caricio.com>"]
 version = "0.2.0"
 edition = "2024"
 publish = ["crates-io"]
+license = "MIT"
 
 [features]
 default = ["crc-validation", "serde"]
