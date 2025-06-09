@@ -1,6 +1,10 @@
 [package]
 name = "scte35"
 authors = ["Rafael Caricio <rafael@caricio.com>"]
+description = "A Rust library for creating and parsing SCTE-35 (Society of Cable Telecommunications Engineers) messages with zero-dependency."
+documentation = "https://docs.rs/scte35"
+homepage = "https://docs.rs/scte35"
+repository = "https://github.com/rafaelcaricio/scte35"
 version = "0.2.0"
 edition = "2024"
 publish = ["crates-io"]
