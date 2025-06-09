@@ -28,7 +28,7 @@ pub mod serde;
 
 // Re-export commonly used CRC functions for convenience - only when available
 #[cfg(feature = "crc-validation")]
-pub use crc::{validate_message_crc, CrcValidatable};
+pub use crc::{CrcValidatable, validate_message_crc};
 
 // Re-export main types and functions for ease of use
 pub use parser::parse_splice_info_section;

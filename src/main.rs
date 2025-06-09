@@ -1,8 +1,8 @@
 use clap::{Parser, ValueEnum};
 use data_encoding::BASE64;
 use scte35::{
-    parse_splice_info_section, validate_scte35_crc, SpliceCommand, SpliceDescriptor,
-    SpliceInfoSection,
+    SpliceCommand, SpliceDescriptor, SpliceInfoSection, parse_splice_info_section,
+    validate_scte35_crc,
 };
 use std::process;
 

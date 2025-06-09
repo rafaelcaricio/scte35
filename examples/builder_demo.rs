@@ -149,7 +149,7 @@ fn main() -> BuilderResult<()> {
 
     println!("   Tier: 0x{:03x}", section.tier);
     println!("   PTS Adjustment: {}", section.pts_adjustment);
-    if let Some(scte35::descriptors::SpliceDescriptor::Segmentation(ref seg)) =
+    if let Some(scte35::descriptors::SpliceDescriptor::Segmentation(seg)) =
         section.splice_descriptors.first()
     {
         println!(

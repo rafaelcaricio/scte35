@@ -211,8 +211,13 @@ pub(crate) fn parse_segmentation_descriptor(
     let identifier = reader.read_uimsbf(32)? as u32;
     if identifier != 0x43554549 {
         // "CUEI" in big-endian
-        return Err(io::Error::new(ErrorKind::InvalidData,
-            format!("Invalid segmentation descriptor identifier: expected 0x43554549 (CUEI), got 0x{:08x}", identifier)));
+        return Err(io::Error::new(
+            ErrorKind::InvalidData,
+            format!(
+                "Invalid segmentation descriptor identifier: expected 0x43554549 (CUEI), got 0x{:08x}",
+                identifier
+            ),
+        ));
     }
 
     // Read the segmentation event fields (5 bytes minimum after CUEI)
