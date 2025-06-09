@@ -184,17 +184,21 @@ impl Encodable for AvailDescriptor {
         // splice_descriptor_tag (8 bits)
         writer.write_bits(0x00u64, 8)?;
         
-        // descriptor_length (8 bits)
-        writer.write_bits(4u64, 8)?;
+        // descriptor_length (8 bits) - 4 bytes for identifier + provider_avail_id length
+        let length = 4 + self.provider_avail_id.len();
+        writer.write_bits(length as u64, 8)?;
         
         // identifier (32 bits)
         writer.write_bits(self.identifier as u64, 32)?;
+        
+        // provider_avail_id (variable length)
+        writer.write_bytes(&self.provider_avail_id)?;
         
         Ok(())
     }
     
     fn encoded_size(&self) -> usize {
-        6 // tag + length + identifier
+        2 + 4 + self.provider_avail_id.len() // tag + length + identifier + provider_avail_id
     }
 }
 
