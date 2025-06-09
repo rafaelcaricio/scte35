@@ -475,4 +475,68 @@ mod tests {
         println!("Re-encoded: {}", encoded_base64);
         println!("✓ External tool compatibility verified");
     }
+
+    #[test]
+    fn test_time_signal_with_segmentation_descriptor() {
+        // TimeSignal with segmentation descriptor (Provider Placement Opportunity Start)
+        // This is a real-world example from SCTE-35 specification
+        let base64_payload = "/DAnAAAAAAAAAP/wBQb+AA27oAARAg9DVUVJAAAAAX+HCQA0AAE0xUZn";
+        test_round_trip_payload(&base64_payload, "TimeSignal with segmentation descriptor");
+    }
+
+    #[test]
+    fn test_sample_14_1_time_signal_placement_opportunity_start() {
+        // Sample 14.1 time_signal - Placement Opportunity Start from SCTE-35 specification
+        let base64_payload = "/DA0AAAAAAAA///wBQb+cr0AUAAeAhxDVUVJSAAAjn/PAAGlmbAICAAAAAAsoKGKNAIAmsnRfg==";
+        test_round_trip_payload(&base64_payload, "Sample 14.1 time_signal - Placement Opportunity Start");
+    }
+
+    #[test]
+    fn test_sample_14_2_splice_insert() {
+        // Sample 14.2 splice_insert with break duration and avail descriptor
+        let base64_payload = "/DAvAAAAAAAA///wFAVIAACPf+/+c2nALv4AUsz1AAAAAAAKAAhDVUVJAAABNWLbowo=";
+        test_round_trip_payload(&base64_payload, "Sample 14.2 splice_insert");
+    }
+
+    #[test]
+    fn test_sample_14_3_time_signal_placement_opportunity_end() {
+        // Sample 14.3 time_signal - Placement Opportunity End
+        let base64_payload = "/DAvAAAAAAAA///wBQb+dGKQoAAZAhdDVUVJSAAAjn+fCAgAAAAALKChijUCAKnMZ1g=";
+        test_round_trip_payload(&base64_payload, "Sample 14.3 time_signal - Placement Opportunity End");
+    }
+
+    #[test]
+    fn test_sample_14_4_time_signal_program_start_end() {
+        // Sample 14.4 time_signal - Program Start/End (multiple descriptors)
+        let base64_payload = "/DBIAAAAAAAA///wBQb+ek2ItgAyAhdDVUVJSAAAGH+fCAgAAAAALMvDRBEAAAIXQ1VFSUgAABl/nwgIAAAAACyk26AQAACZcuND";
+        test_round_trip_payload(&base64_payload, "Sample 14.4 time_signal - Program Start/End");
+    }
+
+    #[test]
+    fn test_sample_14_5_time_signal_program_overlap_start() {
+        // Sample 14.5 time_signal - Program Overlap Start
+        let base64_payload = "/DAvAAAAAAAA///wBQb+rr//ZAAZAhdDVUVJSAAACH+fCAgAAAAALKVs9RcAAJUdsKg=";
+        test_round_trip_payload(&base64_payload, "Sample 14.5 time_signal - Program Overlap Start");
+    }
+
+    #[test]
+    fn test_splice_null_heartbeat() {
+        // Splice Null - Heartbeat (minimal message)
+        let base64_payload = "/DARAAAAAAAAAP/wAAAAAHpPv/8=";
+        test_round_trip_payload(&base64_payload, "Splice Null - Heartbeat");
+    }
+
+    #[test]
+    fn test_splice_insert_with_avail_descriptor() {
+        // Splice Insert with Avail Descriptor
+        let base64_payload = "/DAqAAAAAAAAAP/wDwUAAHn+f8/+QubGOQAAAAAACgAIQ1VFSQAAAADizteX";
+        test_round_trip_payload(&base64_payload, "Splice Insert with Avail Descriptor");
+    }
+
+    #[test]
+    fn test_time_signal_with_multiple_segmentation_descriptors() {
+        // Time Signal with multiple Segmentation Descriptors
+        let base64_payload = "/DBIAAAAAAAAAP/wBQb/tB67hgAyAhdDVUVJQAABEn+fCAgAAAAALzE8BTUAAAIXQ1VFSUAAAEV/nwgIAAAAAC8xPN4jAAAfiOPE";
+        test_round_trip_payload(&base64_payload, "Time Signal with multiple Segmentation Descriptors");
+    }
 }

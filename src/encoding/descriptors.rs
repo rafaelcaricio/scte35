@@ -127,8 +127,9 @@ impl Encodable for SegmentationDescriptor {
         // segments_expected (8 bits)
         writer.write_bits(self.segments_expected as u64, 8)?;
         
-        // Sub-segment fields for specific segmentation types
-        if matches!(self.segmentation_type_id, 0x34 | 0x30 | 0x32 | 0x36 | 0x38 | 0x3A | 0x44 | 0x46) {
+        // Sub-segment fields for specific segmentation types that support sub-segments
+        // 0x34 (Provider Placement Opportunity Start) does NOT have sub-segment fields
+        if matches!(self.segmentation_type_id, 0x30 | 0x32 | 0x36 | 0x38 | 0x3A | 0x44 | 0x46) {
             if let Some(sub_segment_num) = self.sub_segment_num {
                 writer.write_bits(sub_segment_num as u64, 8)?;
             }
@@ -161,8 +162,8 @@ impl Encodable for SegmentationDescriptor {
         size += self.segmentation_upid.len(); // upid data
         size += 3; // type_id + segment_num + segments_expected
         
-        // Sub-segment fields
-        if matches!(self.segmentation_type_id, 0x34 | 0x30 | 0x32 | 0x36 | 0x38 | 0x3A | 0x44 | 0x46) {
+        // Sub-segment fields - 0x34 (Provider Placement Opportunity Start) does NOT have sub-segment fields
+        if matches!(self.segmentation_type_id, 0x30 | 0x32 | 0x36 | 0x38 | 0x3A | 0x44 | 0x46) {
             size += 2; // sub_segment_num + sub_segments_expected
         }
         
