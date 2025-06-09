@@ -12,6 +12,7 @@ use super::error::{BuilderError, BuilderResult};
 pub struct SpliceInfoSectionBuilder {
     pts_adjustment: u64,
     tier: u16,
+    cw_index: u8,
     splice_command: Option<SpliceCommand>,
     descriptors: Vec<SpliceDescriptor>,
 }
@@ -22,6 +23,7 @@ impl SpliceInfoSectionBuilder {
         Self {
             pts_adjustment: 0,
             tier: 0xFFF, // Default "all tiers"
+            cw_index: 0x00, // No control word
             splice_command: None,
             descriptors: Vec::new(),
         }
@@ -41,6 +43,15 @@ impl SpliceInfoSectionBuilder {
     /// Specifies which tier this message applies to. 0xFFF means all tiers.
     pub fn tier(mut self, tier: u16) -> Self {
         self.tier = tier & 0xFFF; // 12-bit value
+        self
+    }
+
+    /// Set the control word index (8-bit).
+    ///
+    /// Specifies the control word index for conditional access systems.
+    /// 0x00 = no control word, 0xFF = no control word (all 1s)
+    pub fn cw_index(mut self, cw_index: u8) -> Self {
+        self.cw_index = cw_index;
         self
     }
 
@@ -113,7 +124,7 @@ impl SpliceInfoSectionBuilder {
             encrypted_packet: 0,  // Not encrypted
             encryption_algorithm: 0,  // No encryption
             pts_adjustment: self.pts_adjustment,
-            cw_index: 0xFF,  // No control word (all 1s)
+            cw_index: self.cw_index,
             tier: self.tier,
             splice_command_length: 0,  // Will be calculated during encoding
             splice_command_type,

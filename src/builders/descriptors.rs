@@ -164,10 +164,10 @@ impl SegmentationDescriptorBuilder {
             }
             Upid::UserDefinedDeprecated(data) | Upid::Adi(data) | Upid::AtscContentIdentifier(data) 
             | Upid::Mpu(data) | Upid::Mid(data) | Upid::AdsInformation(data) | Upid::Scr(data) => {
-                if data.is_empty() || data.len() > 255 {
+                if data.len() > 255 {
                     return Err(BuilderError::InvalidValue {
                         field: "upid_data",
-                        reason: "UPID data must be 1-255 bytes".to_string(),
+                        reason: "UPID data must be <= 255 bytes".to_string(),
                     });
                 }
             }
@@ -245,7 +245,7 @@ impl SegmentationDescriptorBuilder {
             segmentation_upid_type: upid_type,
             segmentation_upid_length: upid_bytes.len() as u8,
             segmentation_upid: upid_bytes,
-            segmentation_type_id: self.segmentation_type as u8,
+            segmentation_type_id: self.segmentation_type.id(),
             segmentation_type: self.segmentation_type,
             segment_num: self.segment_num,
             segments_expected: self.segments_expected,
