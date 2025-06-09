@@ -26,7 +26,6 @@ The builder pattern implementation allows users to construct valid SCTE-35 messa
 4. **Time Utilities** (`time.rs`)
    - `SpliceTimeBuilder` - Handles PTS time specifications
    - `BreakDurationBuilder` - Manages break duration encoding
-   - `DateTimeBuilder` - Creates UTC timestamp structures
 
 5. **Section Builder** (`splice_info_section.rs`)
    - `SpliceInfoSectionBuilder` - Top-level builder for complete SCTE-35 messages

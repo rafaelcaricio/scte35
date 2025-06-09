@@ -51,32 +51,6 @@ impl SpliceTime {
     }
 }
 
-/// Represents a date and time structure used in splice scheduling.
-///
-/// This structure provides precise timing information for scheduled splice events,
-/// including support for both UTC and local time zones.
-#[derive(Debug, PartialEq, Default)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct DateTime {
-    /// Indicates if the time is in UTC (1) or local time (0)
-    pub utc_flag: u8,
-    /// Year value (e.g., 2023)
-    pub year: u16,
-    /// Month value (1-12)
-    pub month: u8,
-    /// Day of month (1-31)
-    pub day: u8,
-    /// Hour value (0-23)
-    pub hour: u8,
-    /// Minute value (0-59)
-    pub minute: u8,
-    /// Second value (0-59)
-    pub second: u8,
-    /// Frame number for sub-second precision
-    pub frames: u8,
-    /// Millisecond value for additional precision
-    pub milliseconds: u8,
-}
 
 /// Represents the duration of a commercial break or other timed segment.
 ///

@@ -1,6 +1,6 @@
 //! Time-related builder utilities for SCTE-35 messages.
 
-use crate::time::{SpliceTime, BreakDuration, DateTime};
+use crate::time::{SpliceTime, BreakDuration};
 use super::error::{BuilderError, BuilderResult, DurationExt};
 use std::time::Duration;
 
@@ -88,84 +88,5 @@ impl BreakDurationBuilder {
             reserved: 0,
             duration: ticks,
         })
-    }
-}
-
-/// Builder for creating date/time structures.
-#[derive(Debug)]
-pub struct DateTimeBuilder {
-    year: u16,
-    month: u8,
-    day: u8,
-    hour: u8,
-    minute: u8,
-    second: u8,
-    utc_flag: bool,
-}
-
-impl DateTimeBuilder {
-    /// Create a new date/time builder with the specified date and time.
-    pub fn new(year: u16, month: u8, day: u8, hour: u8, minute: u8, second: u8) -> BuilderResult<Self> {
-        if month == 0 || month > 12 {
-            return Err(BuilderError::InvalidValue {
-                field: "month",
-                reason: "Month must be 1-12".to_string(),
-            });
-        }
-        if day == 0 || day > 31 {
-            return Err(BuilderError::InvalidValue {
-                field: "day",
-                reason: "Day must be 1-31".to_string(),
-            });
-        }
-        if hour > 23 {
-            return Err(BuilderError::InvalidValue {
-                field: "hour",
-                reason: "Hour must be 0-23".to_string(),
-            });
-        }
-        if minute > 59 {
-            return Err(BuilderError::InvalidValue {
-                field: "minute",
-                reason: "Minute must be 0-59".to_string(),
-            });
-        }
-        if second > 59 {
-            return Err(BuilderError::InvalidValue {
-                field: "second",
-                reason: "Second must be 0-59".to_string(),
-            });
-        }
-
-        Ok(Self {
-            year,
-            month,
-            day,
-            hour,
-            minute,
-            second,
-            utc_flag: false,
-        })
-    }
-
-    /// Set whether this time is in UTC.
-    pub fn utc(mut self, utc: bool) -> Self {
-        self.utc_flag = utc;
-        self
-    }
-
-    /// Build the date/time structure.
-    pub fn build(self) -> DateTime {
-        DateTime {
-            utc_flag: self.utc_flag as u8,
-            year: self.year,
-            month: self.month,
-            day: self.day,
-            hour: self.hour,
-            minute: self.minute,
-            second: self.second,
-            frames: 0,
-            milliseconds: 0,
-        }
     }
 }

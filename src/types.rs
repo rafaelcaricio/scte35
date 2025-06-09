@@ -4,7 +4,7 @@
 //! commands, and related components.
 
 use crate::descriptors::SpliceDescriptor;
-use crate::time::{BreakDuration, DateTime, SpliceTime};
+use crate::time::{BreakDuration, SpliceTime};
 use std::fmt;
 
 /// Represents a complete SCTE-35 splice information section.
@@ -120,8 +120,8 @@ pub struct SpliceSchedule {
     pub duration_flag: u8,
     /// Duration of the splice in 90kHz ticks (present when duration_flag = 1)
     pub splice_duration: Option<u32>,
-    /// Scheduled time for the splice to occur (present when duration_flag = 0)
-    pub scheduled_splice_time: Option<DateTime>,
+    /// UTC time for the splice to occur in seconds since epoch (present when program_splice_flag = 1)
+    pub utc_splice_time: Option<u32>,
     /// Unique identifier for the program
     pub unique_program_id: u16,
     /// Number of components in the component list
@@ -232,8 +232,8 @@ pub struct ComponentSplice {
     pub duration_flag: u8,
     /// Duration of the splice for this component in 90kHz ticks (present when duration_flag = 1)
     pub splice_duration: Option<u32>,
-    /// Scheduled time for the splice to occur (present when duration_flag = 0)
-    pub scheduled_splice_time: Option<DateTime>,
+    /// UTC time for component splice in seconds since epoch (present when duration_flag = 0)
+    pub utc_splice_time: Option<u32>,
 }
 
 /// Represents component-specific timing information for splice insert commands.
