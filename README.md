@@ -4,6 +4,7 @@ A Rust library for parsing SCTE-35 (Society of Cable Telecommunications Engineer
 
 ## Features
 
+- **Builder Pattern API** - Type-safe builder pattern for creating SCTE-35 messages from scratch with validation
 - **Serde support** - Serialize/deserialize SCTE-35 messages to/from JSON and other formats (enabled by default)
 - **CRC validation** - Built-in CRC-32 validation using MPEG-2 algorithm (enabled by default)
 - **Human-readable UPID parsing** - Full support for 18 standard UPID types with intelligent formatting
@@ -326,6 +327,178 @@ The library supports all standard SCTE-35 segmentation types including:
 - Unscheduled Event Start/End
 - Alternate Content Opportunity Start/End
 - Network Start/End
+
+### Builder Pattern API (Creating SCTE-35 Messages)
+
+The library includes a comprehensive builder pattern API for creating SCTE-35 messages from scratch with type safety and validation:
+
+```rust
+# use scte35_parsing::builders::*;
+# use scte35_parsing::types::SegmentationType;
+# use std::time::Duration;
+# fn main() -> BuilderResult<()> {
+// Example 1: Creating a 30-second ad break starting at 20 seconds
+let splice_insert = SpliceInsertBuilder::new(12345)
+    .at_pts(Duration::from_secs(20))?
+    .duration(Duration::from_secs(30))
+    .unique_program_id(0x1234)
+    .avail(1, 4)  // First of 4 avails
+    .build()?;
+
+let section = SpliceInfoSectionBuilder::new()
+    .pts_adjustment(0)
+    .splice_insert(splice_insert)
+    .build()?;
+
+println!("Created SCTE-35 message with {} byte payload", section.section_length);
+# Ok(())
+# }
+```
+
+#### Creating Time Signals with Segmentation Descriptors
+
+```rust
+# use scte35_parsing::builders::*;
+# use scte35_parsing::types::SegmentationType;
+# use std::time::Duration;
+# fn example() -> BuilderResult<()> {
+// Example 2: Program start boundary with UPID
+let segmentation = SegmentationDescriptorBuilder::new(
+        5678, 
+        SegmentationType::ProgramStart
+    )
+    .upid(Upid::AdId("ABC123456789".to_string()))?
+    .duration(Duration::from_secs(1800))?  // 30-minute program
+    .build()?;
+
+let section = SpliceInfoSectionBuilder::new()
+    .time_signal(TimeSignalBuilder::new().immediate().build()?)
+    .add_segmentation_descriptor(segmentation)
+    .build()?;
+# Ok(())
+# }
+```
+
+#### Component-Level Splice Operations
+
+```rust
+# use scte35_parsing::builders::*;
+# use std::time::Duration;
+# fn example() -> BuilderResult<()> {
+// Example 3: Component-level splice for specific audio/video streams
+let splice_insert = SpliceInsertBuilder::new(3333)
+    .component_splice(vec![
+        (0x01, Some(Duration::from_secs(10))),  // Video component
+        (0x02, Some(Duration::from_secs(10))),  // Audio component 1
+        (0x03, Some(Duration::from_secs(10))),  // Audio component 2
+    ])?
+    .duration(Duration::from_secs(15))
+    .build()?;
+# Ok(())
+# }
+```
+
+#### Advanced Segmentation with Delivery Restrictions
+
+```rust
+# use scte35_parsing::builders::*;
+# use scte35_parsing::types::SegmentationType;
+# fn example() -> BuilderResult<()> {
+// Example 4: Complex segmentation with delivery restrictions
+let restrictions = DeliveryRestrictions {
+    web_delivery_allowed: false,
+    no_regional_blackout: false,
+    archive_allowed: true,
+    device_restrictions: DeviceRestrictions::RestrictGroup1,
+};
+
+let uuid_bytes = [0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc, 0xde, 0xf0,
+                 0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc, 0xde, 0xf0];
+
+let segmentation = SegmentationDescriptorBuilder::new(
+        7777,
+        SegmentationType::DistributorAdvertisementStart
+    )
+    .delivery_restrictions(restrictions)
+    .upid(Upid::Uuid(uuid_bytes))?
+    .segment(2, 6)  // 2nd of 6 segments
+    .build()?;
+# Ok(())
+# }
+```
+
+#### Comprehensive UPID Support
+
+The builder API supports all SCTE-35 UPID types with validation:
+
+```rust
+# use scte35_parsing::builders::*;
+# fn example() -> BuilderResult<()> {
+# let mut builder = SegmentationDescriptorBuilder::new(1, scte35_parsing::types::SegmentationType::ProgramStart);
+// Ad ID (12 ASCII characters)
+builder = builder.upid(Upid::AdId("ABC123456789".to_string()))?;
+
+// UUID (16 bytes)
+let uuid_bytes = [0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc, 0xde, 0xf0,
+                 0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc, 0xde, 0xf0];
+builder = builder.upid(Upid::Uuid(uuid_bytes))?;
+
+// URI (variable length)
+builder = builder.upid(Upid::Uri("https://example.com/content/123".to_string()))?;
+
+// ISAN (12 bytes)
+let isan_bytes = [0x00, 0x00, 0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef, 0x01, 0x23];
+builder = builder.upid(Upid::Isan(isan_bytes))?;
+
+// And many more: UMID, EIDR, TID, AiringID, etc.
+# Ok(())
+# }
+```
+
+#### Error Handling and Validation
+
+The builder API provides comprehensive validation with clear error messages:
+
+```rust
+# use scte35_parsing::builders::*;
+# use scte35_parsing::types::SegmentationType;
+# use std::time::Duration;
+# fn example() -> BuilderResult<()> {
+// Invalid UPID length
+let result = SegmentationDescriptorBuilder::new(1234, SegmentationType::ProgramStart)
+    .upid(Upid::AdId("TOO_SHORT".to_string()));
+
+match result {
+    Err(BuilderError::InvalidUpidLength { expected, actual }) => {
+        println!("UPID validation failed: expected {} chars, got {}", expected, actual);
+    }
+    _ => {}
+}
+
+// Duration too large for 33-bit PTS
+let result = SpliceInsertBuilder::new(1234)
+    .at_pts(Duration::from_secs(u64::MAX / 90_000 + 1))?
+    .build();
+
+match result {
+    Err(BuilderError::DurationTooLarge { field, duration }) => {
+        println!("Duration {} is too large for field {}", duration.as_secs(), field);
+    }
+    _ => {}
+}
+# Ok(())
+# }
+```
+
+#### Builder Features
+
+- **Type Safety**: Compile-time prevention of invalid message states
+- **Validation**: Runtime validation with descriptive error messages  
+- **Ergonomic API**: Fluent interface with sensible defaults
+- **Spec Compliance**: Automatic handling of reserved fields and constraints
+- **Complete Coverage**: Builders for all major SCTE-35 structures
+
+See the [builder_demo example](examples/builder_demo.rs) for more comprehensive usage examples.
 
 ### CLI Usage
 
