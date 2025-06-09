@@ -1,7 +1,7 @@
 //! Extensions for existing types to support the builder pattern.
 
-use crate::types::SpliceCommand;
 use crate::encoding::Encodable;
+use crate::types::SpliceCommand;
 
 /// Extension trait to provide encoding length calculation for SpliceCommand.
 pub trait SpliceCommandExt {

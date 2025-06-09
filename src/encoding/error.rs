@@ -16,7 +16,7 @@ pub enum EncodingError {
         /// Number of bytes available.
         available: usize,
     },
-    
+
     /// Invalid field value that cannot be encoded.
     InvalidFieldValue {
         /// Name of the field with invalid value.
@@ -24,13 +24,13 @@ pub enum EncodingError {
         /// String representation of the invalid value.
         value: String,
     },
-    
+
     /// Missing required field for encoding.
     MissingRequiredField {
         /// Name of the missing field.
         field: &'static str,
     },
-    
+
     /// Value exceeds the maximum allowed for its bit width.
     ValueTooLarge {
         /// Name of the field.
@@ -40,7 +40,7 @@ pub enum EncodingError {
         /// Actual value provided.
         actual_value: u64,
     },
-    
+
     /// IO error during encoding.
     IoError(String),
 }
@@ -49,7 +49,11 @@ impl fmt::Display for EncodingError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             EncodingError::BufferOverflow { needed, available } => {
-                write!(f, "Buffer overflow: needed {} bytes, had {}", needed, available)
+                write!(
+                    f,
+                    "Buffer overflow: needed {} bytes, had {}",
+                    needed, available
+                )
             }
             EncodingError::InvalidFieldValue { field, value } => {
                 write!(f, "Invalid field value: {} = {}", field, value)
@@ -57,8 +61,16 @@ impl fmt::Display for EncodingError {
             EncodingError::MissingRequiredField { field } => {
                 write!(f, "Missing required field: {}", field)
             }
-            EncodingError::ValueTooLarge { field, max_value, actual_value } => {
-                write!(f, "Value too large for field {}: {} > {} (max)", field, actual_value, max_value)
+            EncodingError::ValueTooLarge {
+                field,
+                max_value,
+                actual_value,
+            } => {
+                write!(
+                    f,
+                    "Value too large for field {}: {} > {} (max)",
+                    field, actual_value, max_value
+                )
             }
             EncodingError::IoError(msg) => {
                 write!(f, "IO error: {}", msg)

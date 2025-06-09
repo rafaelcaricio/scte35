@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a Rust library for parsing SCTE-35 (Society of Cable Telecommunications Engineers) messages. SCTE-35 is a standard for inserting cue messages into video streams, commonly used for ad insertion points in broadcast television.
+This is a Rust library for creating and parsing SCTE-35 (Society of Cable Telecommunications Engineers) messages. SCTE-35 is a standard for inserting cue messages into video streams, commonly used for ad insertion points in broadcast television.
 
 ## Common Development Commands
 
@@ -37,7 +37,7 @@ cargo test
 
 ### Fix Compilation Warnings
 ```bash
-cargo fix --lib -p scte35-parsing
+cargo fix --lib -p scte35
 ```
 
 ### Check Code Without Building
@@ -57,16 +57,19 @@ cargo test test_parse_splice_info_section
 
 ## Architecture
 
-The codebase implements a bit-level parser for SCTE-35 binary messages:
+The codebase implements comprehensive SCTE-35 functionality including creation and parsing of binary messages:
 
 - **BitReader**: A custom bit-level reader that can extract values from byte buffers at arbitrary bit offsets
 - **Data Structures**: Rust structs representing SCTE-35 message components (SpliceInfoSection, SpliceCommand variants, descriptors)
 - **Parser Functions**: Functions that use BitReader to parse binary data into the structured format
+- **Builder Pattern API**: Comprehensive builders for creating valid SCTE-35 messages with type safety
+- **Encoding Functions**: Binary encoding implementation for converting structures back to SCTE-35 format
 
 Key components:
 - `parse_splice_info_section()`: Main entry point for parsing SCTE-35 messages
+- Builder pattern API: `SpliceInfoSectionBuilder`, `SpliceInsertBuilder`, `TimeSignalBuilder`, etc.
 - Support for multiple splice command types: SpliceNull, SpliceSchedule, SpliceInsert, TimeSignal, BandwidthReservation, PrivateCommand
-- Handles bit-level field extraction following SCTE-35 specification
+- Handles bit-level field extraction and encoding following SCTE-35 specification
 
 ## Development Notes
 

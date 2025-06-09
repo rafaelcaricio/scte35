@@ -74,7 +74,7 @@ pub fn calculate_crc(_data: &[u8]) -> Option<u32> {
 /// # Example
 ///
 /// ```rust
-/// use scte35_parsing::crc::validate_message_crc;
+/// use scte35::crc::validate_message_crc;
 /// use base64::{Engine, engine::general_purpose};
 ///
 /// let base64_message = "/DAWAAAAAAAAAP/wBQb+Qjo1vQAAuwxz9A==";

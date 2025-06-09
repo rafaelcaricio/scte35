@@ -1,7 +1,7 @@
 //! Example demonstrating serde serialization of SCTE-35 messages
 
 use base64::{engine::general_purpose, Engine};
-use scte35_parsing::parse_splice_info_section;
+use scte35::parse_splice_info_section;
 
 fn main() {
     // Example SCTE-35 message with segmentation descriptor
@@ -16,7 +16,7 @@ fn main() {
     println!("{}", json);
 
     // Demonstrate that we can deserialize back
-    let deserialized: scte35_parsing::SpliceInfoSection = serde_json::from_str(&json).unwrap();
+    let deserialized: scte35::SpliceInfoSection = serde_json::from_str(&json).unwrap();
 
     // Verify key fields match
     assert_eq!(section.table_id, deserialized.table_id);

@@ -593,7 +593,7 @@ impl SegmentationDescriptorBuilder {
 ### Example 1: Creating a Splice Insert for Ad Break
 
 ```rust
-use scte35_parsing::builders::*;
+use scte35::builders::*;
 use std::time::Duration;
 
 // Create a 30-second ad break starting 20 seconds from start
@@ -613,8 +613,8 @@ let section = SpliceInfoSectionBuilder::new()
 ### Example 2: Creating a Time Signal with Segmentation Descriptor
 
 ```rust
-use scte35_parsing::builders::*;
-use scte35_parsing::SegmentationType;
+use scte35::builders::*;
+use scte35::SegmentationType;
 
 // Create a program start boundary
 let segmentation = SegmentationDescriptorBuilder::new(
@@ -634,7 +634,7 @@ let section = SpliceInfoSectionBuilder::new()
 ### Example 3: Creating an Immediate Splice Out
 
 ```rust
-use scte35_parsing::builders::*;
+use scte35::builders::*;
 
 // Immediate splice out to ads
 let section = SpliceInfoSectionBuilder::new()
@@ -650,7 +650,7 @@ let section = SpliceInfoSectionBuilder::new()
 ### Example 4: Component-Level Splice
 
 ```rust
-use scte35_parsing::builders::*;
+use scte35::builders::*;
 
 // Splice specific audio/video components at 10 seconds
 let splice_insert = SpliceInsertBuilder::new(3333)
@@ -670,8 +670,8 @@ let section = SpliceInfoSectionBuilder::new()
 ### Example 5: Complex Segmentation with Delivery Restrictions
 
 ```rust
-use scte35_parsing::builders::*;
-use scte35_parsing::SegmentationType;
+use scte35::builders::*;
+use scte35::SegmentationType;
 
 let restrictions = DeliveryRestrictions {
     web_delivery_allowed: false,

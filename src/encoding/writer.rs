@@ -24,7 +24,7 @@ impl BitWriter {
             current_byte: 0,
         }
     }
-    
+
     /// Creates a new `BitWriter` with a pre-allocated buffer capacity.
     pub fn with_capacity(capacity: usize) -> Self {
         Self {
@@ -33,7 +33,7 @@ impl BitWriter {
             current_byte: 0,
         }
     }
-    
+
     /// Writes a value using the specified number of bits.
     ///
     /// # Arguments
@@ -49,49 +49,50 @@ impl BitWriter {
                 value: bits.to_string(),
             });
         }
-        
+
         // Mask the value to ensure we only use the specified number of bits
         let masked_value = if bits == 64 {
             value
         } else {
             value & ((1u64 << bits) - 1)
         };
-        
+
         let mut remaining_bits = bits;
         let mut value_to_write = masked_value;
-        
+
         while remaining_bits > 0 {
             let bits_available_in_current_byte = 8 - self.bit_position;
             let bits_to_write = remaining_bits.min(bits_available_in_current_byte);
-            
+
             // Shift the value to get the bits we want to write
             let shift_amount = remaining_bits - bits_to_write;
             let bits_value = (value_to_write >> shift_amount) as u8;
             let mask = ((1u16 << bits_to_write) - 1) as u8;
-            
+
             // Write bits to current byte
-            self.current_byte |= (bits_value & mask) << (bits_available_in_current_byte - bits_to_write);
+            self.current_byte |=
+                (bits_value & mask) << (bits_available_in_current_byte - bits_to_write);
             self.bit_position += bits_to_write;
-            
+
             // If we've filled the current byte, add it to the buffer
             if self.bit_position == 8 {
                 self.buffer.push(self.current_byte);
                 self.current_byte = 0;
                 self.bit_position = 0;
             }
-            
+
             remaining_bits -= bits_to_write;
             value_to_write &= (1u64 << shift_amount) - 1;
         }
-        
+
         Ok(())
     }
-    
+
     /// Writes a single bit.
     pub fn write_bit(&mut self, bit: bool) -> EncodingResult<()> {
         self.write_bits(if bit { 1 } else { 0 }, 1)
     }
-    
+
     /// Writes a complete byte array.
     pub fn write_bytes(&mut self, bytes: &[u8]) -> EncodingResult<()> {
         for &byte in bytes {
@@ -99,7 +100,7 @@ impl BitWriter {
         }
         Ok(())
     }
-    
+
     /// Aligns to the next byte boundary by padding with zeros if necessary.
     pub fn align_to_byte(&mut self) -> EncodingResult<()> {
         if self.bit_position > 0 {
@@ -108,7 +109,7 @@ impl BitWriter {
         }
         Ok(())
     }
-    
+
     /// Finishes writing and returns the complete buffer.
     ///
     /// This will pad the last byte with zeros if necessary.
@@ -118,19 +119,19 @@ impl BitWriter {
         }
         self.buffer
     }
-    
+
     /// Returns the current size of the buffer in bytes.
     ///
     /// Note: This includes any partially written byte.
     pub fn len(&self) -> usize {
         self.buffer.len() + if self.bit_position > 0 { 1 } else { 0 }
     }
-    
+
     /// Returns true if no bits have been written yet.
     pub fn is_empty(&self) -> bool {
         self.buffer.is_empty() && self.bit_position == 0
     }
-    
+
     /// Returns the current bit position within the current byte.
     pub fn bit_position(&self) -> u8 {
         self.bit_position
@@ -146,7 +147,7 @@ impl Default for BitWriter {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_write_single_byte() {
         let mut writer = BitWriter::new();
@@ -154,7 +155,7 @@ mod tests {
         let buffer = writer.finish();
         assert_eq!(buffer, vec![0xAB]);
     }
-    
+
     #[test]
     fn test_write_bits_across_bytes() {
         let mut writer = BitWriter::new();
@@ -166,7 +167,7 @@ mod tests {
         // Should produce: 10111001 01101111
         assert_eq!(buffer, vec![0b10111001, 0b01101111]);
     }
-    
+
     #[test]
     fn test_write_bit() {
         let mut writer = BitWriter::new();
@@ -181,7 +182,7 @@ mod tests {
         let buffer = writer.finish();
         assert_eq!(buffer, vec![0b10110101]);
     }
-    
+
     #[test]
     fn test_align_to_byte() {
         let mut writer = BitWriter::new();
@@ -191,7 +192,7 @@ mod tests {
         let buffer = writer.finish();
         assert_eq!(buffer, vec![0b10100000, 0xFF]);
     }
-    
+
     #[test]
     fn test_write_bytes() {
         let mut writer = BitWriter::new();
@@ -199,7 +200,7 @@ mod tests {
         let buffer = writer.finish();
         assert_eq!(buffer, vec![0xAB, 0xCD, 0xEF]);
     }
-    
+
     #[test]
     fn test_partial_byte_finish() {
         let mut writer = BitWriter::new();
@@ -208,7 +209,7 @@ mod tests {
         // Should pad with zeros: 10110000
         assert_eq!(buffer, vec![0b10110000]);
     }
-    
+
     #[test]
     fn test_value_masking() {
         let mut writer = BitWriter::new();
@@ -218,7 +219,7 @@ mod tests {
         // Should only write the lower 4 bits: 1111
         assert_eq!(buffer, vec![0b11110000]);
     }
-    
+
     #[test]
     fn test_invalid_bits() {
         let mut writer = BitWriter::new();

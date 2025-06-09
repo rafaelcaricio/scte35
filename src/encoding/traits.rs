@@ -7,13 +7,13 @@ use super::writer::BitWriter;
 pub trait Encodable {
     /// Encode the structure to binary SCTE-35 format.
     fn encode(&self, writer: &mut BitWriter) -> EncodingResult<()>;
-    
+
     /// Calculate the encoded size in bytes.
     ///
     /// This should return the exact number of bytes that will be written
     /// when `encode` is called. This is used for pre-allocating buffers.
     fn encoded_size(&self) -> usize;
-    
+
     /// Convenience method to encode to a new byte vector.
     fn encode_to_vec(&self) -> EncodingResult<Vec<u8>> {
         let mut writer = BitWriter::with_capacity(self.encoded_size());
@@ -38,7 +38,7 @@ pub trait Base64Encodable: Encodable {
         let bytes = self.encode_to_vec()?;
         Ok(general_purpose::STANDARD.encode(bytes))
     }
-    
+
     /// Encode with CRC and then to base64.
     #[cfg(feature = "crc-validation")]
     fn encode_base64_with_crc(&self) -> EncodingResult<String>

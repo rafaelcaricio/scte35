@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document outlines the plan for adding serde serialization/deserialization support to the scte35-parsing library. The serde support will be implemented as an optional feature flag (`serde`) that is enabled by default, allowing users to serialize parsed SCTE-35 messages to JSON and other serde-supported formats.
+This document outlines the plan for adding serde serialization/deserialization support to the scte35 library. The serde support will be implemented as an optional feature flag (`serde`) that is enabled by default, allowing users to serialize parsed SCTE-35 messages to JSON and other serde-supported formats.
 
 ## Design Goals
 
@@ -174,7 +174,7 @@ Since serde is enabled by default, existing users will automatically get seriali
 
 ```toml
 [dependencies]
-scte35-parsing = { version = "0.1.0", default-features = false, features = ["crc-validation"] }
+scte35 = { version = "0.1.0", default-features = false, features = ["crc-validation"] }
 ```
 
 ## Example Usage
@@ -182,7 +182,7 @@ scte35-parsing = { version = "0.1.0", default-features = false, features = ["crc
 After implementation, users will be able to:
 
 ```rust
-use scte35_parsing::parse_splice_info_section;
+use scte35::parse_splice_info_section;
 use serde_json;
 
 let base64_payload = "...";

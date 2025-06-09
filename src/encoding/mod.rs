@@ -13,9 +13,9 @@ pub mod writer;
 pub mod traits;
 
 // Implementation modules
-mod splice_info_section;
 mod commands;
 mod descriptors;
+mod splice_info_section;
 mod time;
 
 #[cfg(test)]

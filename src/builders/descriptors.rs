@@ -1,9 +1,9 @@
 //! Builders for SCTE-35 descriptors.
 
+use super::error::{BuilderError, BuilderResult, DurationExt};
 use crate::descriptors::SegmentationDescriptor;
 use crate::types::SegmentationType;
 use crate::upid::SegmentationUpidType;
-use super::error::{BuilderError, BuilderResult, DurationExt};
 use std::time::Duration;
 
 /// Builder for creating segmentation descriptors.
@@ -127,7 +127,10 @@ impl SegmentationDescriptorBuilder {
     pub fn duration(mut self, duration: Duration) -> BuilderResult<Self> {
         let ticks = duration.to_pts_ticks();
         if ticks > 0x1_FFFF_FFFF {
-            return Err(BuilderError::DurationTooLarge { field: "segmentation_duration", duration });
+            return Err(BuilderError::DurationTooLarge {
+                field: "segmentation_duration",
+                duration,
+            });
         }
         self.duration = Some(duration);
         Ok(self)
@@ -151,7 +154,10 @@ impl SegmentationDescriptorBuilder {
         match &upid {
             Upid::Isci(s) | Upid::AdId(s) | Upid::Tid(s) => {
                 if s.len() != 12 {
-                    return Err(BuilderError::InvalidUpidLength { expected: 12, actual: s.len() });
+                    return Err(BuilderError::InvalidUpidLength {
+                        expected: 12,
+                        actual: s.len(),
+                    });
                 }
             }
             Upid::Uri(s) => {
@@ -162,8 +168,13 @@ impl SegmentationDescriptorBuilder {
                     });
                 }
             }
-            Upid::UserDefinedDeprecated(data) | Upid::Adi(data) | Upid::AtscContentIdentifier(data) 
-            | Upid::Mpu(data) | Upid::Mid(data) | Upid::AdsInformation(data) | Upid::Scr(data) => {
+            Upid::UserDefinedDeprecated(data)
+            | Upid::Adi(data)
+            | Upid::AtscContentIdentifier(data)
+            | Upid::Mpu(data)
+            | Upid::Mid(data)
+            | Upid::AdsInformation(data)
+            | Upid::Scr(data) => {
                 if data.len() > 255 {
                     return Err(BuilderError::InvalidValue {
                         field: "upid_data",
@@ -179,7 +190,7 @@ impl SegmentationDescriptorBuilder {
                     });
                 }
             }
-            _ => {}  // Other types have fixed sizes
+            _ => {} // Other types have fixed sizes
         }
         self.upid = Some(upid);
         Ok(self)
@@ -208,14 +219,16 @@ impl SegmentationDescriptorBuilder {
             None => (0, true),
         };
 
-        let (delivery_not_restricted, web, blackout, archive, device) = 
+        let (delivery_not_restricted, web, blackout, archive, device) =
             match self.delivery_restrictions {
                 None => (true, None, None, None, None),
-                Some(r) => (false, 
+                Some(r) => (
+                    false,
                     Some(r.web_delivery_allowed),
                     Some(r.no_regional_blackout),
                     Some(r.archive_allowed),
-                    Some(r.device_restrictions.into())),
+                    Some(r.device_restrictions.into()),
+                ),
             };
 
         let (upid_type, upid_bytes) = self.upid.unwrap_or(Upid::None).into();
@@ -224,7 +237,10 @@ impl SegmentationDescriptorBuilder {
             Some(duration) => {
                 let ticks = duration.to_pts_ticks();
                 if ticks > 0x1_FFFF_FFFF {
-                    return Err(BuilderError::DurationTooLarge { field: "segmentation_duration", duration });
+                    return Err(BuilderError::DurationTooLarge {
+                        field: "segmentation_duration",
+                        duration,
+                    });
                 }
                 Some(ticks)
             }
@@ -250,7 +266,10 @@ impl SegmentationDescriptorBuilder {
             segment_num: self.segment_num,
             segments_expected: self.segments_expected,
             sub_segment_num: self.sub_segmentation.as_ref().map(|s| s.sub_segment_num),
-            sub_segments_expected: self.sub_segmentation.as_ref().map(|s| s.sub_segments_expected),
+            sub_segments_expected: self
+                .sub_segmentation
+                .as_ref()
+                .map(|s| s.sub_segments_expected),
         })
     }
 }
@@ -270,7 +289,9 @@ impl From<Upid> for (SegmentationUpidType, Vec<u8>) {
     fn from(upid: Upid) -> Self {
         match upid {
             Upid::None => (SegmentationUpidType::NotUsed, vec![]),
-            Upid::UserDefinedDeprecated(data) => (SegmentationUpidType::UserDefinedDeprecated, data),
+            Upid::UserDefinedDeprecated(data) => {
+                (SegmentationUpidType::UserDefinedDeprecated, data)
+            }
             Upid::Isci(s) => (SegmentationUpidType::ISCI, s.into_bytes()),
             Upid::AdId(s) => (SegmentationUpidType::AdID, s.into_bytes()),
             Upid::Umid(bytes) => (SegmentationUpidType::UMID, bytes.to_vec()),
@@ -280,7 +301,9 @@ impl From<Upid> for (SegmentationUpidType, Vec<u8>) {
             Upid::AiringId(id) => (SegmentationUpidType::AiringID, id.to_be_bytes().to_vec()),
             Upid::Adi(data) => (SegmentationUpidType::ADI, data),
             Upid::Eidr(bytes) => (SegmentationUpidType::EIDR, bytes.to_vec()),
-            Upid::AtscContentIdentifier(data) => (SegmentationUpidType::ATSCContentIdentifier, data),
+            Upid::AtscContentIdentifier(data) => {
+                (SegmentationUpidType::ATSCContentIdentifier, data)
+            }
             Upid::Mpu(data) => (SegmentationUpidType::MPU, data),
             Upid::Mid(data) => (SegmentationUpidType::MID, data),
             Upid::AdsInformation(data) => (SegmentationUpidType::ADSInformation, data),

@@ -31,7 +31,7 @@ impl SpliceTime {
     /// # Example
     ///
     /// ```rust
-    /// use scte35_parsing::SpliceTime;
+    /// use scte35::SpliceTime;
     /// use std::time::Duration;
     ///
     /// let splice_time = SpliceTime {
@@ -50,7 +50,6 @@ impl SpliceTime {
         })
     }
 }
-
 
 /// Represents the duration of a commercial break or other timed segment.
 ///
@@ -76,7 +75,7 @@ impl BreakDuration {
     /// # Example
     ///
     /// ```rust
-    /// use scte35_parsing::BreakDuration;
+    /// use scte35::BreakDuration;
     /// use std::time::Duration;
     ///
     /// let break_duration = BreakDuration {
