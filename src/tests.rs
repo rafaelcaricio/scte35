@@ -96,7 +96,7 @@ fn test_upid_adid_example_no_crc_validation() {
     let adid_base64 =
         "/DA4AAAAAAAA///wBQb+AKpFLgAiAiBDVUVJAAAAA3//AAApPWwDDEFCQ0QwMTIzNDU2SHAAAFkTm+A=";
     let buffer = BASE64
-        .decode(adid_base64)
+        .decode(adid_base64.as_bytes())
         .expect("Failed to decode ADID base64 string");
 
     // Should parse successfully when CRC validation is disabled
@@ -613,7 +613,7 @@ fn test_crc_validatable_trait() {
 #[cfg(not(feature = "crc-validation"))]
 fn test_crc_disabled() {
     let valid_message = "/DAWAAAAAAAAAP/wBQb+Qjo1vQAAuwxz9A==";
-    let buffer = BASE64.decode(valid_message).unwrap();
+    let buffer = BASE64.decode(valid_message.as_bytes()).unwrap();
 
     // Should always return false when CRC validation is disabled
     let result = validate_scte35_crc(&buffer);
@@ -624,11 +624,8 @@ fn test_crc_disabled() {
     let section = parse_splice_info_section(&buffer);
     assert!(section.is_ok());
 
-    // Method should return false when disabled
-    let section = section.unwrap();
-    let result = section.validate_crc(&buffer);
-    assert!(result.is_ok());
-    assert!(!result.unwrap());
+    // Method should not be available when disabled - this code would not compile
+    // without the crc-validation feature, so we don't test it here
 }
 
 #[test]
