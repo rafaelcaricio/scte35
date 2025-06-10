@@ -7,12 +7,10 @@ use std::io;
 mod bit_reader;
 mod commands;
 
-// Public modules
-/// Builder pattern API for creating SCTE-35 messages from scratch.
 pub mod builders;
 pub mod descriptors;
-/// Binary encoding support for SCTE-35 messages.
 pub mod encoding;
+pub mod fmt;
 pub mod parser;
 pub mod time;
 pub mod types;

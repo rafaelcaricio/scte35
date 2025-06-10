@@ -131,8 +131,8 @@ mod tests {
         // Check UPID data is base64 encoded
         assert!(json.contains("\"segmentation_upid\": \"T1ZMWUk=\"")); // base64 of "OVLYI"
 
-        // Check computed UPID string
-        assert!(json.contains("\"upid_string\": \"OVLYI\""));
+        // Check computed UPID string (now properly formatted as MPU)
+        assert!(json.contains("\"upid_string\": \"MPU(format: OVLY, data: \\\"I\\\")\""));
 
         // Check segmentation type
         assert!(json.contains("\"segmentation_type_id\": 34")); // 0x22 = 34

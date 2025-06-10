@@ -189,6 +189,90 @@ fn main() -> BuilderResult<()> {
         Err(e) => println!("   Unexpected error: {e}"),
     }
 
+    // Example 7: MPU UPID usage patterns
+    println!("7. Creating MPU UPIDs for different use cases:");
+
+    // Company-specific format identifier (readable ASCII)
+    let company_mpu = Upid::new_mpu_str(0x43554549, "episode_s01e05_12345"); // "CUEI"
+    let descriptor1 = SegmentationDescriptorBuilder::new(8888, SegmentationType::ProgramStart)
+        .upid(company_mpu.clone())?
+        .build()?;
+    println!("   ✓ Company MPU created: {}", company_mpu);
+
+    // Different company format with structured data
+    let other_mpu = Upid::new_mpu_str(0x4D594944, "show:123:ep:456:segment:789"); // "MYID"
+    let _descriptor2 = SegmentationDescriptorBuilder::new(9999, SegmentationType::ContentIdentification)
+        .upid(other_mpu.clone())?
+        .build()?;
+    println!("   ✓ Different company MPU: {}", other_mpu);
+
+    // Binary format identifier with binary data
+    let binary_data = vec![0x00, 0x01, 0x02, 0x03, 0xFF, 0xFE, 0xFD, 0xFC];
+    let binary_mpu = Upid::new_mpu(0x12345678, binary_data); // Non-ASCII, shows as hex
+    let _descriptor3 = SegmentationDescriptorBuilder::new(1010, SegmentationType::ProgramEnd)
+        .upid(binary_mpu.clone())?
+        .build()?;
+    println!("   ✓ Binary format MPU: {}", binary_mpu);
+
+    // Very long content (gets truncated in display)
+    let long_content = "this_is_a_very_long_content_identifier_that_exceeds_fifty_characters_and_should_be_truncated";
+    let long_mpu = Upid::new_mpu_str(0x4C4F4E47, long_content); // "LONG"
+    let _descriptor4 = SegmentationDescriptorBuilder::new(1111, SegmentationType::ProgramStart)
+        .upid(long_mpu.clone())?
+        .build()?;
+    println!("   ✓ Long content MPU: {}", long_mpu);
+
+    // Direct struct construction for full control
+    let direct_mpu = Upid::Mpu {
+        format_identifier: 0x54455354, // "TEST"
+        private_data: vec![0x01, 0x02, 0x03, b'h', b'e', b'l', b'l', b'o'],
+    };
+    let _descriptor5 = SegmentationDescriptorBuilder::new(1212, SegmentationType::ChapterStart)
+        .upid(direct_mpu.clone())?
+        .build()?;
+    println!("   ✓ Direct construction MPU: {}", direct_mpu);
+
+    // Create a complete message with MPU descriptor
+    let time_signal = TimeSignalBuilder::new()
+        .at_pts(Duration::from_secs(5))?
+        .build()?;
+    
+    let section = SpliceInfoSectionBuilder::new()
+        .time_signal(time_signal)
+        .add_segmentation_descriptor(descriptor1)
+        .build()?;
+
+    // Show the encoding
+    #[cfg(feature = "crc-validation")]
+    {
+        use scte35::encoding::CrcEncodable;
+        match section.encode_with_crc() {
+            Ok(encoded) => {
+                let base64_encoded = data_encoding::BASE64.encode(&encoded);
+                println!("   ✓ Complete message with MPU encoded: {} bytes", encoded.len());
+                println!("     Base64: {}...", &base64_encoded[..40]);
+            }
+            Err(e) => {
+                println!("   ! Encoding error: {}", e);
+            }
+        }
+    }
+
+    #[cfg(not(feature = "crc-validation"))]
+    {
+        use scte35::encoding::Encodable;
+        match section.encode_to_vec() {
+            Ok(encoded) => {
+                let base64_encoded = data_encoding::BASE64.encode(&encoded);
+                println!("   ✓ Complete message with MPU encoded: {} bytes", encoded.len());
+                println!("     Base64: {}...", &base64_encoded[..40]);
+            }
+            Err(e) => {
+                println!("   ! Encoding error: {}", e);
+            }
+        }
+    }
+
     println!("\n=== Demo completed successfully! ===");
     Ok(())
 }
