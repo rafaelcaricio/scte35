@@ -87,11 +87,11 @@ pub enum Upid {
     /// ATSC Content Identifier.
     AtscContentIdentifier(Vec<u8>),
     /// MPU (Media Processing Unit) with format identifier and private data.
-    Mpu { 
+    Mpu {
         /// 32-bit format identifier registered with SMPTE
-        format_identifier: u32, 
+        format_identifier: u32,
         /// Variable-length private data as defined by format identifier owner
-        private_data: Vec<u8> 
+        private_data: Vec<u8>,
     },
     /// MID (Media Identifier).
     Mid(Vec<u8>),
@@ -117,12 +117,15 @@ impl Upid {
     /// # Example
     /// ```rust
     /// use scte35::builders::Upid;
-    /// 
+    ///
     /// // Create MPU with custom format identifier and data
     /// let mpu = Upid::new_mpu(0x43554549, b"custom_content_id".to_vec());
     /// ```
     pub fn new_mpu(format_identifier: u32, private_data: Vec<u8>) -> Self {
-        Upid::Mpu { format_identifier, private_data }
+        Upid::Mpu {
+            format_identifier,
+            private_data,
+        }
     }
 
     /// Creates a new MPU UPID with format identifier and string data.
@@ -132,14 +135,14 @@ impl Upid {
     /// # Example  
     /// ```rust
     /// use scte35::builders::Upid;
-    /// 
+    ///
     /// // Create MPU with string content
     /// let mpu = Upid::new_mpu_str(0x43554549, "program_12345");
     /// ```
     pub fn new_mpu_str(format_identifier: u32, data: &str) -> Self {
-        Upid::Mpu { 
-            format_identifier, 
-            private_data: data.as_bytes().to_vec() 
+        Upid::Mpu {
+            format_identifier,
+            private_data: data.as_bytes().to_vec(),
         }
     }
 }
@@ -195,9 +198,7 @@ impl SegmentationDescriptorBuilder {
     pub fn upid(mut self, upid: Upid) -> BuilderResult<Self> {
         // Validate UPID based on type
         match &upid {
-            Upid::Isci(s) 
-            | Upid::AdId(s)
-            | Upid::Tid(s) => {
+            Upid::Isci(s) | Upid::AdId(s) | Upid::Tid(s) => {
                 if s.len() != 12 {
                     return Err(BuilderError::InvalidUpidLength {
                         expected: 12,
@@ -205,7 +206,10 @@ impl SegmentationDescriptorBuilder {
                     });
                 }
             }
-            Upid::Mpu { format_identifier: _, private_data } => {
+            Upid::Mpu {
+                format_identifier: _,
+                private_data,
+            } => {
                 if private_data.len() > 251 {
                     return Err(BuilderError::InvalidValue {
                         field: "mpu_private_data",
@@ -359,11 +363,14 @@ impl From<Upid> for (SegmentationUpidType, Vec<u8>) {
             Upid::AtscContentIdentifier(data) => {
                 (SegmentationUpidType::ATSCContentIdentifier, data)
             }
-            Upid::Mpu { format_identifier, private_data } => {
+            Upid::Mpu {
+                format_identifier,
+                private_data,
+            } => {
                 let mut bytes = format_identifier.to_be_bytes().to_vec();
                 bytes.extend(private_data);
                 (SegmentationUpidType::MPU, bytes)
-            },
+            }
             Upid::Mid(data) => (SegmentationUpidType::MID, data),
             Upid::AdsInformation(data) => (SegmentationUpidType::ADSInformation, data),
             Upid::Uri(s) => (SegmentationUpidType::URI, s.into_bytes()),
@@ -375,36 +382,40 @@ impl From<Upid> for (SegmentationUpidType, Vec<u8>) {
 }
 
 /// Conversion from SegmentationDescriptor to Upid enum.
-/// 
+///
 /// This enables round-trip functionality: parse -> convert to builder type -> modify -> rebuild.
 /// Each UPID type has specific validation requirements according to SCTE-35 specification.
 impl TryFrom<(&crate::descriptors::SegmentationDescriptor,)> for Upid {
     type Error = BuilderError;
 
-    fn try_from((descriptor,): (&crate::descriptors::SegmentationDescriptor,)) -> Result<Self, Self::Error> {
+    fn try_from(
+        (descriptor,): (&crate::descriptors::SegmentationDescriptor,),
+    ) -> Result<Self, Self::Error> {
         use crate::upid::SegmentationUpidType;
-        
+
         let upid_bytes = &descriptor.segmentation_upid;
-        
+
         match descriptor.segmentation_upid_type {
             SegmentationUpidType::NotUsed => Ok(Upid::None),
-            SegmentationUpidType::UserDefinedDeprecated => Ok(Upid::UserDefinedDeprecated(upid_bytes.clone())),
+            SegmentationUpidType::UserDefinedDeprecated => {
+                Ok(Upid::UserDefinedDeprecated(upid_bytes.clone()))
+            }
             SegmentationUpidType::ISCI => {
-                let s = std::str::from_utf8(upid_bytes)
-                    .map_err(|_| BuilderError::InvalidValue {
+                let s =
+                    std::str::from_utf8(upid_bytes).map_err(|_| BuilderError::InvalidValue {
                         field: "isci_upid",
                         reason: "ISCI UPID must be valid UTF-8".to_string(),
                     })?;
                 Ok(Upid::Isci(s.to_string()))
-            },
+            }
             SegmentationUpidType::AdID => {
-                let s = std::str::from_utf8(upid_bytes)
-                    .map_err(|_| BuilderError::InvalidValue {
+                let s =
+                    std::str::from_utf8(upid_bytes).map_err(|_| BuilderError::InvalidValue {
                         field: "ad_id_upid",
                         reason: "Ad ID UPID must be valid UTF-8".to_string(),
                     })?;
                 Ok(Upid::AdId(s.to_string()))
-            },
+            }
             SegmentationUpidType::UMID => {
                 if upid_bytes.len() != 32 {
                     return Err(BuilderError::InvalidValue {
@@ -415,7 +426,7 @@ impl TryFrom<(&crate::descriptors::SegmentationDescriptor,)> for Upid {
                 let mut umid_array = [0u8; 32];
                 umid_array.copy_from_slice(upid_bytes);
                 Ok(Upid::Umid(umid_array))
-            },
+            }
             SegmentationUpidType::ISANDeprecated => {
                 if upid_bytes.len() != 12 {
                     return Err(BuilderError::InvalidValue {
@@ -426,7 +437,7 @@ impl TryFrom<(&crate::descriptors::SegmentationDescriptor,)> for Upid {
                 let mut isan_array = [0u8; 12];
                 isan_array.copy_from_slice(upid_bytes);
                 Ok(Upid::IsanDeprecated(isan_array))
-            },
+            }
             SegmentationUpidType::ISAN => {
                 if upid_bytes.len() != 12 {
                     return Err(BuilderError::InvalidValue {
@@ -437,15 +448,15 @@ impl TryFrom<(&crate::descriptors::SegmentationDescriptor,)> for Upid {
                 let mut isan_array = [0u8; 12];
                 isan_array.copy_from_slice(upid_bytes);
                 Ok(Upid::Isan(isan_array))
-            },
+            }
             SegmentationUpidType::TID => {
-                let s = std::str::from_utf8(upid_bytes)
-                    .map_err(|_| BuilderError::InvalidValue {
-                        field: "tid_upid", 
+                let s =
+                    std::str::from_utf8(upid_bytes).map_err(|_| BuilderError::InvalidValue {
+                        field: "tid_upid",
                         reason: "TID UPID must be valid UTF-8".to_string(),
                     })?;
                 Ok(Upid::Tid(s.to_string()))
-            },
+            }
             SegmentationUpidType::AiringID => {
                 if upid_bytes.len() != 8 {
                     return Err(BuilderError::InvalidValue {
@@ -454,11 +465,17 @@ impl TryFrom<(&crate::descriptors::SegmentationDescriptor,)> for Upid {
                     });
                 }
                 let airing_id = u64::from_be_bytes([
-                    upid_bytes[0], upid_bytes[1], upid_bytes[2], upid_bytes[3],
-                    upid_bytes[4], upid_bytes[5], upid_bytes[6], upid_bytes[7]
+                    upid_bytes[0],
+                    upid_bytes[1],
+                    upid_bytes[2],
+                    upid_bytes[3],
+                    upid_bytes[4],
+                    upid_bytes[5],
+                    upid_bytes[6],
+                    upid_bytes[7],
                 ]);
                 Ok(Upid::AiringId(airing_id))
-            },
+            }
             SegmentationUpidType::ADI => Ok(Upid::Adi(upid_bytes.clone())),
             SegmentationUpidType::EIDR => {
                 if upid_bytes.len() != 12 {
@@ -470,31 +487,40 @@ impl TryFrom<(&crate::descriptors::SegmentationDescriptor,)> for Upid {
                 let mut eidr_array = [0u8; 12];
                 eidr_array.copy_from_slice(upid_bytes);
                 Ok(Upid::Eidr(eidr_array))
-            },
-            SegmentationUpidType::ATSCContentIdentifier => Ok(Upid::AtscContentIdentifier(upid_bytes.clone())),
+            }
+            SegmentationUpidType::ATSCContentIdentifier => {
+                Ok(Upid::AtscContentIdentifier(upid_bytes.clone()))
+            }
             SegmentationUpidType::MPU => {
                 if upid_bytes.len() < 4 {
                     return Err(BuilderError::InvalidValue {
                         field: "mpu_upid",
-                        reason: "MPU UPID must have at least 4 bytes for format_identifier".to_string(),
+                        reason: "MPU UPID must have at least 4 bytes for format_identifier"
+                            .to_string(),
                     });
                 }
                 let format_identifier = u32::from_be_bytes([
-                    upid_bytes[0], upid_bytes[1], upid_bytes[2], upid_bytes[3]
+                    upid_bytes[0],
+                    upid_bytes[1],
+                    upid_bytes[2],
+                    upid_bytes[3],
                 ]);
                 let private_data = upid_bytes[4..].to_vec();
-                Ok(Upid::Mpu { format_identifier, private_data })
-            },
+                Ok(Upid::Mpu {
+                    format_identifier,
+                    private_data,
+                })
+            }
             SegmentationUpidType::MID => Ok(Upid::Mid(upid_bytes.clone())),
             SegmentationUpidType::ADSInformation => Ok(Upid::AdsInformation(upid_bytes.clone())),
             SegmentationUpidType::URI => {
-                let s = std::str::from_utf8(upid_bytes)
-                    .map_err(|_| BuilderError::InvalidValue {
+                let s =
+                    std::str::from_utf8(upid_bytes).map_err(|_| BuilderError::InvalidValue {
                         field: "uri_upid",
                         reason: "URI UPID must be valid UTF-8".to_string(),
                     })?;
                 Ok(Upid::Uri(s.to_string()))
-            },
+            }
             SegmentationUpidType::UUID => {
                 if upid_bytes.len() != 16 {
                     return Err(BuilderError::InvalidValue {
@@ -505,9 +531,11 @@ impl TryFrom<(&crate::descriptors::SegmentationDescriptor,)> for Upid {
                 let mut uuid_array = [0u8; 16];
                 uuid_array.copy_from_slice(upid_bytes);
                 Ok(Upid::Uuid(uuid_array))
-            },
+            }
             SegmentationUpidType::SCR => Ok(Upid::Scr(upid_bytes.clone())),
-            SegmentationUpidType::Reserved(type_id) => Ok(Upid::Reserved(type_id, upid_bytes.clone())),
+            SegmentationUpidType::Reserved(type_id) => {
+                Ok(Upid::Reserved(type_id, upid_bytes.clone()))
+            }
         }
     }
 }
@@ -516,7 +544,9 @@ impl std::fmt::Display for Upid {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Upid::None => write!(f, "None"),
-            Upid::UserDefinedDeprecated(data) => write!(f, "UserDefinedDeprecated({} bytes)", data.len()),
+            Upid::UserDefinedDeprecated(data) => {
+                write!(f, "UserDefinedDeprecated({} bytes)", data.len())
+            }
             Upid::Isci(s) => write!(f, "ISCI(\"{}\")", s),
             Upid::AdId(s) => write!(f, "AdID(\"{}\")", s),
             Upid::Umid(bytes) => write!(f, "UMID({} bytes)", bytes.len()),
@@ -526,18 +556,25 @@ impl std::fmt::Display for Upid {
             Upid::AiringId(id) => write!(f, "AiringID({})", id),
             Upid::Adi(data) => write!(f, "ADI({} bytes)", data.len()),
             Upid::Eidr(bytes) => write!(f, "EIDR({} bytes)", bytes.len()),
-            Upid::AtscContentIdentifier(data) => write!(f, "ATSCContentIdentifier({} bytes)", data.len()),
-            Upid::Mpu { format_identifier, private_data } => {
+            Upid::AtscContentIdentifier(data) => {
+                write!(f, "ATSCContentIdentifier({} bytes)", data.len())
+            }
+            Upid::Mpu {
+                format_identifier,
+                private_data,
+            } => {
                 let format_str = format_identifier_to_string(*format_identifier);
                 let data_str = format_private_data(private_data);
                 write!(f, "MPU(format: {}, data: {})", format_str, data_str)
-            },
+            }
             Upid::Mid(data) => write!(f, "MID({} bytes)", data.len()),
             Upid::AdsInformation(data) => write!(f, "ADSInformation({} bytes)", data.len()),
             Upid::Uri(s) => write!(f, "URI(\"{}\")", s),
             Upid::Uuid(bytes) => write!(f, "UUID({} bytes)", bytes.len()),
             Upid::Scr(data) => write!(f, "SCR({} bytes)", data.len()),
-            Upid::Reserved(type_id, data) => write!(f, "Reserved({}, {} bytes)", type_id, data.len()),
+            Upid::Reserved(type_id, data) => {
+                write!(f, "Reserved({}, {} bytes)", type_id, data.len())
+            }
         }
     }
 }

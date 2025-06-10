@@ -201,9 +201,10 @@ fn main() -> BuilderResult<()> {
 
     // Different company format with structured data
     let other_mpu = Upid::new_mpu_str(0x4D594944, "show:123:ep:456:segment:789"); // "MYID"
-    let _descriptor2 = SegmentationDescriptorBuilder::new(9999, SegmentationType::ContentIdentification)
-        .upid(other_mpu.clone())?
-        .build()?;
+    let _descriptor2 =
+        SegmentationDescriptorBuilder::new(9999, SegmentationType::ContentIdentification)
+            .upid(other_mpu.clone())?
+            .build()?;
     println!("   ✓ Different company MPU: {}", other_mpu);
 
     // Binary format identifier with binary data
@@ -236,7 +237,7 @@ fn main() -> BuilderResult<()> {
     let time_signal = TimeSignalBuilder::new()
         .at_pts(Duration::from_secs(5))?
         .build()?;
-    
+
     let section = SpliceInfoSectionBuilder::new()
         .time_signal(time_signal)
         .add_segmentation_descriptor(descriptor1)
@@ -249,7 +250,10 @@ fn main() -> BuilderResult<()> {
         match section.encode_with_crc() {
             Ok(encoded) => {
                 let base64_encoded = data_encoding::BASE64.encode(&encoded);
-                println!("   ✓ Complete message with MPU encoded: {} bytes", encoded.len());
+                println!(
+                    "   ✓ Complete message with MPU encoded: {} bytes",
+                    encoded.len()
+                );
                 println!("     Base64: {}...", &base64_encoded[..40]);
             }
             Err(e) => {
@@ -264,7 +268,10 @@ fn main() -> BuilderResult<()> {
         match section.encode_to_vec() {
             Ok(encoded) => {
                 let base64_encoded = data_encoding::BASE64.encode(&encoded);
-                println!("   ✓ Complete message with MPU encoded: {} bytes", encoded.len());
+                println!(
+                    "   ✓ Complete message with MPU encoded: {} bytes",
+                    encoded.len()
+                );
                 println!("     Base64: {}...", &base64_encoded[..40]);
             }
             Err(e) => {
