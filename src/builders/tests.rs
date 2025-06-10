@@ -10,17 +10,23 @@ use std::time::Duration;
 fn test_mpu_convenience_constructors() {
     let mpu1 = Upid::new_mpu(0x12345678, vec![1, 2, 3]);
     let mpu2 = Upid::new_mpu_str(0x12345678, "test");
-    
+
     // Verify correct structure
     match mpu1 {
-        Upid::Mpu { format_identifier: 0x12345678, private_data } => {
+        Upid::Mpu {
+            format_identifier: 0x12345678,
+            private_data,
+        } => {
             assert_eq!(private_data, vec![1, 2, 3]);
         }
         _ => panic!("Wrong variant"),
     }
-    
+
     match mpu2 {
-        Upid::Mpu { format_identifier: 0x12345678, private_data } => {
+        Upid::Mpu {
+            format_identifier: 0x12345678,
+            private_data,
+        } => {
             assert_eq!(private_data, b"test");
         }
         _ => panic!("Wrong variant"),
@@ -33,14 +39,16 @@ fn test_mpu_validation() {
     let large_data = vec![0u8; 252]; // Too large
     let result = SegmentationDescriptorBuilder::new(1, SegmentationType::ProgramStart)
         .upid(Upid::new_mpu(0x12345678, large_data));
-    
-    assert!(matches!(result, Err(BuilderError::InvalidValue { field, .. }) if field == "mpu_private_data"));
-    
+
+    assert!(
+        matches!(result, Err(BuilderError::InvalidValue { field, .. }) if field == "mpu_private_data")
+    );
+
     // Test valid size
     let valid_data = vec![0u8; 251]; // Maximum allowed
     let result = SegmentationDescriptorBuilder::new(1, SegmentationType::ProgramStart)
         .upid(Upid::new_mpu(0x12345678, valid_data));
-    
+
     assert!(result.is_ok());
 }
 
@@ -48,7 +56,7 @@ fn test_mpu_validation() {
 fn test_mpu_serialization() {
     let mpu = Upid::new_mpu(0x43554549, b"test_data".to_vec());
     let (upid_type, bytes) = mpu.into();
-    
+
     assert_eq!(upid_type, SegmentationUpidType::MPU);
     assert_eq!(&bytes[..4], &[0x43, 0x55, 0x45, 0x49]); // Format identifier
     assert_eq!(&bytes[4..], b"test_data"); // Private data
@@ -58,55 +66,80 @@ fn test_mpu_serialization() {
 fn test_mpu_display_formats() {
     // ASCII format identifier with string data
     let string_mpu = Upid::new_mpu_str(0x43554549, "episode_123"); // "CUEI"
-    assert_eq!(string_mpu.to_string(), "MPU(format: CUEI, data: \"episode_123\")");
-    
+    assert_eq!(
+        string_mpu.to_string(),
+        "MPU(format: CUEI, data: \"episode_123\")"
+    );
+
     // ASCII format identifier with binary data
     let binary_mpu = Upid::new_mpu(0x43554549, vec![0x01, 0x02, 0x03, 0xFF]); // "CUEI"
-    assert_eq!(binary_mpu.to_string(), "MPU(format: CUEI, data: 0x010203ff)");
-    
+    assert_eq!(
+        binary_mpu.to_string(),
+        "MPU(format: CUEI, data: 0x010203ff)"
+    );
+
     // Non-ASCII format identifier with string data
     let hex_format_mpu = Upid::new_mpu_str(0x12345678, "content_id");
-    assert_eq!(hex_format_mpu.to_string(), "MPU(format: 0x12345678, data: \"content_id\")");
-    
+    assert_eq!(
+        hex_format_mpu.to_string(),
+        "MPU(format: 0x12345678, data: \"content_id\")"
+    );
+
     // Long string data (truncated)
     let long_string = "a".repeat(60);
     let long_mpu = Upid::new_mpu_str(0x54455354, &long_string); // "TEST"
-    assert_eq!(long_mpu.to_string(), "MPU(format: TEST, data: \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa...\" (60 bytes))");
-    
+    assert_eq!(
+        long_mpu.to_string(),
+        "MPU(format: TEST, data: \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa...\" (60 bytes))"
+    );
+
     // Long binary data (truncated)
     let long_binary: Vec<u8> = (0..20).collect();
     let long_binary_mpu = Upid::new_mpu(0x54455354, long_binary); // "TEST"
-    assert_eq!(long_binary_mpu.to_string(), "MPU(format: TEST, data: 0x000102030405... (20 bytes))");
-    
+    assert_eq!(
+        long_binary_mpu.to_string(),
+        "MPU(format: TEST, data: 0x000102030405... (20 bytes))"
+    );
+
     // Empty data
     let empty_mpu = Upid::new_mpu(0x54455354, vec![]); // "TEST"
     assert_eq!(empty_mpu.to_string(), "MPU(format: TEST, data: empty)");
-    
+
     // String with control characters (shows as hex)
     let control_mpu = Upid::new_mpu(0x54455354, b"test\x00\x01".to_vec()); // "TEST"
-    assert_eq!(control_mpu.to_string(), "MPU(format: TEST, data: 0x746573740001)");
+    assert_eq!(
+        control_mpu.to_string(),
+        "MPU(format: TEST, data: 0x746573740001)"
+    );
 }
 
 #[test]
 fn test_mpu_round_trip_conversion() {
-    
     // Create an MPU UPID
     let original_mpu = Upid::new_mpu_str(0x43554549, "test_content_123");
-    
+
     // Build a descriptor with the UPID
     let descriptor = SegmentationDescriptorBuilder::new(1234, SegmentationType::ProgramStart)
         .upid(original_mpu.clone())
         .unwrap()
         .build()
         .unwrap();
-    
+
     // Convert back to Upid using TryFrom
     let converted_mpu = Upid::try_from((&descriptor,)).unwrap();
-    
+
     // Verify they match
     match (original_mpu, converted_mpu) {
-        (Upid::Mpu { format_identifier: orig_id, private_data: orig_data }, 
-         Upid::Mpu { format_identifier: conv_id, private_data: conv_data }) => {
+        (
+            Upid::Mpu {
+                format_identifier: orig_id,
+                private_data: orig_data,
+            },
+            Upid::Mpu {
+                format_identifier: conv_id,
+                private_data: conv_data,
+            },
+        ) => {
             assert_eq!(orig_id, conv_id);
             assert_eq!(orig_data, conv_data);
         }
@@ -117,7 +150,7 @@ fn test_mpu_round_trip_conversion() {
 #[test]
 fn test_mpu_parsing_validation() {
     use crate::descriptors::SegmentationDescriptor;
-    
+
     // Test with insufficient bytes (less than 4)
     let short_descriptor = SegmentationDescriptor {
         segmentation_event_id: 1,
@@ -140,10 +173,10 @@ fn test_mpu_parsing_validation() {
         sub_segment_num: None,
         sub_segments_expected: None,
     };
-    
+
     let result = Upid::try_from((&short_descriptor,));
     assert!(matches!(result, Err(BuilderError::InvalidValue { field, .. }) if field == "mpu_upid"));
-    
+
     // Test with valid MPU data
     let valid_descriptor = SegmentationDescriptor {
         segmentation_upid_type: SegmentationUpidType::MPU,
@@ -151,10 +184,13 @@ fn test_mpu_parsing_validation() {
         segmentation_upid: vec![0x43, 0x55, 0x45, 0x49, 0x74, 0x65, 0x73, 0x74, 0x00], // "CUEI" + "test\0"
         ..short_descriptor
     };
-    
+
     let result = Upid::try_from((&valid_descriptor,)).unwrap();
     match result {
-        Upid::Mpu { format_identifier, private_data } => {
+        Upid::Mpu {
+            format_identifier,
+            private_data,
+        } => {
             assert_eq!(format_identifier, 0x43554549); // "CUEI"
             assert_eq!(private_data, vec![0x74, 0x65, 0x73, 0x74, 0x00]); // "test\0"
         }

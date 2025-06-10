@@ -225,11 +225,11 @@ impl SegmentationDescriptor {
     /// ```
     pub fn upid_as_string(&self) -> Option<String> {
         match self.segmentation_upid_type {
-            SegmentationUpidType::URI
-            | SegmentationUpidType::AdID
-            | SegmentationUpidType::TID => std::str::from_utf8(&self.segmentation_upid)
-                .ok()
-                .map(|s| s.to_string()),
+            SegmentationUpidType::URI | SegmentationUpidType::AdID | SegmentationUpidType::TID => {
+                std::str::from_utf8(&self.segmentation_upid)
+                    .ok()
+                    .map(|s| s.to_string())
+            }
             SegmentationUpidType::MPU => {
                 // MPU has format identifier (4 bytes) + private data
                 if self.segmentation_upid.len() >= 4 {
@@ -240,7 +240,7 @@ impl SegmentationDescriptor {
                         self.segmentation_upid[3],
                     ]);
                     let private_data = &self.segmentation_upid[4..];
-                    
+
                     // Format using our fmt utilities
                     let format_str = crate::fmt::format_identifier_to_string(format_identifier);
                     let data_str = crate::fmt::format_private_data(private_data);
@@ -248,7 +248,7 @@ impl SegmentationDescriptor {
                 } else {
                     None
                 }
-            },
+            }
             SegmentationUpidType::UUID => {
                 if self.segmentation_upid.len() == 16 {
                     Some(format_uuid(&self.segmentation_upid))
