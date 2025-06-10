@@ -1058,8 +1058,8 @@ fn test_mpu_upid_example() {
             assert_eq!(seg_desc.segmentation_upid_length, 5);
             assert_eq!(seg_desc.segmentation_upid, b"OVLYI");
 
-            // MPU type should return the string as-is
-            assert_eq!(seg_desc.upid_as_string(), Some("OVLYI".to_string()));
+            // MPU type should return the formatted structure
+            assert_eq!(seg_desc.upid_as_string(), Some("MPU(format: OVLY, data: \"I\")".to_string()));
 
             // Check segmentation type
             assert_eq!(seg_desc.segmentation_type_id, 0x22);
