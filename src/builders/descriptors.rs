@@ -547,13 +547,13 @@ impl std::fmt::Display for Upid {
             Upid::UserDefinedDeprecated(data) => {
                 write!(f, "UserDefinedDeprecated({} bytes)", data.len())
             }
-            Upid::Isci(s) => write!(f, "ISCI(\"{}\")", s),
-            Upid::AdId(s) => write!(f, "AdID(\"{}\")", s),
+            Upid::Isci(s) => write!(f, "ISCI(\"{s}\")"),
+            Upid::AdId(s) => write!(f, "AdID(\"{s}\")"),
             Upid::Umid(bytes) => write!(f, "UMID({} bytes)", bytes.len()),
             Upid::IsanDeprecated(bytes) => write!(f, "ISANDeprecated({} bytes)", bytes.len()),
             Upid::Isan(bytes) => write!(f, "ISAN({} bytes)", bytes.len()),
-            Upid::Tid(s) => write!(f, "TID(\"{}\")", s),
-            Upid::AiringId(id) => write!(f, "AiringID({})", id),
+            Upid::Tid(s) => write!(f, "TID(\"{s}\")"),
+            Upid::AiringId(id) => write!(f, "AiringID({id})"),
             Upid::Adi(data) => write!(f, "ADI({} bytes)", data.len()),
             Upid::Eidr(bytes) => write!(f, "EIDR({} bytes)", bytes.len()),
             Upid::AtscContentIdentifier(data) => {
@@ -565,11 +565,11 @@ impl std::fmt::Display for Upid {
             } => {
                 let format_str = format_identifier_to_string(*format_identifier);
                 let data_str = format_private_data(private_data);
-                write!(f, "MPU(format: {}, data: {})", format_str, data_str)
+                write!(f, "MPU(format: {format_str}, data: {data_str})")
             }
             Upid::Mid(data) => write!(f, "MID({} bytes)", data.len()),
             Upid::AdsInformation(data) => write!(f, "ADSInformation({} bytes)", data.len()),
-            Upid::Uri(s) => write!(f, "URI(\"{}\")", s),
+            Upid::Uri(s) => write!(f, "URI(\"{s}\")"),
             Upid::Uuid(bytes) => write!(f, "UUID({} bytes)", bytes.len()),
             Upid::Scr(data) => write!(f, "SCR({} bytes)", data.len()),
             Upid::Reserved(type_id, data) => {
