@@ -244,7 +244,7 @@ impl SegmentationDescriptor {
                     // Format using our fmt utilities
                     let format_str = crate::fmt::format_identifier_to_string(format_identifier);
                     let data_str = crate::fmt::format_private_data(private_data);
-                    Some(format!("MPU(format: {}, data: {})", format_str, data_str))
+                    Some(format!("MPU(format: {format_str}, data: {data_str})"))
                 } else {
                     None
                 }

@@ -28,7 +28,7 @@ pub fn format_identifier_to_string(format_identifier: u32) -> String {
         String::from_utf8_lossy(&bytes).to_string()
     } else {
         // Fallback to hex representation
-        format!("0x{:08X}", format_identifier)
+        format!("0x{format_identifier:08X}")
     }
 }
 
@@ -57,7 +57,7 @@ pub fn format_private_data(data: &[u8]) -> String {
         if s.chars().all(|c| c.is_ascii_graphic() || c == ' ') {
             // Truncate long strings for readability
             if s.len() <= 50 {
-                format!("\"{}\"", s)
+                format!("\"{s}\"")
             } else {
                 format!("\"{}...\" ({} bytes)", &s[..47], data.len())
             }
@@ -88,13 +88,11 @@ pub fn format_as_hex(data: &[u8]) -> String {
         // Show all bytes for short data
         format!(
             "0x{}",
-            data.iter()
-                .map(|b| format!("{:02x}", b))
-                .collect::<String>()
+            data.iter().map(|b| format!("{b:02x}")).collect::<String>()
         )
     } else {
         // Show first few bytes with truncation for long data
-        let preview: String = data[..6].iter().map(|b| format!("{:02x}", b)).collect();
+        let preview: String = data[..6].iter().map(|b| format!("{b:02x}")).collect();
         format!("0x{}... ({} bytes)", preview, data.len())
     }
 }
