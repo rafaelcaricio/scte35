@@ -15,10 +15,7 @@ impl Encodable for SpliceCommand {
             SpliceCommand::TimeSignal(signal) => signal.encode(writer),
             SpliceCommand::BandwidthReservation(reservation) => reservation.encode(writer),
             SpliceCommand::PrivateCommand(private) => private.encode(writer),
-            SpliceCommand::Unknown => {
-                // Unknown command has no defined encoding
-                Ok(())
-            }
+            SpliceCommand::Unknown => Ok(()),
         }
     }
 

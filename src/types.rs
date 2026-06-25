@@ -14,8 +14,9 @@ use std::fmt;
 ///
 /// # Fields
 ///
-/// The structure follows the SCTE-35 specification layout:
-/// - Header fields (table_id, section_length, etc.)
+/// The structure follows the SCTE-35 specification layout, omitting length
+/// fields that are derived from the encoded content:
+/// - Header fields
 /// - Splice command data
 /// - Optional descriptors
 /// - CRC for data integrity
@@ -30,8 +31,6 @@ pub struct SpliceInfoSection {
     pub private_indicator: u8,
     /// SAP (Stream Access Point) type
     pub sap_type: u8,
-    /// Length of the section in bytes
-    pub section_length: u16,
     /// SCTE-35 protocol version
     pub protocol_version: u8,
     /// Encryption packet flag (0 for unencrypted)
@@ -44,14 +43,10 @@ pub struct SpliceInfoSection {
     pub cw_index: u8,
     /// Tier value for authorization
     pub tier: u16,
-    /// Length of the splice command in bytes
-    pub splice_command_length: u16,
     /// Type of splice command (0x00-0xFF)
     pub splice_command_type: u8,
     /// The actual splice command data
     pub splice_command: SpliceCommand,
-    /// Length of descriptor loop in bytes
-    pub descriptor_loop_length: u16,
     /// List of splice descriptors
     pub splice_descriptors: Vec<SpliceDescriptor>,
     /// Alignment stuffing bits for byte alignment
@@ -91,6 +86,21 @@ pub enum SpliceCommand {
     PrivateCommand(PrivateCommand),
     /// Unknown command type
     Unknown,
+}
+
+impl SpliceCommand {
+    /// Returns the SCTE-35 splice command type byte for this command.
+    pub fn command_type(&self) -> u8 {
+        match self {
+            SpliceCommand::SpliceNull => 0x00,
+            SpliceCommand::SpliceSchedule(_) => 0x04,
+            SpliceCommand::SpliceInsert(_) => 0x05,
+            SpliceCommand::TimeSignal(_) => 0x06,
+            SpliceCommand::BandwidthReservation(_) => 0x07,
+            SpliceCommand::PrivateCommand(_) => 0xFF,
+            SpliceCommand::Unknown => 0xFF,
+        }
+    }
 }
 
 /// Represents a splice null command.

@@ -4,7 +4,7 @@
 //! and related structures.
 
 use crate::bit_reader::BitReader;
-use crate::commands::parse_splice_command;
+use crate::commands::{LEGACY_SPLICE_COMMAND_LENGTH, parse_splice_command};
 use crate::descriptors::{SegmentationDescriptor, SpliceDescriptor};
 use crate::types::{SegmentationType, SpliceInfoSection};
 use crate::upid::SegmentationUpidType;
@@ -73,12 +73,19 @@ pub fn parse_splice_info_section(buffer: &[u8]) -> Result<SpliceInfoSection, io:
         parse_splice_command(&mut reader, splice_command_type, splice_command_length)?;
     let command_end_offset = reader.get_offset();
     let command_bits_read = command_end_offset - command_start_offset;
-    let command_expected_bits = splice_command_length as usize * 8;
-    if command_bits_read < command_expected_bits {
-        eprintln!(
-            "Warning: Splice command length mismatch. Expected {command_expected_bits} bits, read {command_bits_read} bits."
-        );
-        reader.skip_bits(command_expected_bits - command_bits_read)?;
+    if splice_command_length != LEGACY_SPLICE_COMMAND_LENGTH {
+        let command_expected_bits = splice_command_length as usize * 8;
+        if command_bits_read > command_expected_bits {
+            return Err(io::Error::new(
+                ErrorKind::InvalidData,
+                format!(
+                    "Splice command exceeded declared splice_command_length: expected {command_expected_bits} bits, read {command_bits_read} bits"
+                ),
+            ));
+        }
+        if command_bits_read < command_expected_bits {
+            reader.skip_bits(command_expected_bits - command_bits_read)?;
+        }
     }
 
     let descriptor_loop_length = reader.read_uimsbf(16)? as u16;
@@ -89,12 +96,16 @@ pub fn parse_splice_info_section(buffer: &[u8]) -> Result<SpliceInfoSection, io:
         splice_descriptors.push(parse_splice_descriptor(&mut reader)?);
         descriptor_bits_read = reader.get_offset() - descriptor_start_offset;
     }
-    if descriptor_bits_read > descriptor_loop_length as usize * 8 {
-        eprintln!(
-            "Warning: Descriptor loop length mismatch. Expected {} bits, read {} bits.",
-            descriptor_loop_length as usize * 8,
-            descriptor_bits_read
-        );
+    let descriptor_expected_bits = descriptor_loop_length as usize * 8;
+    if descriptor_bits_read > descriptor_expected_bits {
+        return Err(io::Error::new(
+            ErrorKind::InvalidData,
+            format!(
+                "Descriptor loop exceeded declared descriptor_loop_length: expected {descriptor_expected_bits} bits, read {descriptor_bits_read} bits"
+            ),
+        ));
+    }
+    if descriptor_bits_read < descriptor_expected_bits {
         reader.skip_bits(descriptor_loop_length as usize * 8 - descriptor_bits_read)?;
     }
 
@@ -141,17 +152,14 @@ pub fn parse_splice_info_section(buffer: &[u8]) -> Result<SpliceInfoSection, io:
         section_syntax_indicator,
         private_indicator,
         sap_type,
-        section_length,
         protocol_version,
         encrypted_packet,
         encryption_algorithm,
         pts_adjustment,
         cw_index,
         tier,
-        splice_command_length,
         splice_command_type,
         splice_command,
-        descriptor_loop_length,
         splice_descriptors,
         alignment_stuffing_bits,
         e_crc_32,

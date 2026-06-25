@@ -247,14 +247,12 @@ Example JSON output:
   "table_id": 252,
   "section_syntax_indicator": 0,
   "private_indicator": 0,
-  "section_length": 22,
   "protocol_version": 0,
   "encrypted_packet": 0,
   "encryption_algorithm": 0,
   "pts_adjustment": 0,
   "cw_index": 255,
   "tier": 4095,
-  "splice_command_length": 5,
   "splice_command_type": 6,
   "splice_command": {
     "type": "TimeSignal",
@@ -268,7 +266,6 @@ Example JSON output:
       }
     }
   },
-  "descriptor_loop_length": 0,
   "splice_descriptors": [],
   "alignment_stuffing_bits": "",
   "e_crc_32": null,
@@ -363,7 +360,10 @@ let section = SpliceInfoSectionBuilder::new()
     .splice_insert(splice_insert)
     .build()?;
 
-println!("Created SCTE-35 message with {} byte payload", section.section_length);
+println!(
+    "Created SCTE-35 message with command type 0x{:02x}",
+    section.splice_command_type
+);
 # Ok(())
 # }
 ```
@@ -581,10 +581,8 @@ cargo run --features cli -- -o json "/DAvAAAAAAAA///wFAVIAACPf+/+c2nALv4AUsz1AAA
   "status": "success",
   "data": {
     "table_id": 252,
-    "section_length": 47,
     "protocol_version": 0,
     "splice_command_type": 5,
-    "splice_command_length": 20,
     "splice_command": {
       "type": "SpliceInsert",
       "splice_event_id": 1207959695,
@@ -615,7 +613,6 @@ cargo run --features cli -- -o json "/DAvAAAAAAAA///wFAVIAACPf+/+c2nALv4AUsz1AAA
       "avail_num": 0,
       "avails_expected": 0
     },
-    "descriptor_loop_length": 10,
     "splice_descriptors": [
       {
         "descriptor_type": "Unknown",
@@ -689,7 +686,6 @@ cargo doc --no-deps --open
 Convenient alias for parsing SCTE-35 messages. This is the recommended function for most use cases, providing a clean and ergonomic API.
 
 ```rust
-# use scte35;
 # fn main() -> Result<(), Box<dyn std::error::Error>> {
 # #[cfg(feature = "cli")]
 # {
@@ -723,13 +719,15 @@ Validates the CRC-32 checksum of an SCTE-35 message independently. Returns `Ok(t
 #### `SpliceInfoSection`
 The top-level structure containing all SCTE-35 message fields:
 - `table_id`: Table identifier (should be 0xFC for SCTE-35)
-- `section_length`: Length of the section
 - `protocol_version`: SCTE-35 protocol version
 - `splice_command_type`: Type of splice command
 - `splice_command`: The actual command data (enum)
-- `descriptor_loop_length`: Length of descriptors
 - `splice_descriptors`: List of splice descriptors
 - `crc_32`: CRC32 checksum
+
+Wire length fields such as `section_length`, `splice_command_length`, and
+`descriptor_loop_length` are parsed and validated internally, and are computed
+when encoding.
 
 #### `SpliceCommand`
 An enum representing different SCTE-35 command types:

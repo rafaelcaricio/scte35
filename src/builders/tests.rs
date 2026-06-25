@@ -1166,7 +1166,6 @@ mod builder_tests {
 
         // Verify key fields
         assert_eq!(reparsed_section.splice_command_type, 0x00); // SpliceNull
-        assert_eq!(reparsed_section.section_length, 17); // Expected section length
         if let crate::types::SpliceCommand::SpliceNull = &reparsed_section.splice_command {
             // SpliceNull has no additional fields to verify
         } else {

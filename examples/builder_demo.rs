@@ -29,7 +29,7 @@ fn main() -> BuilderResult<()> {
         section.splice_command.get_event_id().unwrap_or(0)
     );
     println!("   Command Type: 0x{:02x}", section.splice_command_type);
-    println!("   Section Length: {} bytes\n", section.section_length);
+    println!();
 
     // Example 2: Creating a Time Signal with Segmentation Descriptor
     println!("2. Creating a program start boundary with UPID:");
@@ -57,10 +57,7 @@ fn main() -> BuilderResult<()> {
             .unwrap_or(0)
     );
     println!("   Descriptors: {}", section.splice_descriptors.len());
-    println!(
-        "   Descriptor Loop Length: {} bytes\n",
-        section.descriptor_loop_length
-    );
+    println!();
 
     // Example 3: Creating an Immediate Splice Out
     println!("3. Creating an immediate splice out to ads:");
