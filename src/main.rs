@@ -30,10 +30,8 @@ struct Arguments {
 fn print_text_output(section: &SpliceInfoSection, buffer: &[u8]) {
     println!("Successfully parsed SpliceInfoSection:");
     println!("  Table ID: {}", section.table_id);
-    println!("  Section Length: {}", section.section_length);
     println!("  Protocol Version: {}", section.protocol_version);
     println!("  Splice Command Type: {}", section.splice_command_type);
-    println!("  Splice Command Length: {}", section.splice_command_length);
 
     match &section.splice_command {
         SpliceCommand::SpliceNull => {
@@ -62,12 +60,12 @@ fn print_text_output(section: &SpliceInfoSection, buffer: &[u8]) {
             println!("    Duration Flag: {}", cmd.duration_flag);
             println!("    Splice Immediate Flag: {}", cmd.splice_immediate_flag);
 
-            if let Some(splice_time) = &cmd.splice_time {
-                if let Some(pts) = splice_time.pts_time {
-                    println!("    Splice Time PTS: 0x{pts:09x}");
-                    if let Some(duration) = splice_time.to_duration() {
-                        println!("    Splice Time: {:.6} seconds", duration.as_secs_f64());
-                    }
+            if let Some(splice_time) = &cmd.splice_time
+                && let Some(pts) = splice_time.pts_time
+            {
+                println!("    Splice Time PTS: 0x{pts:09x}");
+                if let Some(duration) = splice_time.to_duration() {
+                    println!("    Splice Time: {:.6} seconds", duration.as_secs_f64());
                 }
             }
 
@@ -102,14 +100,13 @@ fn print_text_output(section: &SpliceInfoSection, buffer: &[u8]) {
             println!("    Private Command Length: {}", cmd.private_command_length);
         }
         SpliceCommand::Unknown => {
-            println!("  Splice Command: Unknown");
+            println!(
+                "  Splice Command: Unknown (0x{:02x})",
+                section.splice_command_type
+            );
         }
     }
 
-    println!(
-        "  Descriptor Loop Length: {}",
-        section.descriptor_loop_length
-    );
     println!(
         "  Number of Descriptors: {}",
         section.splice_descriptors.len()

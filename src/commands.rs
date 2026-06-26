@@ -9,7 +9,9 @@ use crate::types::{
     BandwidthReservation, ComponentSplice, PrivateCommand, SpliceCommand, SpliceInsert,
     SpliceInsertComponent, SpliceSchedule, TimeSignal,
 };
-use std::io;
+use std::io::{self, ErrorKind};
+
+pub(crate) const LEGACY_SPLICE_COMMAND_LENGTH: u16 = 0x0FFF;
 
 /// Parses a splice command based on the command type.
 ///
@@ -34,8 +36,16 @@ pub(crate) fn parse_splice_command(
             reader,
         )?)),
         _ => {
-            // Unknown command type - skip the data
-            reader.skip_bits((splice_command_length * 8) as usize)?;
+            if splice_command_length == LEGACY_SPLICE_COMMAND_LENGTH {
+                return Err(io::Error::new(
+                    ErrorKind::InvalidData,
+                    format!(
+                        "Cannot parse unknown splice command type 0x{splice_command_type:02X} with legacy splice_command_length 0xFFF"
+                    ),
+                ));
+            }
+
+            reader.skip_bits(splice_command_length as usize * 8)?;
             Ok(SpliceCommand::Unknown)
         }
     }

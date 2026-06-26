@@ -15,18 +15,3 @@ impl SpliceCommandExt for SpliceCommand {
         self.encoded_size() as u16
     }
 }
-
-/// Convert SpliceCommand reference to command type byte.
-impl From<&SpliceCommand> for u8 {
-    fn from(command: &SpliceCommand) -> Self {
-        match command {
-            SpliceCommand::SpliceNull => 0x00,
-            SpliceCommand::SpliceSchedule(_) => 0x04,
-            SpliceCommand::SpliceInsert(_) => 0x05,
-            SpliceCommand::TimeSignal(_) => 0x06,
-            SpliceCommand::BandwidthReservation(_) => 0x07,
-            SpliceCommand::PrivateCommand(_) => 0xFF,
-            SpliceCommand::Unknown => 0xFF,
-        }
-    }
-}

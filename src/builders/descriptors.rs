@@ -241,13 +241,11 @@ impl SegmentationDescriptorBuilder {
                     });
                 }
             }
-            Upid::Reserved(_, data) => {
-                if data.len() > 255 {
-                    return Err(BuilderError::InvalidValue {
-                        field: "reserved_upid_data",
-                        reason: "Reserved UPID data must be <= 255 bytes".to_string(),
-                    });
-                }
+            Upid::Reserved(_, data) if data.len() > 255 => {
+                return Err(BuilderError::InvalidValue {
+                    field: "reserved_upid_data",
+                    reason: "Reserved UPID data must be <= 255 bytes".to_string(),
+                });
             }
             _ => {} // Other types have fixed sizes
         }

@@ -87,7 +87,6 @@ mod tests {
 
         println!("Parsed section successfully");
         println!("  Table ID: {}", section.table_id);
-        println!("  Section Length: {}", section.section_length);
         println!("  Command Type: {}", section.splice_command_type);
 
         // Encode back to binary with CRC
@@ -266,17 +265,14 @@ mod tests {
             section_syntax_indicator: 0,
             private_indicator: 0,
             sap_type: 3,
-            section_length: 0, // Will be calculated during encoding
             protocol_version: 0,
             encrypted_packet: 0,
             encryption_algorithm: 0,
             pts_adjustment: 0,
             cw_index: 0xFF,
             tier: 0xFFF,
-            splice_command_length: 0, // Will be calculated during encoding
-            splice_command_type: 7,
+            splice_command_type: 0x07,
             splice_command: SpliceCommand::BandwidthReservation(bandwidth_reservation),
-            descriptor_loop_length: 0,
             splice_descriptors: Vec::new(),
             alignment_stuffing_bits: Vec::new(),
             e_crc_32: None,
@@ -307,17 +303,14 @@ mod tests {
             section_syntax_indicator: 0,
             private_indicator: 0,
             sap_type: 3,
-            section_length: 0, // Will be calculated during encoding
             protocol_version: 0,
             encrypted_packet: 0,
             encryption_algorithm: 0,
             pts_adjustment: 0,
             cw_index: 0xFF,
             tier: 0xFFF,
-            splice_command_length: 0, // Will be calculated during encoding
             splice_command_type: 0xFF,
             splice_command: SpliceCommand::PrivateCommand(private_command),
-            descriptor_loop_length: 0,
             splice_descriptors: Vec::new(),
             alignment_stuffing_bits: Vec::new(),
             e_crc_32: None,
@@ -498,7 +491,6 @@ mod tests {
         // Basic sanity checks
         assert_eq!(section.table_id, reparsed.table_id);
         assert_eq!(section.splice_command_type, reparsed.splice_command_type);
-        assert_eq!(section.section_length, reparsed.section_length);
 
         println!("Original:  {original_payload}");
         println!("Re-encoded: {encoded_base64}");

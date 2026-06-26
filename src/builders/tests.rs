@@ -501,6 +501,22 @@ mod builder_tests {
     }
 
     #[test]
+    fn test_splice_info_section_builder_rejects_unknown_command() {
+        let result = SpliceInfoSectionBuilder::new()
+            .splice_command(crate::types::SpliceCommand::Unknown)
+            .build();
+
+        assert!(result.is_err());
+        match result.unwrap_err() {
+            BuilderError::InvalidValue { field, reason } => {
+                assert_eq!(field, "splice_command");
+                assert_eq!(reason, "unknown splice commands cannot be built");
+            }
+            _ => panic!("Expected InvalidValue error"),
+        }
+    }
+
+    #[test]
     fn test_splice_null_command() {
         let section = SpliceInfoSectionBuilder::new()
             .splice_null()
@@ -1166,7 +1182,6 @@ mod builder_tests {
 
         // Verify key fields
         assert_eq!(reparsed_section.splice_command_type, 0x00); // SpliceNull
-        assert_eq!(reparsed_section.section_length, 17); // Expected section length
         if let crate::types::SpliceCommand::SpliceNull = &reparsed_section.splice_command {
             // SpliceNull has no additional fields to verify
         } else {

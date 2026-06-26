@@ -2,6 +2,29 @@ use super::*;
 use data_encoding::BASE64;
 use std::time::Duration;
 
+fn set_splice_command_length(buffer: &mut [u8], length: u16) {
+    assert!(
+        buffer.len() > 12,
+        "splice_info_section buffer must include splice_command_length bytes"
+    );
+    assert!(length <= 0x0fff);
+    // The 12-bit splice_command_length starts in the low nibble of byte 11
+    // and continues through byte 12 in splice_info_section().
+    buffer[11] = (buffer[11] & 0xf0) | ((length >> 8) as u8 & 0x0f);
+    buffer[12] = length as u8;
+}
+
+#[cfg(feature = "crc-validation")]
+fn refresh_crc(buffer: &mut [u8]) {
+    let crc = crate::crc::calculate_crc(&buffer[..buffer.len() - 4]).unwrap();
+    let crc_bytes = crc.to_be_bytes();
+    let crc_offset = buffer.len() - 4;
+    buffer[crc_offset..].copy_from_slice(&crc_bytes);
+}
+
+#[cfg(not(feature = "crc-validation"))]
+fn refresh_crc(_buffer: &mut [u8]) {}
+
 #[test]
 fn test_time_signal_command() {
     // Time Signal example from threefive: '/DAWAAAAAAAAAP/wBQb+Qjo1vQAAuwxz9A=='
@@ -43,6 +66,39 @@ fn test_time_signal_command() {
 }
 
 #[test]
+fn test_legacy_splice_command_length_for_known_command() {
+    let base64 = "/DAvAAAAAAAA///wFAVIAACPf+/+c2nALv4AUsz1AAAAAAAKAAhDVUVJAAABNWLbowo=";
+    let mut buffer = BASE64.decode(base64.as_bytes()).unwrap();
+
+    set_splice_command_length(&mut buffer, 0x0fff);
+    refresh_crc(&mut buffer);
+
+    let section = parse_splice_info_section(&buffer)
+        .expect("known commands should ignore legacy splice_command_length 0xFFF");
+
+    assert_eq!(section.splice_command_type, 0x05);
+    assert!(matches!(
+        section.splice_command,
+        SpliceCommand::SpliceInsert(_)
+    ));
+    assert_eq!(section.splice_descriptors.len(), 1);
+}
+
+#[test]
+fn test_legacy_splice_command_length_rejects_unknown_command() {
+    let base64 = "/DAWAAAAAAAAAP/wBQb+Qjo1vQAAuwxz9A==";
+    let mut buffer = BASE64.decode(base64.as_bytes()).unwrap();
+
+    set_splice_command_length(&mut buffer, 0x0fff);
+    buffer[13] = 0x08;
+    refresh_crc(&mut buffer);
+
+    let error = parse_splice_info_section(&buffer).unwrap_err();
+    assert_eq!(error.kind(), std::io::ErrorKind::InvalidData);
+    assert!(error.to_string().contains("legacy splice_command_length"));
+}
+
+#[test]
 fn test_time_signal_with_descriptors() {
     // Time Signal with descriptors: '/DAgAAAAAAAAAP/wBQb+Qjo1vQAKAAhDVUVJAAAE0iVuWvA='
     let time_signal_desc_base64 = "/DAgAAAAAAAAAP/wBQb+Qjo1vQAKAAhDVUVJAAAE0iVuWvA=";
@@ -62,7 +118,7 @@ fn test_time_signal_with_descriptors() {
 
     // Should have descriptors
     assert!(
-        section.descriptor_loop_length > 0,
+        !section.splice_descriptors.is_empty(),
         "Should have descriptors"
     );
     assert!(
@@ -112,7 +168,7 @@ fn test_upid_adid_example_no_crc_validation() {
 
     // Should have descriptors with UPID
     assert!(
-        section.descriptor_loop_length > 0,
+        !section.splice_descriptors.is_empty(),
         "Should have descriptors for UPID"
     );
     assert!(
@@ -146,7 +202,7 @@ fn test_upid_umid_example() {
 
     // Should have descriptors with UPID
     assert!(
-        section.descriptor_loop_length > 0,
+        !section.splice_descriptors.is_empty(),
         "Should have descriptors for UPID"
     );
     assert!(
@@ -176,7 +232,7 @@ fn test_upid_isan_example() {
 
     // Should have descriptors with UPID
     assert!(
-        section.descriptor_loop_length > 0,
+        !section.splice_descriptors.is_empty(),
         "Should have descriptors for UPID"
     );
     assert!(
@@ -205,7 +261,7 @@ fn test_upid_airid_example() {
 
     // Should have multiple descriptors
     assert!(
-        section.descriptor_loop_length > 0,
+        !section.splice_descriptors.is_empty(),
         "Should have descriptors for UPID"
     );
     assert!(
@@ -260,7 +316,7 @@ fn test_time_signal_placement_opportunity_end() {
 
     // Should have descriptors indicating placement opportunity end
     assert!(
-        section.descriptor_loop_length > 0,
+        !section.splice_descriptors.is_empty(),
         "Should have descriptors for placement opportunity end"
     );
     assert!(
@@ -292,7 +348,7 @@ fn test_multiple_descriptor_types() {
     let buffer2 = BASE64.decode(time_signal_desc_base64.as_bytes()).unwrap();
     let section2 = parse_splice_info_section(&buffer2).unwrap();
     assert_eq!(section2.splice_command_type, 0x06);
-    assert!(section2.descriptor_loop_length > 0);
+    assert!(!section2.splice_descriptors.is_empty());
 
     // Test 3: Complex message with multiple descriptors (AIRID example already covered)
     let complex_base64 = "/DBhAAAAAAAA///wBQb+qM1E7QBLAhdDVUVJSAAArX+fCAgAAAAALLLXnTUCAAIXQ1VFSUgAACZ/nwgIAAAAACyy150RAAACF0NVRUlIAAAnf58ICAAAAAAsstezEAAAihiGnw==";
@@ -407,7 +463,6 @@ fn test_parse_splice_info_section() {
         section.private_indicator, 0,
         "Private indicator should be 0 (Not Private)"
     );
-    assert_eq!(section.section_length, 47, "Section length should be 47");
     assert_eq!(section.protocol_version, 0, "Protocol version should be 0");
     assert_eq!(
         section.encrypted_packet, 0,
@@ -420,10 +475,6 @@ fn test_parse_splice_info_section() {
     assert_eq!(section.tier, 0xfff, "Tier should be 0xfff");
 
     // Validate splice command fields
-    assert_eq!(
-        section.splice_command_length, 0x14,
-        "Splice command length should be 0x14"
-    );
     assert_eq!(
         section.splice_command_type, 0x05,
         "Splice command type should be 0x05 (SpliceInsert)"
@@ -484,11 +535,7 @@ fn test_parse_splice_info_section() {
         _ => panic!("Expected SpliceInsert command"),
     }
 
-    // Validate descriptor loop
-    assert_eq!(
-        section.descriptor_loop_length, 10,
-        "Descriptor loop length should be 10"
-    );
+    // Validate descriptors
     assert_eq!(
         section.splice_descriptors.len(),
         1,
