@@ -185,6 +185,7 @@ fn main() -> BuilderResult<()> {
         }
         Err(e) => println!("   Unexpected error: {e}"),
     }
+    println!();
 
     // Example 7: MPU UPID usage patterns
     println!("7. Creating MPU UPIDs for different use cases:");
