@@ -88,21 +88,6 @@ pub enum SpliceCommand {
     Unknown,
 }
 
-impl SpliceCommand {
-    /// Returns the SCTE-35 splice command type byte for this command.
-    pub fn command_type(&self) -> u8 {
-        match self {
-            SpliceCommand::SpliceNull => 0x00,
-            SpliceCommand::SpliceSchedule(_) => 0x04,
-            SpliceCommand::SpliceInsert(_) => 0x05,
-            SpliceCommand::TimeSignal(_) => 0x06,
-            SpliceCommand::BandwidthReservation(_) => 0x07,
-            SpliceCommand::PrivateCommand(_) => 0xFF,
-            SpliceCommand::Unknown => 0xFF,
-        }
-    }
-}
-
 /// Represents a splice null command.
 ///
 /// This command indicates no splice operation should be performed.

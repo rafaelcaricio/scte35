@@ -15,10 +15,3 @@ impl SpliceCommandExt for SpliceCommand {
         self.encoded_size() as u16
     }
 }
-
-/// Convert SpliceCommand reference to command type byte.
-impl From<&SpliceCommand> for u8 {
-    fn from(command: &SpliceCommand) -> Self {
-        command.command_type()
-    }
-}

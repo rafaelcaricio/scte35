@@ -146,6 +146,20 @@ impl SpliceInfoSectionBuilder {
     pub fn build(self) -> BuilderResult<SpliceInfoSection> {
         let splice_command = self.splice_command
             .ok_or(BuilderError::MissingRequiredField("splice_command"))?;
+        let splice_command_type = match &splice_command {
+            SpliceCommand::SpliceNull => 0x00,
+            SpliceCommand::SpliceSchedule(_) => 0x04,
+            SpliceCommand::SpliceInsert(_) => 0x05,
+            SpliceCommand::TimeSignal(_) => 0x06,
+            SpliceCommand::BandwidthReservation(_) => 0x07,
+            SpliceCommand::PrivateCommand(_) => 0xFF,
+            SpliceCommand::Unknown => {
+                return Err(BuilderError::InvalidValue {
+                    field: "splice_command",
+                    reason: "unknown splice commands cannot be built".to_string(),
+                });
+            }
+        };
 
         // Calculate section_length and other derived fields
         let splice_command_length = splice_command.encoded_length();
@@ -167,7 +181,7 @@ impl SpliceInfoSectionBuilder {
             cw_index: 0,  // Not exposing encryption
             tier: self.tier,
             splice_command_length,
-            splice_command_type: (&splice_command).into(),
+            splice_command_type,
             splice_command,
             descriptor_loop_length,
             splice_descriptors: self.descriptors,
@@ -730,21 +744,6 @@ impl SpliceCommand {
             }
             SpliceCommand::PrivateCommand(pc) => pc.private_command_length as u16 + 3,
             SpliceCommand::Unknown => 0,
-        }
-    }
-}
-
-// Convert SpliceCommand reference to command type byte
-impl From<&SpliceCommand> for u8 {
-    fn from(command: &SpliceCommand) -> Self {
-        match command {
-            SpliceCommand::SpliceNull => 0x00,
-            SpliceCommand::SpliceSchedule(_) => 0x04,
-            SpliceCommand::SpliceInsert(_) => 0x05,
-            SpliceCommand::TimeSignal(_) => 0x06,
-            SpliceCommand::BandwidthReservation(_) => 0x07,
-            SpliceCommand::PrivateCommand(_) => 0xFF,
-            SpliceCommand::Unknown => 0xFF,
         }
     }
 }

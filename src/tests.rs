@@ -3,6 +3,10 @@ use data_encoding::BASE64;
 use std::time::Duration;
 
 fn set_splice_command_length(buffer: &mut [u8], length: u16) {
+    assert!(
+        buffer.len() > 12,
+        "splice_info_section buffer must include splice_command_length bytes"
+    );
     assert!(length <= 0x0fff);
     // The 12-bit splice_command_length starts in the low nibble of byte 11
     // and continues through byte 12 in splice_info_section().
@@ -10,15 +14,16 @@ fn set_splice_command_length(buffer: &mut [u8], length: u16) {
     buffer[12] = length as u8;
 }
 
+#[cfg(feature = "crc-validation")]
 fn refresh_crc(buffer: &mut [u8]) {
-    #[cfg(feature = "crc-validation")]
-    {
-        let crc = crate::crc::calculate_crc(&buffer[..buffer.len() - 4]).unwrap();
-        let crc_bytes = crc.to_be_bytes();
-        let crc_offset = buffer.len() - 4;
-        buffer[crc_offset..].copy_from_slice(&crc_bytes);
-    }
+    let crc = crate::crc::calculate_crc(&buffer[..buffer.len() - 4]).unwrap();
+    let crc_bytes = crc.to_be_bytes();
+    let crc_offset = buffer.len() - 4;
+    buffer[crc_offset..].copy_from_slice(&crc_bytes);
 }
+
+#[cfg(not(feature = "crc-validation"))]
+fn refresh_crc(_buffer: &mut [u8]) {}
 
 #[test]
 fn test_time_signal_command() {

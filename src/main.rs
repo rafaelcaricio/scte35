@@ -60,12 +60,12 @@ fn print_text_output(section: &SpliceInfoSection, buffer: &[u8]) {
             println!("    Duration Flag: {}", cmd.duration_flag);
             println!("    Splice Immediate Flag: {}", cmd.splice_immediate_flag);
 
-            if let Some(splice_time) = &cmd.splice_time {
-                if let Some(pts) = splice_time.pts_time {
-                    println!("    Splice Time PTS: 0x{pts:09x}");
-                    if let Some(duration) = splice_time.to_duration() {
-                        println!("    Splice Time: {:.6} seconds", duration.as_secs_f64());
-                    }
+            if let Some(splice_time) = &cmd.splice_time
+                && let Some(pts) = splice_time.pts_time
+            {
+                println!("    Splice Time PTS: 0x{pts:09x}");
+                if let Some(duration) = splice_time.to_duration() {
+                    println!("    Splice Time: {:.6} seconds", duration.as_secs_f64());
                 }
             }
 

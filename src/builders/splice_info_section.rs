@@ -96,12 +96,26 @@ impl SpliceInfoSectionBuilder {
     ///
     /// # Errors
     ///
-    /// Returns an error if no splice command has been set.
+    /// Returns an error if no splice command has been set or an unknown
+    /// command is supplied.
     pub fn build(self) -> BuilderResult<SpliceInfoSection> {
         let splice_command = self
             .splice_command
             .ok_or(BuilderError::MissingRequiredField("splice_command"))?;
-        let splice_command_type = splice_command.command_type();
+        let splice_command_type = match &splice_command {
+            SpliceCommand::SpliceNull => 0x00,
+            SpliceCommand::SpliceSchedule(_) => 0x04,
+            SpliceCommand::SpliceInsert(_) => 0x05,
+            SpliceCommand::TimeSignal(_) => 0x06,
+            SpliceCommand::BandwidthReservation(_) => 0x07,
+            SpliceCommand::PrivateCommand(_) => 0xFF,
+            SpliceCommand::Unknown => {
+                return Err(BuilderError::InvalidValue {
+                    field: "splice_command",
+                    reason: "unknown splice commands cannot be built".to_string(),
+                });
+            }
+        };
 
         // Build the section with proper defaults. Length fields are derived
         // during encoding and are intentionally not stored in the API model.
